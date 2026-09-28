@@ -33,16 +33,6 @@ _INV_FFT_MSG = (
 )
 
 
-def _batched_view(vec, nbatch, dist):
-    """View a flat array as its nbatch rows separated by dist."""
-    data = getattr(vec, "data", vec)
-    if hasattr(data, "tensor"):
-        data = data.tensor
-    elif hasattr(data, "_data"):
-        data = data._data
-    return data[: nbatch * dist].reshape(nbatch, dist)
-
-
 def _assign_to_vec(outvec, result, nbatch, size, odist):
     """Assign JAX or NumPy result into destination vector data."""
     target = getattr(outvec, "data", outvec)

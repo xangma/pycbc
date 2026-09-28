@@ -135,9 +135,9 @@ def dominant_mode_projection(fp, fc, polarization, inclination, like):
 def _wrap_like(value, arr):
     """Wrap ``arr`` in the same PyCBC container family as ``value``."""
     from pycbc.types import Array
-    from pycbc.types.array_jax import JaxArrayData
+    from pycbc.types.array_jax import JAXArrayData
 
-    data = JaxArrayData(arr)
+    data = JAXArrayData(arr)
     return value._return(data) if hasattr(value, "_return") else Array(data, copy=False)
 
 
@@ -373,46 +373,6 @@ def _summaries_cartesian(ratio_r, ratio_i, a0, a1, b0, b1):
     )
 
 
-def _linearized_filter(ratio, a0, a1):
-    """Calculate the linearized data-waveform inner product."""
-    r_r = ratio.real if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else ratio
-    r_i = ratio.imag if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else 0.0
-    a0_r = a0.real if jnp.issubdtype(a0.dtype, jnp.complexfloating) else a0
-    a0_i = a0.imag if jnp.issubdtype(a0.dtype, jnp.complexfloating) else 0.0
-    a1_r = a1.real if jnp.issubdtype(a1.dtype, jnp.complexfloating) else a1
-    a1_i = a1.imag if jnp.issubdtype(a1.dtype, jnp.complexfloating) else 0.0
-    return _linearized_filter_cartesian(r_r, r_i, a0_r, a0_i, a1_r, a1_i)
-
-
-def _linearized_norm(ratio, b0, b1):
-    """Calculate the linearized waveform norm."""
-    r_r = ratio.real if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else ratio
-    r_i = ratio.imag if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else 0.0
-    return _linearized_norm_cartesian(r_r, r_i, b0, b1)
-
-
-def _linearized_cross(ratio, ratio2, a0, a1):
-    """Calculate a linearized cross term between two waveform ratios."""
-    r1_r = ratio.real if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else ratio
-    r1_i = ratio.imag if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else 0.0
-    r2_r = ratio2.real if jnp.issubdtype(ratio2.dtype, jnp.complexfloating) else ratio2
-    r2_i = ratio2.imag if jnp.issubdtype(ratio2.dtype, jnp.complexfloating) else 0.0
-    a0_r = a0.real if jnp.issubdtype(a0.dtype, jnp.complexfloating) else a0
-    a0_i = a0.imag if jnp.issubdtype(a0.dtype, jnp.complexfloating) else 0.0
-    a1_r = a1.real if jnp.issubdtype(a1.dtype, jnp.complexfloating) else a1
-    a1_i = a1.imag if jnp.issubdtype(a1.dtype, jnp.complexfloating) else 0.0
-    return _linearized_cross_cartesian(
-        r1_r, r1_i, r2_r, r2_i, a0_r, a0_i, a1_r, a1_i
-    )
-
-
-def _summaries(ratio, a0, a1, b0, b1):
-    """Calculate the linearized data and waveform inner products."""
-    r_r = ratio.real if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else ratio
-    r_i = ratio.imag if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else 0.0
-    return _summaries_cartesian(r_r, r_i, a0, a1, b0, b1)
-
-
 def _sample_axis(value):
     """Map a scalar or sample shape ``(...)`` to ``(...)`` or ``(..., 1)``."""
     if value.ndim == 0:
@@ -484,32 +444,8 @@ def likelihood_parts_v(freqs, fp, fc, dtc, hp, hc, h00, a0, a1, b0, b1):
     return _summaries_cartesian(ratio_r, ratio_i, a0, a1, b0, b1)
 
 
-def likelihood_parts_vector(freqs, fp, fc, dtc, hp, hc, h00, a0, a1, b0, b1):
-    """Calculate likelihood parts for paired sky, time, or pol samples."""
-    hp = _jax_array(hp)
-    if hp is None:
-        raise TypeError("a JAX-backed waveform is required")
-
-    real_dtype = hp.real.dtype
-    hc = _as_array(hc, hp, hp.dtype)
-    freqs = _as_array(freqs, hp, real_dtype)
-    h00 = _as_array(h00, hp, hp.dtype)
-    fp = _sample_axis(_as_array(fp, hp, real_dtype))
-    fc = _sample_axis(_as_array(fc, hp, real_dtype))
-    dtc = _sample_axis(_as_array(dtc, hp, real_dtype))
-    a0 = _as_array(a0, hp, hp.dtype)
-    a1 = _as_array(a1, hp, hp.dtype)
-    b0 = _as_array(b0, hp, real_dtype)
-    b1 = _as_array(b1, hp, real_dtype)
-
-    phase = -2.0 * _RELBIN_PI * dtc * freqs
-    shift_r = jnp.cos(phase)
-    shift_i = jnp.sin(phase)
-    h_r = fp * hp.real + fc * hc.real
-    h_i = fp * hp.imag + fc * hc.imag
-    prod_r, prod_i = _cmul(shift_r, shift_i, h_r, h_i)
-    ratio_r, ratio_i = _cdiv(prod_r, prod_i, h00.real, h00.imag)
-    return _summaries_cartesian(ratio_r, ratio_i, a0, a1, b0, b1)
+# In JAX broadcasting handles both scalar and vectorized sample inputs identically.
+likelihood_parts_vector = likelihood_parts
 
 
 def _likelihood_parts_v_vector(
@@ -765,20 +701,6 @@ def _time_shifted_filters_cartesian(
         filters_i.append(-(t1_i + t2_i).sum(axis=-1))
 
     return jnp.concatenate(filters_r), jnp.concatenate(filters_i)
-
-
-def _time_shifted_filters(freqs, tstart, delta_t, num_samples, ratio, a0, a1):
-    """Evaluate relative-bin filters over a blocked uniform time grid."""
-    ratio_r = ratio.real if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else ratio
-    ratio_i = ratio.imag if jnp.issubdtype(ratio.dtype, jnp.complexfloating) else 0.0
-    a0_r = a0.real if jnp.issubdtype(a0.dtype, jnp.complexfloating) else a0
-    a0_i = a0.imag if jnp.issubdtype(a0.dtype, jnp.complexfloating) else 0.0
-    a1_r = a1.real if jnp.issubdtype(a1.dtype, jnp.complexfloating) else a1
-    a1_i = a1.imag if jnp.issubdtype(a1.dtype, jnp.complexfloating) else 0.0
-    filt_r, filt_i = _time_shifted_filters_cartesian(
-        freqs, tstart, delta_t, num_samples, ratio_r, ratio_i, a0_r, a0_i, a1_r, a1_i
-    )
-    return filt_r + 1j * filt_i
 
 
 def snr_predictor(freqs, tstart, delta_t, num_samples, hp, hc, h00, a0, a1, b0, b1):

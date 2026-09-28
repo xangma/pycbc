@@ -8,37 +8,6 @@ from pycbc.types.backend import jax_module_for as _jax_module_for
 
 _EXPRESSION_UNSUPPORTED = object()
 
-_EXPRESSION_FUNCTIONS = {
-    "abs": "abs",
-    "absolute": "absolute",
-    "acos": "acos",
-    "acosh": "acosh",
-    "asin": "asin",
-    "asinh": "asinh",
-    "atan": "atan",
-    "atan2": "atan2",
-    "arctan2": "atan2",
-    "ceil": "ceil",
-    "cos": "cos",
-    "cosh": "cosh",
-    "exp": "exp",
-    "expm1": "expm1",
-    "floor": "floor",
-    "hypot": "hypot",
-    "log": "log",
-    "log10": "log10",
-    "log1p": "log1p",
-    "log2": "log2",
-    "maximum": "maximum",
-    "minimum": "minimum",
-    "sign": "sign",
-    "sin": "sin",
-    "sinh": "sinh",
-    "sqrt": "sqrt",
-    "tan": "tan",
-    "tanh": "tanh",
-}
-
 _EXPRESSION_NODES = (
     ast.Expression,
     ast.BinOp,

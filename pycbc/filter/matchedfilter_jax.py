@@ -432,8 +432,13 @@ def _set_output_array(z, val):
 
 
 @jax.jit
-def _fast_conj_mul(x, y):
+def correlate_jax(x, y):
+    """Pure JAX elementwise conjugate multiplication: conj(x) * y."""
     return jnp.conj(x) * y
+
+
+_fast_conj_mul = correlate_jax
+_batch_correlate_products = correlate_jax
 
 
 def correlate(x, y, z):
@@ -441,7 +446,7 @@ def correlate(x, y, z):
     _ensure_x64()
     x_arr = to_jax(x)
     y_arr = to_jax(y)
-    prod = _fast_conj_mul(x_arr, y_arr)
+    prod = correlate_jax(x_arr, y_arr)
     _set_output_array(z, prod)
 
 
@@ -466,18 +471,12 @@ def _correlate_factory(x, y, z):
 @functools.partial(jax.jit, static_argnums=(4,))
 def _batch_correlate_update(templates, y, parent, base, row_stride):
     """Correlate and publish one contiguous sibling-view block."""
-    products = jnp.conj(templates) * y
+    products = correlate_jax(templates, y)
     block_len = templates.shape[0] * row_stride
     block = jax.lax.dynamic_slice(parent, (base,), (block_len,))
     block = block.reshape(templates.shape[0], row_stride)
     block = block.at[:, :templates.shape[1]].set(products)
     return jax.lax.dynamic_update_slice(parent, block.reshape(-1), (base,))
-
-
-@jax.jit
-def _batch_correlate_products(templates, y):
-    """Correlate rows for the general, independently-owned output path."""
-    return jnp.conj(templates) * y
 
 
 def batch_correlate_execute(self, y):
@@ -566,12 +565,6 @@ def batch_correlate_execute(self, y):
 # ----------------------------------------------------------------------
 # Pure Functional JAX API (JIT-compilable & Autodiff-compatible)
 # ----------------------------------------------------------------------
-
-
-@jax.jit
-def correlate_jax(x, y):
-    """Pure JAX elementwise conjugate multiplication: conj(x) * y."""
-    return jnp.conj(x) * y
 
 
 def sigmasq_jax(
@@ -909,8 +902,6 @@ def batch_peak_values(output, template_count, template_size, segment):
 def batch_peak_magnitudes(peak_values):
     """Materialize batch peak magnitudes in JAX."""
     _ensure_x64()
-    import jax.numpy as jnp
-
     jarr = to_jax(peak_values)
     return jnp.abs(jarr)
 
@@ -1138,9 +1129,7 @@ def batched_matched_filter_and_cluster_jax(
         MatchedFilterControl's contract.
     """
     _ensure_x64()
-    import jax.numpy as jnp
     from pycbc.types import Array, TimeSeries
-    from pycbc.types.array_jax import JAXArrayData, to_jax
 
     b = len(sigmasqs)
     if b == 0:
@@ -1310,7 +1299,6 @@ def _batched_sigmasq_core(tmpls_stack, psd_j, delta_f):
 
 def batch_sigmasq_jax(templates, psd):
     """Compute sigmasq for a batch of FrequencySeries templates against psd on GPU."""
-    from pycbc.types.array_jax import to_jax, _ensure_x64
     from pycbc import scheme
 
     _ensure_x64()

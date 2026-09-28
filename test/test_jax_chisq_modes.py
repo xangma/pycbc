@@ -119,10 +119,10 @@ def test_mode_changes_are_isolated_in_scheme_backend_key(monkeypatch):
                                          compatible(*a, **k)))
     monkeypatch.setattr(chisq_jax, "_point_chisq_cpu",
                         lambda *a, **k: (calls.append("direct") or direct(*a, **k)))
-    with scheme.JAXScheme(device="cpu", chisq_mode="cpu-compatible") as cpu:
+    with scheme.JAXScheme(device="cpu", chisq_mode="cpu-compatible"):
         cpu_key = scheme.current_backend_key()
         chisq_jax.shift_sum(row, points, bins)
-    with scheme.JAXScheme(device="cpu", chisq_mode="direct-phase") as phase:
+    with scheme.JAXScheme(device="cpu", chisq_mode="direct-phase"):
         phase_key = scheme.current_backend_key()
         chisq_jax.shift_sum(row, points, bins)
     assert cpu_key != phase_key

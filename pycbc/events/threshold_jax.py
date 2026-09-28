@@ -110,15 +110,6 @@ def _batched_cluster_from_magnitude(
     return global_max_idx, survivor_mask, block_max_snr
 
 
-@functools.partial(jax.jit, static_argnames=("window",))
-def _batched_cluster_core(valid_snr_2d, thresh_sq_1d, window):
-    """JIT-compiled batched reduction and clustering across batch and windows."""
-    mag_sq = valid_snr_2d.real ** 2 + valid_snr_2d.imag ** 2
-    return _batched_cluster_from_magnitude(
-        valid_snr_2d, mag_sq, thresh_sq_1d, window
-    )
-
-
 def threshold_and_cluster(series, threshold_val, window):
     """Return clustered values and indices exceeding threshold over window."""
     _ensure_x64()
@@ -158,8 +149,6 @@ class JAXThresholdCluster(_BaseThresholdCluster):
 
     def __init__(self, series):
         self.series = series
-        self._outv = None
-        self._outl = None
 
     def threshold_and_cluster(self, threshold, window):
         """Find clustered peaks exceeding threshold in magnitude."""

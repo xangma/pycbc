@@ -899,7 +899,7 @@ class LiveEventManager(object):
             if store_loudest_index:
                 for ifo in results:
                     if 'snr' in results[ifo]:
-                        if isinstance(ctx, scheme.JAXScheme):
+                        if isinstance(scheme.mgr.state, scheme.JAXScheme):
                             import jax
                             from pycbc.events.eventmgr_jax import loudest_event_indices
                             indices = loudest_event_indices(

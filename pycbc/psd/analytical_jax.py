@@ -22,8 +22,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
-from pycbc.types import FrequencySeries
-from pycbc.types.array_jax import JAXArrayData, _ensure_x64
+from pycbc.types.array_jax import _ensure_x64
 
 # Fundamental physical constants (SI)
 _C_SI = 299792458.0
@@ -155,12 +154,6 @@ _VERSIONED_DATA_FILES = {
     "aLIGOAdVO4IntermediateT1800545": (
         "LIGO-T1800545-v1-AdV_O4intermediate.txt"
     ),
-    "AdVO4T1800545": "LIGO-T1800545-v1-AdV_O4.txt",
-    "aLIGOAdVO4T1800545": "LIGO-T1800545-v1-AdV_O4.txt",
-    "AdVO3LowT1800545": "LIGO-T1800545-v1-AdV_O3low.txt",
-    "aLIGOAdVO3LowT1800545": "LIGO-T1800545-v1-AdV_O3low.txt",
-    "KAGRA128MpcT1800545": "LIGO-T1800545-v1-KAGRA_128Mpc.txt",
-    "aLIGOKAGRA128MpcT1800545": "LIGO-T1800545-v1-KAGRA_128Mpc.txt",
     "AdVO4T1800545": "LIGO-T1800545-v1-AdV_O4.txt",
     "aLIGOAdVO4T1800545": "LIGO-T1800545-v1-AdV_O4.txt",
     "AdVO3LowT1800545": "LIGO-T1800545-v1-AdV_O3low.txt",
@@ -743,16 +736,7 @@ def analytical_psd_jax(psd_name, frequencies, low_freq_cutoff=0.0):
     )
 
 
-def _wrap_frequency_series(values, delta_f, epoch=0.0):
-    """Wrap values in FrequencySeries matching the active scheme."""
-    from pycbc import scheme as _scheme
-
-    state = _scheme.mgr.state
-    if isinstance(state, _scheme.JAXScheme):
-        data = JAXArrayData(values)
-    else:
-        data = np.asarray(values)
-    return FrequencySeries(data, delta_f=delta_f, epoch=epoch, copy=False)
+from pycbc.psd.estimate_jax import _wrap_frequency_series
 
 
 def analytical_psd(

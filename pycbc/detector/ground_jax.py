@@ -8,15 +8,16 @@
 """JAX implementations of ground-detector geometry operations."""
 
 import numpy as np
-from astropy import constants
+import jax
+import jax.numpy as jnp
+
+from pycbc.constants import C_SI
 
 
-def _jax_antenna_pattern(
-    response, right_ascension, declination, polarization, gmst_start, phase_offsets
+def _polarization_basis(
+    right_ascension, declination, polarization, gmst_start, phase_offsets
 ):
-    """Evaluate a tensor-polarization response in JAX."""
-    import jax.numpy as jnp
-
+    """Compute wave-frame basis vectors x, y and propagation direction ehat."""
     dtype = phase_offsets.dtype
     right_ascension = jnp.asarray(right_ascension, dtype=dtype)
     declination = jnp.asarray(declination, dtype=dtype)
@@ -48,6 +49,24 @@ def _jax_antenna_pattern(
             cospsi * cosdec + jnp.zeros_like(phase_offsets),
         )
     )
+    ehat = jnp.stack(
+        (
+            cosdec * cosgha,
+            -cosdec * singha,
+            sindec + jnp.zeros_like(phase_offsets),
+        )
+    )
+    return x, y, ehat
+
+
+def _jax_antenna_pattern(
+    response, right_ascension, declination, polarization, gmst_start, phase_offsets
+):
+    """Evaluate a tensor-polarization response in JAX."""
+    x, y, _ = _polarization_basis(
+        right_ascension, declination, polarization, gmst_start, phase_offsets
+    )
+    dtype = phase_offsets.dtype
 
     response_is_complex = (
         jnp.iscomplexobj(response)
@@ -79,8 +98,6 @@ def _jax_antenna_pattern(
 
 def _jax_single_arm_frequency_response(frequency, direction, arm_length):
     """Evaluate the finite-arm transfer function with JAX operations."""
-    import jax.numpy as jnp
-
     array_inputs = tuple(
         value
         for value in (frequency, direction, arm_length)
@@ -107,7 +124,7 @@ def _jax_single_arm_frequency_response(frequency, direction, arm_length):
     direction = jnp.clip(jnp.asarray(direction, dtype=dtype), -0.999, 0.999)
     arm_length = jnp.asarray(arm_length, dtype=dtype)
 
-    phase = 2.0 * jnp.pi * frequency * arm_length / float(constants.c.value)
+    phase = 2.0 * jnp.pi * frequency * arm_length / C_SI
     minus = 1.0 - direction
     plus = 1.0 + direction
     theta1 = 0.5 * phase * minus
@@ -134,34 +151,16 @@ def _jax_time_delay(
     phase_offsets,
 ):
     """Evaluate a detector time delay in JAX."""
-    import jax.numpy as jnp
-
-    dtype = phase_offsets.dtype
-    right_ascension = jnp.asarray(right_ascension, dtype=dtype)
-    declination = jnp.asarray(declination, dtype=dtype)
-
-    gha_start = jnp.asarray(gmst_start, dtype=dtype) - right_ascension
-    cos_start = jnp.cos(gha_start)
-    sin_start = jnp.sin(gha_start)
-    cos_offset = jnp.cos(phase_offsets)
-    sin_offset = jnp.sin(phase_offsets)
-    cosgha = cos_start * cos_offset - sin_start * sin_offset
-    singha = sin_start * cos_offset + cos_start * sin_offset
-    cosdec = jnp.cos(declination)
-
-    ehat = jnp.stack(
-        (
-            cosdec * cosgha,
-            -cosdec * singha,
-            jnp.sin(declination) + jnp.zeros_like(phase_offsets),
-        )
+    _, _, ehat = _polarization_basis(
+        right_ascension, declination, 0.0, gmst_start, phase_offsets
     )
+    dtype = phase_offsets.dtype
     displacement = jnp.asarray(
         np.asarray(other_location) - np.asarray(detector_location),
         dtype=dtype,
     )
     displacement = displacement.reshape((3,) + (1,) * (ehat.ndim - 1))
-    return jnp.sum(displacement * ehat, axis=0) / float(constants.c.value)
+    return jnp.sum(displacement * ehat, axis=0) / C_SI
 
 
 def _jax_antenna_pattern_and_time_delay(
@@ -174,40 +173,10 @@ def _jax_antenna_pattern_and_time_delay(
     phase_offsets,
 ):
     """Evaluate a tensor response and geocentric delay in JAX."""
-    import jax.numpy as jnp
-
+    x, y, ehat = _polarization_basis(
+        right_ascension, declination, polarization, gmst_start, phase_offsets
+    )
     dtype = phase_offsets.dtype
-    right_ascension = jnp.asarray(right_ascension, dtype=dtype)
-    declination = jnp.asarray(declination, dtype=dtype)
-    polarization = jnp.asarray(polarization, dtype=dtype)
-
-    gha_start = jnp.asarray(gmst_start, dtype=dtype) - right_ascension
-    cos_start = jnp.cos(gha_start)
-    sin_start = jnp.sin(gha_start)
-    cos_offset = jnp.cos(phase_offsets)
-    sin_offset = jnp.sin(phase_offsets)
-    cosgha = cos_start * cos_offset - sin_start * sin_offset
-    singha = sin_start * cos_offset + cos_start * sin_offset
-    cosdec = jnp.cos(declination)
-    sindec = jnp.sin(declination)
-    cospsi = jnp.cos(polarization)
-    sinpsi = jnp.sin(polarization)
-
-    x = jnp.stack(
-        (
-            -cospsi * singha - sinpsi * cosgha * sindec,
-            -cospsi * cosgha + sinpsi * singha * sindec,
-            sinpsi * cosdec + jnp.zeros_like(phase_offsets),
-        )
-    )
-    y = jnp.stack(
-        (
-            sinpsi * singha - cospsi * cosgha * sindec,
-            sinpsi * cosgha + cospsi * singha * sindec,
-            cospsi * cosdec + jnp.zeros_like(phase_offsets),
-        )
-    )
-
     response_is_complex = (
         jnp.iscomplexobj(response)
         if isinstance(response, (jnp.ndarray, np.ndarray))
@@ -234,19 +203,12 @@ def _jax_antenna_pattern_and_time_delay(
     fplus = jnp.sum(x * dx - y * dy, axis=0)
     fcross = jnp.sum(x * dy + y * dx, axis=0)
 
-    ehat = jnp.stack(
-        (
-            cosdec * cosgha,
-            -cosdec * singha,
-            sindec + jnp.zeros_like(phase_offsets),
-        )
-    )
     location = jnp.asarray(
         -np.asarray(detector_location),
         dtype=dtype,
     )
     location = location.reshape((3,) + (1,) * (ehat.ndim - 1))
-    delay = jnp.sum(location * ehat, axis=0) / float(constants.c.value)
+    delay = jnp.sum(location * ehat, axis=0) / C_SI
     return fplus, fcross, delay
 
 
@@ -260,64 +222,23 @@ def _jax_network_antenna_pattern_and_time_delay(
     phase_offsets,
 ):
     """Evaluate tensor responses and delays for a detector network in JAX."""
-    import jax.numpy as jnp
-
+    x, y, ehat = _polarization_basis(
+        right_ascension, declination, polarization, gmst_start, phase_offsets
+    )
     dtype = phase_offsets.dtype
-    right_ascension = jnp.asarray(right_ascension, dtype=dtype)
-    declination = jnp.asarray(declination, dtype=dtype)
-    polarization = jnp.asarray(polarization, dtype=dtype)
-
-    gha_start = jnp.asarray(gmst_start, dtype=dtype) - right_ascension
-    cos_start = jnp.cos(gha_start)
-    sin_start = jnp.sin(gha_start)
-    cos_offset = jnp.cos(phase_offsets)
-    sin_offset = jnp.sin(phase_offsets)
-    cosgha = cos_start * cos_offset - sin_start * sin_offset
-    singha = sin_start * cos_offset + cos_start * sin_offset
-    cosdec = jnp.cos(declination)
-    sindec = jnp.sin(declination)
-    cospsi = jnp.cos(polarization)
-    sinpsi = jnp.sin(polarization)
-
-    x = jnp.stack(
-        (
-            -cospsi * singha - sinpsi * cosgha * sindec,
-            -cospsi * cosgha + sinpsi * singha * sindec,
-            sinpsi * cosdec + jnp.zeros_like(phase_offsets),
-        )
-    )
-    y = jnp.stack(
-        (
-            sinpsi * singha - cospsi * cosgha * sindec,
-            sinpsi * cosgha + cospsi * singha * sindec,
-            cospsi * cosdec + jnp.zeros_like(phase_offsets),
-        )
-    )
-
     responses_tensor = jnp.asarray(responses, dtype=dtype)
     dx = jnp.einsum("dij,j...->di...", responses_tensor, x)
     dy = jnp.einsum("dij,j...->di...", responses_tensor, y)
     fplus = jnp.sum(x * dx - y * dy, axis=1)
     fcross = jnp.sum(x * dy + y * dx, axis=1)
 
-    ehat = jnp.stack(
-        (
-            cosdec * cosgha,
-            -cosdec * singha,
-            sindec + jnp.zeros_like(phase_offsets),
-        )
-    )
     locations_tensor = jnp.asarray(detector_locations, dtype=dtype)
-    delay = -jnp.einsum("dj,j...->d...", locations_tensor, ehat) / float(
-        constants.c.value
-    )
+    delay = -jnp.einsum("dj,j...->d...", locations_tensor, ehat) / C_SI
     return fplus, fcross, delay
 
 
 def _input_spec(values, angular_values=()):
     """Validate JAX inputs and return their common dtype."""
-    import jax
-    import jax.numpy as jnp
 
     angular_arrays = tuple(
         value for value in angular_values if isinstance(value, (jax.Array, jnp.ndarray))
@@ -410,9 +331,6 @@ def antenna_pattern(
     polarization_type="tensor",
 ):
     """Return a detector antenna pattern for JAX-backed inputs."""
-    import jax
-    import jax.numpy as jnp
-
     if polarization_type != "tensor":
         raise NotImplementedError(
             "JAX antenna patterns currently support only the tensor response"
@@ -540,9 +458,6 @@ def network_antenna_pattern_and_time_delay(
 
 def effective_distance(detector, distance, ra, dec, pol, time, inclination):
     """Return effective distance while preserving detector overrides."""
-    import jax
-    import jax.numpy as jnp
-
     angular_inputs = (ra, dec, pol)
     values = (distance,) + angular_inputs + (time, inclination)
     dtype = _input_spec(values, angular_inputs)

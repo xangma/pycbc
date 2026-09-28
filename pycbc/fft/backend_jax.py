@@ -19,7 +19,6 @@
 import importlib.util
 import pycbc
 
-_backend_dict = {"jax": "jaxfft"}
 _backend_list = ["jax"]
 
 

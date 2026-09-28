@@ -20,22 +20,11 @@ import jax
 import jax.numpy as jnp
 
 from pycbc.types import Array
-from pycbc.types.array_jax import JAXArrayData, _ensure_x64, is_jax_array
-from pycbc.types.backend import backend_array, is_backend
-
-
-def _as_jax_array(value):
-    """Return raw jax.Array from a PyCBC array, JAXArrayData, or JAX array."""
-    if isinstance(value, JAXArrayData):
-        return value.array
-    if hasattr(value, "_data") and isinstance(value._data, JAXArrayData):
-        return value._data.array
-    if is_backend(value, "jax"):
-        raw = backend_array(value, "jax")
-        return getattr(raw, "array", raw)
-    if is_jax_array(value):
-        return getattr(value, "array", value)
-    return None
+from pycbc.types.array_jax import (
+    JAXArrayData,
+    _as_jax_array,
+    _ensure_x64,
+)
 
 
 def _wrap_veto_result(inputs, value):
@@ -119,23 +108,3 @@ def indices_outside_times(times, start, end):
         keep = keep.at[exclude_raw].set(False)
     res = jnp.flatnonzero(keep)
     return _wrap_veto_result((times, start, end), res)
-
-
-def complement_indices(times, exclude):
-    """Return the device-resident complement of an index vector in JAX."""
-    _ensure_x64()
-    times_arr = _as_jax_array(times)
-    if times_arr is None:
-        times_arr = jnp.asarray(times.numpy() if isinstance(times, Array) else times)
-    exclude_arr = _as_jax_array(exclude)
-    if exclude_arr is None:
-        exclude_arr = jnp.asarray(
-            exclude.numpy() if isinstance(exclude, Array) else exclude,
-            dtype=jnp.int64,
-        )
-    n = times_arr.size
-    keep = jnp.ones(n, dtype=bool)
-    if exclude_arr.size > 0:
-        keep = keep.at[exclude_arr.astype(jnp.int64)].set(False)
-    res = jnp.flatnonzero(keep)
-    return _wrap_veto_result((times, exclude), res)

@@ -13,55 +13,6 @@ from numbers import Integral
 import jax.numpy as jnp
 from pycbc.types.array_jax import _ensure_x64
 
-_SPIN_MINUS_TWO_MODES = tuple(
-    (ell, emm) for ell in range(2, 5) for emm in range(-ell, ell + 1)
-)
-
-
-def _spin_minus_two_terms():
-    """Precompute scalar-equivalent Wigner-sum terms for ell 2 through 4."""
-    terms = []
-    spin_weight = -2
-    wigner_m = -spin_weight
-    for ell, emm in _SPIN_MINUS_TWO_MODES:
-        prefactor = (-1) ** spin_weight * math.sqrt(
-            (2 * ell + 1)
-            / (4 * math.pi)
-            * math.factorial(ell + wigner_m)
-            * math.factorial(ell - wigner_m)
-            * math.factorial(ell + emm)
-            * math.factorial(ell - emm)
-        )
-        mode_terms = []
-        for index in range(2 * ell + 1):
-            denominator_indices = (
-                ell + wigner_m - index,
-                index,
-                emm - wigner_m + index,
-                ell - emm - index,
-            )
-            if min(denominator_indices) < 0:
-                continue
-            denominator = math.prod(
-                math.factorial(value) for value in denominator_indices
-            )
-            coefficient = (-1) ** (emm - wigner_m + index) * prefactor / denominator
-            mode_terms.append(
-                (
-                    coefficient,
-                    2 * ell + wigner_m - emm - 2 * index,
-                    emm - wigner_m + 2 * index,
-                )
-            )
-        terms.append((ell, emm, tuple(mode_terms)))
-    return tuple(terms)
-
-
-_SPIN_MINUS_TWO_TERMS = {
-    (ell, emm): terms for ell, emm, terms in _spin_minus_two_terms()
-}
-
-
 def spin_weighted_spherical_harmonic(
     theta,
     phi,

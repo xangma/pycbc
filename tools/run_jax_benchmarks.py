@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -22,10 +21,10 @@ import subprocess
 import tarfile
 
 try:
-    from tools.benchmark_artifact import source_identity
+    from tools.benchmark_artifact import file_sha256 as sha256, source_identity
     from tools.benchmark_reference import validate_reference
 except ModuleNotFoundError:
-    from benchmark_artifact import source_identity
+    from benchmark_artifact import file_sha256 as sha256, source_identity
     from benchmark_reference import validate_reference
 
 
@@ -44,14 +43,6 @@ def write_json(path, data):
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(data, indent=2) + "\n")
     temporary.replace(path)
-
-
-def sha256(path):
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def load_config(path):

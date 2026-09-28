@@ -40,12 +40,22 @@ except ImportError:  # pragma: no cover - optional host telemetry
     psutil = None
 
 try:
-    from tools.benchmark_artifact import compilation_audit, source_identity
+    from tools.benchmark_artifact import (
+        compilation_audit,
+        file_sha256,
+        percentile as _artifact_percentile,
+        source_identity,
+    )
     from tools.benchmark_reference import validate_reference
     from tools.observe_pycbc_live import validate_source
 except ImportError:  # script execution from the tools directory
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from benchmark_artifact import compilation_audit, source_identity
+    from benchmark_artifact import (
+        compilation_audit,
+        file_sha256,
+        percentile as _artifact_percentile,
+        source_identity,
+    )
     from benchmark_reference import validate_reference
     from observe_pycbc_live import validate_source
 
@@ -214,23 +224,11 @@ def arm_order_for_replicate(arms: Sequence[str], replicate: int) -> list[str]:
     return list(arms) if replicate % 2 == 0 else list(reversed(arms))
 
 
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def percentile(values: Iterable[float], fraction: float) -> Optional[float]:
     ordered = sorted(float(value) for value in values)
     if not ordered:
         return None
-    position = (len(ordered) - 1) * fraction
-    lower = int(position)
-    upper = min(lower + 1, len(ordered) - 1)
-    weight = position - lower
-    return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
+    return _artifact_percentile(ordered, fraction)
 
 
 def latency_summary(values: Iterable[float], unit: str = "seconds") -> dict:

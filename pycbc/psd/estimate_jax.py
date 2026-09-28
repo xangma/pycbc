@@ -43,19 +43,7 @@ def _wrap_frequency_series(values, delta_f, epoch=None):
     return FrequencySeries(data, delta_f=delta_f, epoch=epoch, copy=False)
 
 
-def median_bias(n):
-    """Calculate the bias of the median average PSD computed from `n` segments.
-
-    See arXiv:gr-qc/0509116 appendix B for details.
-    """
-    if type(n) is not int or n <= 0:
-        raise ValueError("n must be a positive integer")
-    if n >= 1000:
-        return float(np.log(2))
-    ans = 1.0
-    for i in range(1, (n - 1) // 2 + 1):
-        ans += 1.0 / (2 * i + 1) - 1.0 / (2 * i)
-    return ans
+from pycbc.psd.estimate import median_bias
 
 
 def _median_bias_numpy_compat(values, num_segments):

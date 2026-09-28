@@ -62,13 +62,6 @@ def _jax_qnm_spline(jax, spin, ell, m, n, reim):
     return qnm_spline(pykerr, spin, ell, m, n, reim)
 
 
-def _jax_real_cuberoot(value):
-    """Dispatch real cube-root evaluation to the JAX backend."""
-    from pycbc.conversions_jax import real_cuberoot
-
-    return real_cuberoot(value)
-
-
 #
 # =============================================================================
 #

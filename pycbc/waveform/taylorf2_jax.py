@@ -84,18 +84,13 @@ def _coefficients(params):
     phase_order = _order(params, "phase_order")
     if phase_order != -1:
         v = v.at[phase_order + 1:8].set(0.0); vl = vl.at[phase_order + 1:8].set(0.0)
-    return v * pn, vl * pn, jnp.zeros(16, dtype=jnp.float64), phase_order
+    return v * pn, vl * pn, phase_order
 
 
-def _phase(frequencies, pi_mass, coeff, coeff_log, phase_order, f_ref, dtype):
+def _phase(frequencies, pi_mass, coeff, coeff_log, f_ref, dtype):
     f = jnp.asarray(frequencies, dtype=dtype)
     v = jnp.cbrt(jnp.asarray(pi_mass, dtype=dtype) * f)
     lv = jnp.log(v)
-    if phase_order != -1:
-        coeff = np.array(coeff, copy=True)
-        coeff_log = np.array(coeff_log, copy=True)
-        coeff[phase_order + 1:8] = 0.0
-        coeff_log[phase_order + 1:8] = 0.0
     powers = jnp.arange(16, dtype=dtype)
     def evaluate(x, logx):
         terms = (jnp.asarray(coeff, dtype=dtype)
@@ -112,10 +107,10 @@ def _samples(params, frequencies, coeffs, dtype):
     # LAL evaluates TaylorF2 in REAL8 and only the returned series may be
     # down-cast.  Keep phase accumulation in float64 for complex64 outputs.
     real_dtype = jnp.float64
-    coeff, coeff_log, _, phase_order = coeffs
+    coeff, coeff_log, phase_order = coeffs
     m1, m2 = float(params["mass1"]), float(params["mass2"])
     pi_mass = PI * (m1 + m2) * MTSUN_SI
-    phase = _phase(frequencies, pi_mass, coeff, coeff_log, phase_order,
+    phase = _phase(frequencies, pi_mass, coeff, coeff_log,
                    float(params.get("f_ref", 0.0) or 0.0), real_dtype)
     phase = phase - 2.0 * float(params.get("coa_phase", 0.0) or 0.0)
     eta = m1 * m2 / (m1 + m2) ** 2

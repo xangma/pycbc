@@ -34,6 +34,7 @@ try:
     from tools.benchmark_science import compare_scientific_hdf
     from tools.benchmark_artifact import (
         compilation_audit,
+        file_sha256,
         runtime_metadata,
         source_identity,
     )
@@ -41,7 +42,12 @@ try:
     from tools.observe_pycbc_inspiral import validate_source as validate_observer_source
 except ModuleNotFoundError:
     from benchmark_science import compare_scientific_hdf
-    from benchmark_artifact import compilation_audit, runtime_metadata, source_identity
+    from benchmark_artifact import (
+        compilation_audit,
+        file_sha256,
+        runtime_metadata,
+        source_identity,
+    )
     from benchmark_reference import validate_reference
     from observe_pycbc_inspiral import validate_source as validate_observer_source
 
@@ -68,14 +74,6 @@ BATCHED_ARMS = (
 BENCHMARK_SAMPLE_RATE = 2048.0
 BENCHMARK_PRECISION = "complex64"
 WAVEFORM_MODES = ("compressed", "generated")
-
-
-def file_sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _git_commit(repo: Path) -> str:

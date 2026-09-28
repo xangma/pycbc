@@ -25,8 +25,12 @@ import jax
 import jax.numpy as jnp
 
 from pycbc.types import Array
-from pycbc.types.array_jax import JAXArrayData, _ensure_x64, is_jax_array
-from pycbc.types.backend import backend_array, is_backend
+from pycbc.types.array_jax import (
+    JAXArrayData,
+    _as_jax_array,
+    _ensure_x64,
+    is_jax_array,
+)
 
 
 def pick_best_coinc_jax(coinc_results, logger):
@@ -253,20 +257,6 @@ class JAXMultiRingBuffer:
                 }
                 self.buffer_expire[ring] = self.buffer_expire[ring][:-1]
                 self.valid_ends[ring] -= 1
-
-
-def _as_jax_array(value):
-    """Return raw jax.Array from a PyCBC array, JAXArrayData, or JAX array."""
-    if isinstance(value, JAXArrayData):
-        return value.array
-    if hasattr(value, "_data") and isinstance(value._data, JAXArrayData):
-        return value._data.array
-    if is_backend(value, "jax"):
-        raw = backend_array(value, "jax")
-        return getattr(raw, "array", raw)
-    if is_jax_array(value):
-        return getattr(value, "array", value)
-    return None
 
 
 def _host_array(value):

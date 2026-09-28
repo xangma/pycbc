@@ -342,6 +342,10 @@ class JAXArrayData:
         return JAXArrayData(self.array)
 
 
+# Backwards compatibility alias for alternate casing
+JaxArrayData = JAXArrayData
+
+
 def _scheme_matches_base_array(array):
     """Check whether array storage matches the JAX scheme."""
     return isinstance(array, JAXArrayData)
@@ -437,28 +441,24 @@ def to_jax(arr, device=None, dtype=None):
     elif is_jax_array(arr):
         res = getattr(arr, "array", arr)
     else:
-        # Check for PyCBC Array or Series
         raw = backend_array(arr)
         if isinstance(raw, JAXArrayData):
             res = raw.array
         elif is_jax_array(raw):
             res = getattr(raw, "array", raw)
-        elif hasattr(raw, "numpy"):
-            raw = raw.numpy()
-        elif hasattr(raw, "__array__"):
-            raw = np.asarray(raw)
-
-        if isinstance(raw, JAXArrayData):
-            res = raw.array
-        elif is_jax_array(raw):
-            res = getattr(raw, "array", raw)
-        elif hasattr(raw, "__dlpack__"):
-            try:
-                res = jax.dlpack.from_dlpack(raw)
-            except Exception:
-                res = jnp.asarray(raw)
         else:
-            res = jnp.asarray(raw)
+            if hasattr(raw, "numpy"):
+                raw = raw.numpy()
+            elif hasattr(raw, "__array__"):
+                raw = np.asarray(raw)
+
+            if hasattr(raw, "__dlpack__"):
+                try:
+                    res = jax.dlpack.from_dlpack(raw)
+                except Exception:
+                    res = jnp.asarray(raw)
+            else:
+                res = jnp.asarray(raw)
 
     if dtype is not None and res.dtype != dtype:
         res = res.astype(dtype)
@@ -528,8 +528,6 @@ def abs_max_loc(self):
 
     data = getattr(self, "_data", self)
     arr = data.array if isinstance(data, JAXArrayData) else to_jax(data)
-    if isinstance(arr, JAXArrayData):
-        arr = arr.array
     if jnp.iscomplexobj(arr):
         mag_sq = arr.real ** 2 + arr.imag ** 2
         idx = int(jnp.argmax(mag_sq))
@@ -545,8 +543,6 @@ def cumsum(self):
     import jax.numpy as jnp
 
     s_arr = to_jax(self)
-    if isinstance(s_arr, JAXArrayData):
-        s_arr = s_arr.array
     return JAXArrayData(jnp.cumsum(s_arr))
 
 
@@ -556,10 +552,6 @@ def dot(self, other):
 
     s_arr = to_jax(self)
     o_arr = to_jax(other)
-    if isinstance(s_arr, JAXArrayData):
-        s_arr = s_arr.array
-    if isinstance(o_arr, JAXArrayData):
-        o_arr = o_arr.array
     return jnp.dot(s_arr, o_arr)
 
 
@@ -619,8 +611,6 @@ def weighted_inner(self, other, weight):
 def squared_norm(self):
     """Sum of squares of real and imaginary parts in JAX scheme."""
     s_arr = to_jax(self)
-    if isinstance(s_arr, JAXArrayData):
-        s_arr = s_arr.array
     return JAXArrayData(s_arr.real ** 2 + s_arr.imag ** 2)
 
 

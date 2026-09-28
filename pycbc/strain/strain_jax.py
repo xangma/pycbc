@@ -21,7 +21,6 @@ import jax
 import jax.numpy as jnp
 
 import pycbc.events
-import pycbc.psd
 import pycbc.types
 from pycbc.filter.resample import resample_to_delta_t
 from pycbc.filter.resample_jax import (
