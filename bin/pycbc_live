@@ -69,6 +69,10 @@ def _stage_event(name, event, **fields):
     # benchmark runners opt in explicitly through the environment.
     if os.environ.get('PYCBC_BENCHMARK_STAGES', '').lower() not in ('1', 'true', 'yes'):
         return
+    synchronized = False
+    if event == 'end':
+        from pycbc.benchmark import synchronize_jax_stage
+        synchronized = synchronize_jax_stage()
     record = {
         'pid': os.getpid(),
         'rank': mpi.COMM_WORLD.Get_rank(),
@@ -81,6 +85,8 @@ def _stage_event(name, event, **fields):
     # the explicit stage/monotonic names above.
     record['name'] = record['stage']
     record['time_ns'] = record['monotonic_ns']
+    if synchronized:
+        record['synchronized'] = True
     record.update(fields)
     sys.stderr.write('PYCBC_STAGE_EVENT ' + json.dumps(
         record, sort_keys=True, separators=(',', ':')) + '\n')
@@ -236,8 +242,12 @@ class LiveEventManager(object):
             # MPI's Python serialization is a host I/O boundary. The receiver
             # explicitly places numerical columns back on its selected device.
             import jax
+            _stage_event('device_to_host', 'start')
             results = jax.device_get(results)
+            _stage_event('device_to_host', 'end')
+        _stage_event('mpi_commit', 'start')
         self.comm.gather(results, root=0)
+        _stage_event('mpi_commit', 'end')
 
     def barrier(self):
         self.comm.Barrier()
@@ -1278,9 +1288,18 @@ with ctx:
 
     if evnt.rank > 0:
         if waveforms is None:
+            _stage_event('filter_bank_setup', 'start')
+            _stage_event('filter_bank_sort', 'start')
             bank.table.sort(order='mchirp')
+            _stage_event('filter_bank_sort', 'end')
+            _stage_event('filter_waveform_generation', 'start')
             waveforms = list(bank[evnt.rank-1::evnt.size-1])
+            _stage_event('filter_waveform_generation', 'end', templates=len(waveforms))
+            _stage_event('filter_bank_length_check', 'start')
             check_max_length(args, waveforms)
+            _stage_event('filter_bank_length_check', 'end')
+            _stage_event('filter_bank_setup', 'end', templates=len(waveforms))
+        _stage_event('filter_workspace_setup', 'start', templates=len(waveforms))
         mf = LiveBatchMatchedFilter(
             waveforms,
             args.snr_threshold,
@@ -1291,6 +1310,7 @@ with ctx:
             max_triggers_in_batch=args.max_triggers_in_batch,
             maxelements=args.max_batch_size
         )
+        _stage_event('filter_workspace_setup', 'end', templates=len(waveforms))
 
     # Synchronize start time if not provided on the command line
     if not args.start_time:
@@ -1463,7 +1483,11 @@ with ctx:
 
             # Collect together the single detector triggers
             if evnt.size > 1:
+                _stage_event('mpi_gather', 'start',
+                             data_start=block_data_start)
                 results, valid_end = evnt.gather_results()
+                _stage_event('mpi_gather', 'end',
+                             data_start=block_data_start)
 
             # veto detectors with different state between the root
             # and worker nodes (e.g. late frame files on one node only)

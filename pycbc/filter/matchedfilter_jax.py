@@ -144,8 +144,42 @@ def live_veto_buffer_jax(size, dtype):
     return zeros(size, dtype=dtype)
 
 
+def _cache_live_veto_bins_jax(power_chisq, veto_info):
+    """Populate exact bin caches from the live device template matrices."""
+    from collections import defaultdict
+    from pycbc.benchmark import stage_event
+    from pycbc.vetoes.chisq_jax import cache_batch_power_chisq_bins_jax
+    from pycbc.waveform.bank import TemplateBatchList
+
+    by_source = defaultdict(list)
+    psds = {}
+    for info in veto_info:
+        _, _, _, template, stilde = info[:5]
+        source = info[5] if len(info) > 5 else None
+        position = info[6] if len(info) > 6 else None
+        key = (id(stilde.psd), id(source))
+        psds[key] = stilde.psd
+        by_source[key].append((template, source, position))
+
+    for key, entries in by_source.items():
+        templates = TemplateBatchList([entry[0] for entry in entries])
+        source = entries[0][1]
+        positions = [entry[2] for entry in entries]
+        if source is not None and all(position is not None
+                                      for position in positions):
+            rows = to_jax(source)[jnp.asarray(positions, dtype=jnp.int32)]
+            templates._batch_tensor = rows
+        stage_event("filter_veto_bins", "start", templates=len(templates))
+        cache_batch_power_chisq_bins_jax(
+            power_chisq, templates, psds[key]
+        )
+        stage_event("filter_veto_bins", "end", templates=len(templates))
+
+
 def process_live_vetoes_jax(control, results, veto_info):
     """Run live veto reductions while retaining numeric result columns on JAX."""
+    from pycbc.benchmark import stage_event
+    stage_event("filter_veto", "start", triggers=len(veto_info))
     power_chisq = control.power_chisq
     from pycbc import scheme
     device = getattr(scheme.mgr.state, "jax_device", None)
@@ -156,30 +190,18 @@ def process_live_vetoes_jax(control, results, veto_info):
         and getattr(power_chisq, "do", False)
         and hasattr(power_chisq, "cached_chisq_bins")
     ):
-        from collections import defaultdict
-        from pycbc.vetoes.chisq_jax import cache_batch_power_chisq_bins_jax
-        from pycbc.waveform.bank import TemplateBatchList
-
         # A live batch has at most one candidate per template. CUDA benefits
         # from replacing several executable loads and dispatches with one
         # exact batched scan. Small CPU batches retain the scalar scans, which
         # have better cache locality.
-        by_psd = defaultdict(list)
-        psds = {}
-        for _, _, _, template, stilde in veto_info:
-            key = id(stilde.psd)
-            psds[key] = stilde.psd
-            by_psd[key].append(template)
-        for key, templates in by_psd.items():
-            cache_batch_power_chisq_bins_jax(
-                power_chisq, TemplateBatchList(templates), psds[key]
-            )
+        _cache_live_veto_bins_jax(power_chisq, veto_info)
 
     chisq_values = []
     dof_values = []
     sg_values = []
     veto_corr = {}
-    for snrv, norm, l, htilde, stilde in veto_info:
+    for info in veto_info:
+        snrv, norm, l, htilde, stilde = info[:5]
         size = len(htilde.cout)
         if size not in veto_corr:
             veto_corr[size] = live_veto_buffer_jax(size, htilde.dtype)
@@ -217,6 +239,7 @@ def process_live_vetoes_jax(control, results, veto_info):
         )
         for key in results:
             results[key] = results[key][keep]
+    stage_event("filter_veto", "end", triggers=len(veto_info))
     return results
 
 
@@ -253,13 +276,16 @@ def _live_select_peaks(peaks, norms, threshold, abort_threshold):
 def live_process_batch_jax(self):
     """Process only a single batch group of data"""
     from pycbc.filter.matchedfilter import logger
+    from pycbc.benchmark import stage_event
     if self.block_id == len(self.tgroups):
         return None, None
 
     tgroup = self.tgroups[self.block_id]
     psize = self.chunk_tsamples[self.block_id]
     mid = self.mids[self.block_id]
+    stage_event("filter_overwhiten", "start", templates=len(tgroup))
     stilde = self.data.overwhitened_data(tgroup[0].delta_f)
+    stage_event("filter_overwhiten", "end", templates=len(tgroup))
     psd = stilde.psd
     template_matrix = getattr(
         self.corr[self.block_id], "_jax_template_matrix", None
@@ -267,21 +293,27 @@ def live_process_batch_jax(self):
     template_power = getattr(
         self.corr[self.block_id], "_jax_template_power", None
     )
+    stage_event("filter_norms", "start", templates=len(tgroup))
     native_norms = live_template_norms_jax(
         tgroup, psd, template_matrix=template_matrix,
         template_power=template_power,
     )
+    stage_event("filter_norms", "end", templates=len(tgroup))
 
     valid_end = int(psize - self.data.trim_padding)
     valid_start = int(valid_end - self.data.blocksize * self.data.sample_rate)
 
     seg = slice(valid_start, valid_end)
 
+    stage_event("filter_correlation", "start", templates=len(tgroup))
     self.corr[self.block_id].execute(stilde)
+    stage_event("filter_correlation", "end", templates=len(tgroup))
     # Every transform in the JAX scheme must remain in the JAX backend,
     # including on a CPU device.  A host FFT here would break device
     # residency and make the live trigger path use a different algorithm.
+    stage_event("filter_ifft", "start", templates=len(tgroup))
     self.ifts[mid].execute()
+    stage_event("filter_ifft", "end", templates=len(tgroup))
 
     self.block_id += 1
 
@@ -295,6 +327,7 @@ def live_process_batch_jax(self):
     # Reduce, normalize, and select the full group before the only host
     # synchronization.  The host loop below handles sparse metadata and veto
     # objects, not accelerator decisions.
+    stage_event("filter_peak_select", "start", templates=len(tgroup))
     jax_peaks = batch_peak_values(self.out_mem[mid], len(tgroup), psize, seg)
     if jax_peaks is None:
         raise ValueError("JAX live peak reduction could not process the batch")
@@ -310,6 +343,8 @@ def live_process_batch_jax(self):
     host_peak_indices, host_accepted, host_abort = jax.device_get(
         (peak_indices, accepted, abort)
     )
+    stage_event("filter_peak_select", "end", templates=len(tgroup),
+                accepted=int(np.count_nonzero(host_accepted)))
 
     if np.any(host_abort):
         logger.info("We are seeing some *really* high SNRs, let's "
@@ -345,7 +380,9 @@ def live_process_batch_jax(self):
         l = int(host_peak_indices[idx]) + valid_start
         snrv = peak_values[idx:idx + 1]
         norm = selected_norms[result_index]
-        veto_info.append((snrv, norm, l, htilde, stilde))
+        veto_info.append((
+            snrv, norm, l, htilde, stilde, template_matrix, int(idx)
+        ))
         if not hasattr(htilde, 'dict_params'):
             htilde.dict_params = {}
             for key in tkeys:

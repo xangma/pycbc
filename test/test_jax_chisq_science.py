@@ -171,6 +171,36 @@ def test_batch_bin_edges_match_with_per_template_lower_cutoffs():
     np.testing.assert_array_equal(got, expected)
 
 
+def test_gpu_ordered_bin_scan_matches_numpy_exactly():
+    try:
+        device = jax.devices("gpu")[0]
+    except RuntimeError:
+        pytest.skip("JAX GPU backend unavailable")
+    rng = np.random.default_rng(42)
+    values = rng.random((3, 16385), dtype=np.float32)
+    rows = jax.device_put(values, device)
+    if not chisq_jax._use_gpu_ordered_scan(rows):
+        pytest.skip("Pallas Triton ordered scan unavailable")
+    result = chisq_jax._ordered_cumsum_rows(rows, True)
+    np.testing.assert_array_equal(np.asarray(result),
+                                  np.cumsum(values, axis=-1))
+
+    psd = FrequencySeries(
+        np.linspace(0.75, 2.0, 16385, dtype=np.float32), delta_f=0.25
+    )
+    templates = [FrequencySeries(row.astype(np.complex64), delta_f=0.25)
+                 for row in values]
+    flows = [20.0, 31.0, 24.0]
+    with scheme.CPUScheme():
+        expected = np.asarray([power_chisq_bins(t, 8, psd, flow)
+                               for t, flow in zip(templates, flows)])
+    with scheme.JAXScheme("cuda"):
+        got = chisq_jax.batch_power_chisq_bins_jax(
+            templates, 8, psd, flows
+        )
+    np.testing.assert_array_equal(np.asarray(got), expected)
+
+
 def test_batch_bin_cache_matches_standard_backend_across_support_groups(
         monkeypatch):
     from pycbc.waveform.bank import TemplateBatchList

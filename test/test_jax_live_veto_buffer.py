@@ -14,6 +14,47 @@ from pycbc.vetoes.chisq_cpu import point_chisq_code
 jax = pytest.importorskip("jax")
 
 
+def test_live_veto_bin_cache_reuses_selected_device_rows(monkeypatch):
+    from pycbc.filter.matchedfilter_jax import _cache_live_veto_bins_jax
+    from pycbc.vetoes import chisq_jax
+
+    rows = jax.numpy.asarray(np.arange(24, dtype=np.float32).reshape(3, 8))
+    templates = [SimpleNamespace() for _ in range(2)]
+    psd = object()
+    stilde = SimpleNamespace(psd=psd)
+    calls = []
+    monkeypatch.setattr(
+        chisq_jax,
+        "cache_batch_power_chisq_bins_jax",
+        lambda power_chisq, batch, batch_psd: calls.append(
+            (power_chisq, batch, batch_psd)
+        ),
+    )
+
+    veto_info = [
+        (None, None, None, templates[0], stilde, rows, 2),
+        (None, None, None, templates[1], stilde, rows, 0),
+    ]
+    power_chisq = object()
+
+    def reject_dense_transfer(*args, **kwargs):
+        raise AssertionError("live veto setup must not transfer dense rows")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(jax, "device_get", reject_dense_transfer)
+        _cache_live_veto_bins_jax(power_chisq, veto_info)
+
+    assert len(calls) == 1
+    assert calls[0][0] is power_chisq
+    assert list(calls[0][1]) == templates
+    assert calls[0][2] is psd
+    assert calls[0][1]._host_batch_tensor is None
+    assert hasattr(calls[0][1]._batch_tensor, "devices")
+    np.testing.assert_array_equal(
+        calls[0][1]._batch_tensor, np.asarray(rows)[[2, 0]]
+    )
+
+
 def test_live_veto_scratch_preserves_batch_and_reuses_matching_lengths(
         monkeypatch):
     rng = np.random.default_rng(342)

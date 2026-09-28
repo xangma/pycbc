@@ -36,6 +36,16 @@ def test_markers_opt_in_and_use_monotonic_clock(monkeypatch, capsys):
     assert marker['templates'] == 10
 
 
+def test_marker_records_rank_and_profile_synchronization(monkeypatch, capsys):
+    monkeypatch.setenv('PYCBC_BENCHMARK_STAGES', '1')
+    monkeypatch.setenv('OMPI_COMM_WORLD_RANK', '3')
+    monkeypatch.setattr(HOOKS, 'synchronize_jax_stage', lambda: True)
+    HOOKS.stage_event('filter_ifft', 'end')
+    marker = json.loads(capsys.readouterr().err.split(' ', 1)[1])
+    assert marker['rank'] == 3
+    assert marker['synchronized'] is True
+
+
 def test_work_receipt_records_jax_chisq_mode(monkeypatch, tmp_path):
     path = tmp_path / 'work.json'
     monkeypatch.setenv('PYCBC_BENCHMARK_WORK', str(path))

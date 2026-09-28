@@ -2047,34 +2047,48 @@ class StrainBuffer(pycbc.frame.DataBuffer):
         # only condition with the needed raw data so we can continuously add
         # to the existing result
 
-        # Precondition
-        sample_step = int(blocksize * self.sample_rate)
-        csize = sample_step + self.corruption * 2
-        start = len(self.raw_buffer) - csize * self.factor
-        strain = self.raw_buffer[start:]
+        fuse_jax_conditioning = False
+        if (isinstance(scheme.mgr.state, scheme.JAXScheme)
+                and not self.taper_immediate_strain):
+            from .strain_jax import (
+                can_fuse_strain_buffer_jax,
+                condition_strain_buffer_jax,
+            )
+            fuse_jax_conditioning = can_fuse_strain_buffer_jax(
+                self, blocksize)
 
-        strain =  pycbc.filter.highpass_fir(strain, self.highpass_frequency,
-                                       self.highpass_samples,
-                                       beta=self.beta)
-        strain = (strain * self.dyn_range_fac).astype(numpy.float32)
+        if fuse_jax_conditioning:
+            condition_strain_buffer_jax(self, blocksize)
+        else:
+            # Precondition
+            sample_step = int(blocksize * self.sample_rate)
+            csize = sample_step + self.corruption * 2
+            start = len(self.raw_buffer) - csize * self.factor
+            strain = self.raw_buffer[start:]
 
-        strain = pycbc.filter.resample_to_delta_t(strain,
-                                           1.0/self.sample_rate, method='ldas')
+            strain = pycbc.filter.highpass_fir(
+                strain, self.highpass_frequency, self.highpass_samples,
+                beta=self.beta)
+            strain = (strain * self.dyn_range_fac).astype(numpy.float32)
 
-        # remove corruption at beginning
-        strain = strain[self.corruption:]
+            strain = pycbc.filter.resample_to_delta_t(
+                strain, 1.0/self.sample_rate, method='ldas')
 
-        # taper beginning if needed
-        if self.taper_immediate_strain:
-            logger.info("Tapering start of %s strain block", self.detector)
-            strain = gate_data(
-                    strain, [(strain.start_time, 0., self.autogating_taper)])
-            self.taper_immediate_strain = False
+            # remove corruption at beginning
+            strain = strain[self.corruption:]
 
-        # Stitch into continuous stream
-        self.strain.roll(-sample_step)
-        self.strain[len(self.strain) - csize + self.corruption:] = strain[:]
-        self.strain.start_time += blocksize
+            # taper beginning if needed
+            if self.taper_immediate_strain:
+                logger.info("Tapering start of %s strain block", self.detector)
+                strain = gate_data(
+                        strain, [(strain.start_time, 0.,
+                                  self.autogating_taper)])
+                self.taper_immediate_strain = False
+
+            # Stitch into continuous stream
+            self.strain.roll(-sample_step)
+            self.strain[len(self.strain) - csize + self.corruption:] = strain[:]
+            self.strain.start_time += blocksize
 
         # apply gating if needed
         if self.autogating_threshold is not None:

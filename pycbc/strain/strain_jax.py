@@ -24,6 +24,10 @@ import pycbc.events
 import pycbc.psd
 import pycbc.types
 from pycbc.filter.resample import resample_to_delta_t
+from pycbc.filter.resample_jax import (
+    _circular_fir_zero,
+    firwin,
+)
 from pycbc.psd.estimate_jax import (
     _welch_core,
     _interp_core,
@@ -32,6 +36,109 @@ from pycbc.psd.estimate_jax import (
 )
 from pycbc.strain.strain import next_power_of_2
 from pycbc.types.array_jax import JAXArrayData, _ensure_x64, to_jax
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=("factor", "corruption", "sample_step"),
+)
+def _condition_and_stitch_core(
+    raw_buffer,
+    strain_buffer,
+    highpass_coefficients,
+    resample_coefficients,
+    dynamic_range_factor,
+    factor,
+    corruption,
+    sample_step,
+):
+    """Condition one live block and stitch it into the rolling buffer."""
+    conditioned_size = sample_step + 2 * corruption
+    raw_size = conditioned_size * factor
+    block = raw_buffer[-raw_size:]
+
+    block = _circular_fir_zero(block, highpass_coefficients)
+    scale = jnp.asarray(dynamic_range_factor, dtype=block.dtype)
+    block = (block * scale).astype(jnp.float32)
+    block = _circular_fir_zero(block, resample_coefficients)[::factor]
+    block = block[corruption:]
+
+    output = jnp.roll(strain_buffer, -sample_step)
+    write_start = len(strain_buffer) - conditioned_size + corruption
+    return output.at[write_start:].set(block)
+
+
+def can_fuse_strain_buffer_jax(buffer, blocksize):
+    """Return whether both live FIR stages use their circular-filter path."""
+    sample_step = int(blocksize * buffer.sample_rate)
+    raw_size = (sample_step + 2 * buffer.corruption) * buffer.factor
+    coefficient_sizes = (
+        buffer.highpass_samples * 2 + 1,
+        buffer.factor * 20 + 1,
+    )
+    return raw_size >= 128 and all(
+        raw_size < size * 10 or raw_size < 2**18
+        for size in coefficient_sizes
+    )
+
+
+def condition_strain_buffer_jax(buffer, blocksize):
+    """Condition and stitch one ``StrainBuffer`` block on the JAX device."""
+    if not can_fuse_strain_buffer_jax(buffer, blocksize):
+        raise ValueError("live conditioning shape does not use circular FIRs")
+    _ensure_x64()
+    factor = int(buffer.factor)
+    corruption = int(buffer.corruption)
+    sample_step = int(blocksize * buffer.sample_rate)
+
+    raw = to_jax(buffer.raw_buffer)
+    strain = to_jax(buffer.strain)
+    raw_device = raw.device() if callable(raw.device) else raw.device
+    cache_key = (
+        str(raw.dtype),
+        float(buffer.raw_buffer.delta_t),
+        float(buffer.sample_rate),
+        float(buffer.highpass_frequency),
+        int(buffer.highpass_samples),
+        float(buffer.beta),
+        factor,
+        str(raw_device),
+    )
+    cache = getattr(buffer, "_jax_conditioning_cache", None)
+    if cache is None or cache[0] != cache_key:
+        raw_nyquist = int(1.0 / buffer.raw_buffer.delta_t) / 2.0
+        highpass_coefficients = firwin(
+            buffer.highpass_samples * 2 + 1,
+            buffer.highpass_frequency / raw_nyquist,
+            window=("kaiser", buffer.beta),
+            pass_zero=False,
+        )
+        resample_coefficients = firwin(
+            factor * 20 + 1,
+            1.0 / factor,
+            window=("kaiser", 5),
+        )
+        cache = (
+            cache_key,
+            highpass_coefficients,
+            resample_coefficients,
+        )
+        buffer._jax_conditioning_cache = cache
+
+    _, highpass_coefficients, resample_coefficients = cache
+    values = _condition_and_stitch_core(
+        raw,
+        strain,
+        highpass_coefficients,
+        resample_coefficients,
+        buffer.dyn_range_fac,
+        factor,
+        corruption,
+        sample_step,
+    )
+    buffer.strain._data = JAXArrayData(values)
+    buffer.strain._saved.clear()
+    buffer.strain.start_time += blocksize
 
 
 def _zero_pad_on_device(strain, strain_pad_length, pad_start, pad_end):

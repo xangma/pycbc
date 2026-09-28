@@ -324,15 +324,17 @@ def power_chisq_bins_jax(
     psd_arr = to_jax(psd, device=target_dev)
 
     return _power_chisq_bins_numpy(
-        h_arr, psd_arr, int(kmin), int(kmax), int(num_bins), delta_f
+        h_arr, psd_arr, int(kmin), int(kmax), int(num_bins), delta_f,
+        _use_gpu_ordered_scan(h_arr),
     )
 
 
 @functools.partial(
     jax.jit,
-    static_argnames=("kmin", "kmax", "num_bins", "delta_f"),
+    static_argnames=("kmin", "kmax", "num_bins", "delta_f", "use_gpu_scan"),
 )
-def _power_chisq_bins_numpy(h_arr, psd_arr, kmin, kmax, num_bins, delta_f):
+def _power_chisq_bins_numpy(
+        h_arr, psd_arr, kmin, kmax, num_bins, delta_f, use_gpu_scan=False):
     """Match the standard backend's cumulative power and discrete bin edges.
 
     A parallel single-precision scan changes bin boundaries in long templates.
@@ -346,8 +348,9 @@ def _power_chisq_bins_numpy(h_arr, psd_arr, kmin, kmax, num_bins, delta_f):
     power = _weighted_power_divide(magnitude, psd_arr[kmin:kmax])
     # Match the reference's ordered accumulation.  jnp.cumsum may select a
     # tree scan on some devices, which changes float32 rounding at bin edges.
-    cumulative = (_ordered_cumsum(power) if power.ndim == 1 else
-                  jax.vmap(_ordered_cumsum)(power)) * (4.0 * delta_f)
+    cumulative = (_ordered_cumsum_rows(power[None, :], use_gpu_scan)[0]
+                  if power.ndim == 1 else
+                  _ordered_cumsum_rows(power, use_gpu_scan)) * (4.0 * delta_f)
 
     def row_bins(row):
         # NumPy's integer arange promotes this threshold calculation to
@@ -363,10 +366,11 @@ def _power_chisq_bins_numpy(h_arr, psd_arr, kmin, kmax, num_bins, delta_f):
 
 @functools.partial(
     jax.jit,
-    static_argnames=("min_kmin", "kmax", "num_bins", "delta_f"),
+    static_argnames=("min_kmin", "kmax", "num_bins", "delta_f", "use_gpu_scan"),
 )
 def _power_chisq_bins_varied_support(
-        h_arr, psd_arr, kmins, min_kmin, kmax, num_bins, delta_f):
+        h_arr, psd_arr, kmins, min_kmin, kmax, num_bins, delta_f,
+        use_gpu_scan=False):
     """Build exact batched edges for rows with different lower cutoffs."""
     h_slice = jnp.asarray(h_arr)[..., min_kmin:kmax]
     psd_slice = jnp.asarray(psd_arr)[min_kmin:kmax]
@@ -374,7 +378,7 @@ def _power_chisq_bins_varied_support(
     power = _weighted_power_divide(magnitude, psd_slice)
     frequencies = jnp.arange(min_kmin, kmax, dtype=jnp.int32)
     power = jnp.where(frequencies[None, :] >= kmins[:, None], power, 0)
-    cumulative = jax.vmap(_ordered_cumsum)(power) * (4.0 * delta_f)
+    cumulative = _ordered_cumsum_rows(power, use_gpu_scan) * (4.0 * delta_f)
 
     def row_bins(row):
         edges = jnp.arange(num_bins, dtype=jnp.float64) * row[-1] / num_bins
@@ -412,6 +416,49 @@ def _ordered_cumsum(values):
         return carry, carry
     _, result = jax.lax.scan(step, jnp.zeros((), values.dtype), values)
     return result
+
+
+def _use_gpu_ordered_scan(array):
+    """Use one-kernel ordered accumulation on supported NVIDIA devices."""
+    device = getattr(array, "device", None)
+    if getattr(device, "platform", None) not in ("cuda", "gpu"):
+        return False
+    try:
+        capability = float(device.compute_capability)
+        from jax.experimental.pallas import triton  # noqa: F401
+    except (AttributeError, ImportError, TypeError, ValueError):
+        return False
+    return capability >= 8.0
+
+
+def _ordered_cumsum_rows(values, use_gpu_scan):
+    """Preserve reference addition order without one GPU launch per sample."""
+    if not use_gpu_scan or values.dtype != jnp.float32:
+        return jax.vmap(_ordered_cumsum)(values)
+
+    from jax.experimental import pallas as pl
+    from jax.experimental.pallas import triton as pltriton
+
+    rows, width = values.shape
+    block_width = 1 << (width - 1).bit_length()
+
+    def kernel(source, result):
+        def step(index, carry):
+            carry = carry + source[0, index]
+            result[0, index] = carry
+            return carry
+
+        jax.lax.fori_loop(0, width, step, jnp.float32(0))
+
+    return pl.pallas_call(
+        kernel,
+        out_shape=jax.ShapeDtypeStruct(values.shape, values.dtype),
+        grid=(rows,),
+        in_specs=(pl.BlockSpec((1, block_width), lambda row: (row, 0)),),
+        out_specs=pl.BlockSpec((1, block_width), lambda row: (row, 0)),
+        compiler_params=pltriton.CompilerParams(num_warps=4),
+        name="ordered_power_chisq_cumsum",
+    )(values)
 
 
 def batch_power_chisq_bins_jax(
@@ -478,9 +525,11 @@ def batch_power_chisq_bins_jax(
             int(kmax),
             int(num_bins),
             delta_f,
+            _use_gpu_ordered_scan(tmpls_tensor),
         )
     return _power_chisq_bins_numpy(
-        tmpls_tensor, psd_arr, int(kmin), int(kmax), int(num_bins), delta_f
+        tmpls_tensor, psd_arr, int(kmin), int(kmax), int(num_bins), delta_f,
+        _use_gpu_ordered_scan(tmpls_tensor),
     )
 
 

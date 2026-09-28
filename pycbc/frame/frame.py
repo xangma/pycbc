@@ -32,6 +32,7 @@ import lal
 from gwdatafind import find_urls as find_frame_urls
 
 import pycbc
+from pycbc import scheme
 from pycbc.types import TimeSeries, zeros
 
 logger = logging.getLogger('pycbc.frame.frame')
@@ -531,7 +532,16 @@ class DataBuffer(object):
         self.detector = channel_name.split(':')[0]
 
         self.update_cache()
-        self.channel_type, self.raw_sample_rate = self._retrieve_metadata(self.stream, self.channel_name)
+        metadata = None
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.frame.frame_jax import retrieve_frame_metadata_jax
+            metadata = retrieve_frame_metadata_jax(
+                self.stream, self.channel_name, self.frame_src
+            )
+        self.channel_type, self.raw_sample_rate = (
+            metadata if metadata is not None else
+            self._retrieve_metadata(self.stream, self.channel_name)
+        )
 
         raw_size = self.raw_sample_rate * max_buffer
         self.raw_buffer = TimeSeries(zeros(raw_size, dtype=dtype),

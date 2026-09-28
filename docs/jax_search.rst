@@ -145,6 +145,11 @@ the FFT remains a vendor-library operation. ``pycbc_live`` likewise performs
 template normalization and peak acceptance once per batch; only compact,
 irregular trigger metadata crosses back to Python.
 
+For steady live blocks whose FIR sizes use the circular-filter path, high-pass,
+LDAS decimation, corruption trimming and rolling-buffer stitching share one
+compiled boundary. First-block and post-gap tapering, and unusual FIR sizes
+that use recursive chunking, retain the established operation sequence.
+
 Compressed templates are a different workload: short irregular inputs expand
 into dense rows with reference interpolation and ordered chi-square scans.
 They are staged with the native interpolator on the host, transferred once per
@@ -285,20 +290,38 @@ were unchanged within one percent. Every dataset in all nine JAX CPU and CUDA
 per-block evidence files was bit-for-bit identical before and after the change.
 These single-repetition quick results are optimization diagnostics, not a
 publishable performance claim.
-The root spent 16.5 seconds blocked in the MPI gather, while its JAX coincidence
-calculation took 2.3 seconds. The filtering rank spent 13.6 seconds in filtering
-and vetoes;
-6.55 seconds of that was six formerly scalar chi-square bin-cache builds.
-Those exact ordered scans are now dispatched as one CUDA batch across
-independent templates; small CPU batches retain their locality-friendly scalar
-path. A follow-up trial fused live correlation products with the triggered
-point scans, but changed the complete CUDA diagnostic by only 0.3 percent and
-introduced trigger-count-specific executables, so that boundary was not
-retained. Persistent-cache audits still distinguish compilation from fresh-
-process executable loading: the measured runs had no uncached compilations,
-although loading hundreds of cached executables cost roughly 1--2 seconds per
-process. This evidence prioritizes detector conditioning, batched ordered
-scans, and fewer compiled boundaries over a whole-search megakernel.
+Fusing the subsequent steady-state conditioning boundary reduced the median
+read-and-condition submission from 23.8 milliseconds to 1.2 milliseconds in a
+same-load warm-cache A/B. The median complete CUDA wall time changed only from
+35.92 to 35.79 seconds (0.4 percent), because the device work is asynchronous
+and the repeated detector/rank work is not removed. All 131 datasets in the
+nine output files remained bit-for-bit identical. This keeps the smaller
+launch boundary while confirming that end-to-end synchronization, rather than
+conditioning submission time alone, determines the useful next axis.
+
+A synchronized two-rank profile of the 32-template H1 quick workload showed
+that rank 0's long MPI ``gather`` was mostly waiting for rank 1, not
+transferring triggers. An intermediate shortcut computed exact chi-square bin
+edges on the host after transferring triggered template rows and the PSD;
+although its warm wall time was 22.195 seconds, that dense transfer violated
+the live JAX device-residency goal and was removed. With the exact ordered JAX
+scan restored, warm wall time was 24.557 seconds; rank 1 spent 2.274 seconds
+building bin edges and rank 0 spent 12.908 seconds waiting in ``gather``.
+
+On ``len``'s RTX 4090, a Pallas/Triton kernel now performs each row's ordered
+float32 accumulation inside one device launch. The existing JAX scan remains
+the exact fallback when that GPU backend is unavailable. In the same-workload
+warm-cache profile, bin construction fell to 0.226 seconds and rank 0's
+``gather`` wait to 10.788 seconds. Three unprofiled full-process timings were
+22.371, 22.485, and 22.386 seconds (median 22.386; 8.8 percent faster than
+the resident JAX scan). The measured warm profile and each timed run made
+1,349 persistent-cache compilation requests across both ranks, all hits and
+zero uncached requests. The 43 datasets across nine HDF output files were
+bit-for-bit identical to the prior
+JAX path in every timed run. These quick-run results are diagnostic, not a
+publishable benchmark or CPU science qualification: the known pristine-CPU
+conditioning and chi-square divergence remains. Pallas's Triton GPU backend
+is deprecated upstream, so the fallback is retained for future JAX versions.
 
 To disable JAX GPU preallocation, set this before starting the process:
 

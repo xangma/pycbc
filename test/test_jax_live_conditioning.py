@@ -174,6 +174,70 @@ def test_zero_corruption_does_not_erase_autogating_signal(device):
 
 
 @pytest.mark.parametrize('device', _devices())
+def test_live_block_conditioning_fusion_matches_existing_jax_path(
+        device, monkeypatch):
+    from pycbc.frame.frame import DataBuffer
+    from pycbc.filter import highpass_fir, resample_to_delta_t
+
+    sample_rate = 2048
+    factor = 4
+    blocksize = 2
+    sample_step = blocksize * sample_rate
+    corruption = 42
+    highpass_samples = 128
+    dynamic_range_factor = 2.5
+    rng = np.random.default_rng(20260928)
+
+    with scheme.JAXScheme(device) as ctx:
+        raw = TimeSeries(rng.normal(size=32768), delta_t=1 / 8192,
+                         epoch=1000000000)
+        initial = TimeSeries(
+            rng.normal(size=16384).astype(np.float32),
+            delta_t=1 / sample_rate,
+            epoch=999999992,
+        )
+        expected = initial.copy()
+        conditioned_size = sample_step + 2 * corruption
+        block = raw[len(raw) - conditioned_size * factor:]
+        block = highpass_fir(block, 25, highpass_samples, beta=5)
+        block = (block * dynamic_range_factor).astype(np.float32)
+        block = resample_to_delta_t(
+            block, 1 / sample_rate, method='ldas')[corruption:]
+        expected.roll(-sample_step)
+        expected[len(expected) - conditioned_size + corruption:] = block[:]
+        expected.start_time += blocksize
+
+        buffer = object.__new__(StrainBuffer)
+        buffer.raw_buffer = raw
+        buffer.strain = initial
+        buffer.factor = factor
+        buffer.corruption = corruption
+        buffer.sample_rate = sample_rate
+        buffer.highpass_frequency = 25
+        buffer.highpass_samples = highpass_samples
+        buffer.beta = 5
+        buffer.dyn_range_fac = dynamic_range_factor
+        buffer.taper_immediate_strain = False
+        buffer.state = buffer.dq = buffer.idq = None
+        buffer.wait_duration = blocksize
+        buffer.autogating_threshold = None
+        buffer.psd = object()
+        buffer.detector = 'H1'
+        monkeypatch.setattr(
+            DataBuffer,
+            'attempt_advance',
+            lambda self, size, timeout=10:
+                raw[len(raw) - int(size / raw.delta_t):],
+        )
+        assert buffer.advance(blocksize)
+
+        assert to_jax(buffer.strain).devices() == {ctx.jax_device}
+        assert buffer.strain.start_time == expected.start_time
+        np.testing.assert_array_equal(np.asarray(buffer.strain),
+                                      np.asarray(expected))
+
+
+@pytest.mark.parametrize('device', _devices())
 @pytest.mark.parametrize('invalid_psd', [0.0, -1.0, np.nan])
 @pytest.mark.parametrize('in_band', [False, True])
 def test_whitening_preserves_nonpositive_psd_semantics(

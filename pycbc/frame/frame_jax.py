@@ -20,16 +20,59 @@ streaming reader if a contiguous read-ahead span is unavailable.
 
 import functools
 import math
+import os
 
 import jax
 from jax import lax
 import jax.numpy as jnp
+import lal
+import lalframe
 
 from pycbc.types import TimeSeries
 from pycbc.types.array_jax import JAXArrayData, to_jax
 
 
 DEFAULT_READ_AHEAD_SECONDS = 1024
+
+
+_FRAME_VECTOR_TYPES = {
+    lalframe.FRAMEU_FR_VECT_4R: lal.S_TYPE_CODE,
+    lalframe.FRAMEU_FR_VECT_8R: lal.D_TYPE_CODE,
+    lalframe.FRAMEU_FR_VECT_8C: lal.C_TYPE_CODE,
+    lalframe.FRAMEU_FR_VECT_16C: lal.Z_TYPE_CODE,
+    lalframe.FRAMEU_FR_VECT_4U: lal.U4_TYPE_CODE,
+    lalframe.FRAMEU_FR_VECT_4S: lal.I4_TYPE_CODE,
+}
+
+
+def retrieve_frame_metadata_jax(stream, channel_name, frame_src):
+    """Get type and rate with one channel read for a single local GWF.
+
+    The generic stream path makes three full channel queries.  Restrict this
+    shortcut to an unambiguous local frame; caches, globs and changing live
+    sources retain the normal stream metadata lookup.
+    """
+    if (not isinstance(frame_src, (list, tuple)) or len(frame_src) != 1
+            or not isinstance(frame_src[0], str)
+            or not frame_src[0].endswith('.gwf')
+            or not os.path.isfile(frame_src[0])):
+        return None
+    try:
+        frame = lalframe.FrameUFrFileOpen(frame_src[0], 'r')
+        channel = lalframe.FrameUFrChanRead(
+            frame, channel_name, stream.pos
+        )
+        if lalframe.FrameUFrChanVectorQueryNDim(channel) != 1:
+            return None
+        channel_type = _FRAME_VECTOR_TYPES.get(
+            lalframe.FrameUFrChanVectorQueryType(channel)
+        )
+        delta_t = lalframe.FrameUFrChanVectorQueryDx(channel, 0)
+        if channel_type is None or not math.isfinite(delta_t) or delta_t <= 0:
+            return None
+        return channel_type, int(1.0 / delta_t)
+    except (AttributeError, RuntimeError, ValueError):
+        return None
 
 
 class JAXReplayReadError(RuntimeError):

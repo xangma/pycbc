@@ -101,6 +101,17 @@ def _circular_fir(x, b):
     return inverse / jnp.asarray(n, dtype=x.dtype)
 
 
+@jax.jit
+def _circular_fir_zero(values, coefficients):
+    """Apply the circular FIR path and its standard zero/shift correction."""
+    values = jnp.asarray(values)
+    coefficients = jnp.asarray(coefficients, dtype=values.dtype)
+    filtered = _circular_fir(values, coefficients)
+    nzero = (len(coefficients) // 2) * 2
+    filtered = filtered.at[:nzero].set(0)
+    return jnp.roll(filtered, -len(coefficients) // 2)
+
+
 def lfilter(coefficients, timeseries):
     """Preserve PyCBC's short causal / long circular FIR convention."""
     x = jnp.asarray(_raw(timeseries))

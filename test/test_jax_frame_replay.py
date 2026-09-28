@@ -8,10 +8,15 @@ import pytest
 jax = pytest.importorskip("jax")
 
 from pycbc import scheme
-from pycbc.frame.frame import DataBuffer
-from pycbc.frame.frame_jax import configure_jax_replay
+from pycbc.frame.frame import (
+    DataBuffer, locations_to_cache, write_frame,
+)
+from pycbc.frame.frame_jax import (
+    configure_jax_replay, retrieve_frame_metadata_jax,
+)
 from pycbc.types import TimeSeries
 from pycbc.types.array_jax import to_jax
+import lalframe
 
 
 def _devices():
@@ -22,6 +27,63 @@ def _devices():
     except RuntimeError:
         pass
     return devices
+
+
+@pytest.mark.parametrize('dtype', [
+    np.float32, np.float64, np.complex64, np.complex128,
+    np.uint32, np.int32,
+])
+def test_local_frame_metadata_matches_stream(tmp_path, dtype):
+    path = tmp_path / 'H-test-1000000000-2.gwf'
+    write_frame(
+        str(path), 'H1:TEST',
+        TimeSeries(np.ones(8, dtype=dtype), delta_t=0.25,
+                   epoch=1000000000),
+    )
+    stream = lalframe.FrStreamCacheOpen(locations_to_cache([str(path)]))
+    expected = DataBuffer._retrieve_metadata(stream, 'H1:TEST')
+    actual = retrieve_frame_metadata_jax(stream, 'H1:TEST', [str(path)])
+    assert actual == expected
+
+
+def test_metadata_shortcut_excludes_non_direct_sources():
+    assert retrieve_frame_metadata_jax(
+        None, 'H1:TEST', ['/frames/H-*.gwf']
+    ) is None
+
+
+def test_jax_buffer_uses_single_read_and_cpu_keeps_stream_path(
+        tmp_path, monkeypatch):
+    path = tmp_path / 'H-test-1000000000-2.gwf'
+    write_frame(
+        str(path), 'H1:TEST',
+        TimeSeries(np.ones(8, dtype=np.float64), delta_t=0.25,
+                   epoch=1000000000),
+    )
+    original = DataBuffer._retrieve_metadata
+    calls = []
+
+    def stream_metadata(stream, channel):
+        calls.append(channel)
+        return original(stream, channel)
+
+    monkeypatch.setattr(DataBuffer, '_retrieve_metadata',
+                        staticmethod(stream_metadata))
+    with scheme.JAXScheme('cpu'):
+        reader = DataBuffer([str(path)], 'H1:TEST', 1000000000,
+                            max_buffer=1)
+        assert reader.raw_sample_rate == 4
+        assert calls == []
+    with scheme.CPUScheme():
+        reader = DataBuffer([str(path)], 'H1:TEST', 1000000000,
+                            max_buffer=1)
+        assert reader.raw_sample_rate == 4
+        assert calls == ['H1:TEST']
+    with scheme.JAXScheme('cpu'):
+        reader = DataBuffer([str(tmp_path / 'H-*.gwf')], 'H1:TEST',
+                            1000000000, max_buffer=1)
+        assert reader.raw_sample_rate == 4
+        assert calls == ['H1:TEST', 'H1:TEST']
 
 
 @pytest.mark.parametrize("device", _devices())

@@ -869,6 +869,7 @@ def run_one(
     samples: list = []
     observed_pids = set()
     if profile_utilization:
+        env["PYCBC_BENCHMARK_SYNCHRONIZE_STAGES"] = "1"
         try:
             from tools.profile_jax_gpu_timeline import run_profiling_campaign
         except ModuleNotFoundError:  # direct invocation from tools/
@@ -883,7 +884,8 @@ def run_one(
             "JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES",
             "JAX_RAISE_PERSISTENT_CACHE_ERRORS",
             "PYCBC_JAX_COMPILATION_AUDIT_DIR", "PYCBC_REPLAY_CLOCK",
-            "PYCBC_BENCHMARK_STAGES", "PYCBC_SCIENCE_CONFIG",
+            "PYCBC_BENCHMARK_STAGES", "PYCBC_BENCHMARK_SYNCHRONIZE_STAGES",
+            "PYCBC_SCIENCE_CONFIG",
             "PYCBC_OBSERVER_EVIDENCE", "PYCBC_OBSERVER_REPLAY_MODE",
             "PYCBC_OBSERVER_REPLAY_RATE") if key in env}
         timeline = run_profiling_campaign(
@@ -1026,6 +1028,7 @@ def run_one(
             "JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES",
             "PYCBC_JAX_COMPILATION_AUDIT_DIR",
             "PYCBC_REPLAY_CLOCK", "PYCBC_BENCHMARK_STAGES",
+            "PYCBC_BENCHMARK_SYNCHRONIZE_STAGES",
             "PYCBC_SCIENCE_CONFIG", "PYCBC_OBSERVER_EVIDENCE",
             "PYCBC_OBSERVER_REPLAY_MODE", "PYCBC_OBSERVER_REPLAY_RATE") if key in env},
         "returncode": returncode,
