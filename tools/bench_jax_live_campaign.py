@@ -40,12 +40,12 @@ except ImportError:  # pragma: no cover - optional host telemetry
     psutil = None
 
 try:
-    from tools.benchmark_artifact import source_identity
+    from tools.benchmark_artifact import compilation_audit, source_identity
     from tools.benchmark_reference import validate_reference
     from tools.observe_pycbc_live import validate_source
 except ImportError:  # script execution from the tools directory
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from benchmark_artifact import source_identity
+    from benchmark_artifact import compilation_audit, source_identity
     from benchmark_reference import validate_reference
     from observe_pycbc_live import validate_source
 
@@ -795,6 +795,8 @@ def run_one(
     affinity: str | None = None,
     observe_pristine_cpu: bool = False,
     expected_digest: str | None = None,
+    jax_cache_dir: Path | None = None,
+    require_cache_hits: bool = False,
 ) -> dict:
     validate_benchmark_config(config)
     validate_input_contract(config)
@@ -814,6 +816,12 @@ def run_one(
     stdout_path = output_dir / "stdout.log"
     stderr_path = output_dir / "stderr.log"
     timeline_path = output_dir / "timeline.json"
+    is_jax = ARM_SCHEMES[arm].startswith('jax')
+    if is_jax:
+        if jax_cache_dir is None:
+            raise ValueError('JAX benchmark arm requires a persistent cache directory')
+        jax_cache_dir = Path(jax_cache_dir).resolve()
+        jax_cache_dir.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     for key in ('PYCBC_OBSERVER_EVIDENCE', 'PYCBC_OBSERVER_REPLAY_MODE',
                 'PYCBC_OBSERVER_REPLAY_RATE'):
@@ -831,14 +839,25 @@ def run_one(
         "VECLIB_MAXIMUM_THREADS": "1",
         "BLIS_NUM_THREADS": "1",
         "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
-        "JAX_ENABLE_COMPILATION_CACHE": "false",
-        # Match the inspiral campaign's explicit disabled-cache sentinel;
-        # an empty value is interpreted differently by some JAX versions.
-        "JAX_COMPILATION_CACHE_DIR": "off",
+        "JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS": "0",
+        "JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES": "0",
+        "JAX_RAISE_PERSISTENT_CACHE_ERRORS": "true",
         "PYCBC_REPLAY_CLOCK": "1" if replay_mode in {"unpaced", "paced"} else "0",
         "PYCBC_BENCHMARK_STAGES": "1",
         "PYCBC_SCIENCE_CONFIG": json.dumps(science_config, sort_keys=True),
     })
+    if is_jax:
+        env.update({
+            "JAX_ENABLE_COMPILATION_CACHE": "true",
+            "JAX_COMPILATION_CACHE_DIR": str(jax_cache_dir),
+            "PYCBC_JAX_COMPILATION_AUDIT_DIR": str(
+                output_dir / "jax-compilation-audit"),
+        })
+    else:
+        for key in ("JAX_ENABLE_COMPILATION_CACHE", "JAX_COMPILATION_CACHE_DIR",
+                    "JAX_RAISE_PERSISTENT_CACHE_ERRORS",
+                    "PYCBC_JAX_COMPILATION_AUDIT_DIR"):
+            env.pop(key, None)
     if observe_pristine_cpu:
         env.update({
             "PYCBC_OBSERVER_REPLAY_MODE": replay_mode,
@@ -849,7 +868,6 @@ def run_one(
     start = time.perf_counter()
     samples: list = []
     observed_pids = set()
-    stop = [False]
     if profile_utilization:
         try:
             from tools.profile_jax_gpu_timeline import run_profiling_campaign
@@ -860,7 +878,11 @@ def run_one(
             "MKL_DYNAMIC", "MKL_THREADING_LAYER", "OPENBLAS_NUM_THREADS",
             "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "BLIS_NUM_THREADS",
             "XLA_PYTHON_CLIENT_PREALLOCATE", "JAX_ENABLE_COMPILATION_CACHE",
-            "JAX_COMPILATION_CACHE_DIR", "PYCBC_REPLAY_CLOCK",
+            "JAX_COMPILATION_CACHE_DIR",
+            "JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS",
+            "JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES",
+            "JAX_RAISE_PERSISTENT_CACHE_ERRORS",
+            "PYCBC_JAX_COMPILATION_AUDIT_DIR", "PYCBC_REPLAY_CLOCK",
             "PYCBC_BENCHMARK_STAGES", "PYCBC_SCIENCE_CONFIG",
             "PYCBC_OBSERVER_EVIDENCE", "PYCBC_OBSERVER_REPLAY_MODE",
             "PYCBC_OBSERVER_REPLAY_RATE") if key in env}
@@ -884,6 +906,15 @@ def run_one(
             returncode = process.wait()
         events = None
     elapsed = time.perf_counter() - start
+    cache_audit = (
+        compilation_audit(
+            output_dir,
+            f"arm={arm}",
+            jax_cache_dir,
+            require_cache_hits,
+        )
+        if is_jax else None
+    )
     inputs_stable = workload_digest(config) == frozen_workload
     for sample in samples:
         if "time_sec" in sample:
@@ -991,6 +1022,9 @@ def run_one(
             "PYTHONPATH", "PYTHONHASHSEED", "OMP_NUM_THREADS", "MKL_NUM_THREADS",
             "OPENBLAS_NUM_THREADS", "XLA_PYTHON_CLIENT_PREALLOCATE",
             "JAX_ENABLE_COMPILATION_CACHE", "JAX_COMPILATION_CACHE_DIR",
+            "JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS",
+            "JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES",
+            "PYCBC_JAX_COMPILATION_AUDIT_DIR",
             "PYCBC_REPLAY_CLOCK", "PYCBC_BENCHMARK_STAGES",
             "PYCBC_SCIENCE_CONFIG", "PYCBC_OBSERVER_EVIDENCE",
             "PYCBC_OBSERVER_REPLAY_MODE", "PYCBC_OBSERVER_REPLAY_RATE") if key in env},
@@ -1053,6 +1087,7 @@ def run_one(
         "science_config": science_config,
         "workload_digest": frozen_workload,
         "inputs_stable": inputs_stable,
+        "compilation_cache": cache_audit,
         "science": {
             "passed": False,
             "scope": "live output pending common qualifier",
@@ -1485,6 +1520,13 @@ def _completed_run(result: Any, arm: str, require_evidence: bool = False,
     if require_evidence and (not result.get("evidence_outputs") or not all(
             Path(path).is_file() for path in result["evidence_outputs"])):
         return False
+    if ARM_SCHEMES[arm].startswith('jax'):
+        audit = result.get('compilation_cache')
+        if (not isinstance(audit, Mapping) or audit.get('enabled') is not True
+                or int(audit.get('compile_requests', 0)) <= 0):
+            return False
+        if not require_evidence and audit.get('all_requests_hit') is not True:
+            return False
     return True
 
 
@@ -1591,7 +1633,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--arms", nargs="+", choices=tuple(ARM_SCHEMES),
                         default=["cpu", "branch_cpu", "jax_cpu", "jax_cuda"],
                         help="arms to run: cpu is pristine upstream reference; branch_cpu is candidate CPU; jax_cpu and jax_cuda are candidate JAX paths")
-    parser.add_argument("--replicates", type=int, default=3)
+    parser.add_argument("--replicates", type=int, default=None,
+                        help="timing repetitions (default: 1 for quick, otherwise 3)")
     parser.add_argument("--ranks", type=int, default=2)
     parser.add_argument("--affinity", required=True,
                         help="explicit comma/range CPU affinity passed to MPI")
@@ -1606,11 +1649,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--replay-rate", type=float, default=1.0)
     parser.add_argument("--allow-unqualified-timings", action="store_true",
                         help="run diagnostic timings even when qualification fails")
+    parser.add_argument(
+        "--quick", action="store_true",
+        help=("run exactly one fresh timing repetition per arm and mark all "
+              "performance output diagnostic-only"),
+    )
     parser.add_argument("--qualification-only", action="store_true",
                         help="run full scientific qualification and zero timed repetitions; receipt makes no performance claim")
     args = parser.parse_args(argv)
+    if args.replicates is None:
+        args.replicates = 1 if args.quick else 3
     if args.replicates < 1 or args.ranks < 1:
         parser.error("--replicates and --ranks must be positive")
+    if args.quick and (args.qualification_only or args.profile_utilization):
+        parser.error("--quick cannot be combined with qualification-only or profiling")
+    if args.quick and args.replicates != 1:
+        parser.error("--quick requires exactly one timing repetition")
     if "jax_cuda" in args.arms and args.gpus != 1:
         parser.error("the jax_cuda arm uses exactly one GPU")
     if not math.isfinite(args.replay_rate) or args.replay_rate <= 0:
@@ -1669,6 +1723,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "replay_rate": args.replay_rate,
         "allow_unqualified_timings": bool(args.allow_unqualified_timings),
         "qualification_only": bool(args.qualification_only),
+        "quick": bool(args.quick),
         "qualification_gate": "process_complete_and_science_passed",
         "reference_source_root": (str(reference_source_root)
                                    if reference_source_root is not None else None),
@@ -1685,7 +1740,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         reference_source_root is not None and
                         pinned_reference_revision is not None and
                         _pristine_source(reference_identity))
-    if reference_required and not args.allow_unqualified_timings:
+    if reference_required and (args.quick or not args.allow_unqualified_timings):
         if "cpu" not in args.arms:
             parser.error("qualification requires the cpu reference arm")
         if not reference_ready:
@@ -1731,7 +1786,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                          args.replay_rate, derived_cores, args.gpus, False,
                          args.affinity,
                          arm == "cpu" and pinned_reference_revision is not None,
-                         expected_workload_digest)
+                         expected_workload_digest,
+                         args.output_dir / 'jax-compilation-cache' / arm,
+                         False)
         qualification[arm] = [result]
         if result.get("returncode") != 0 or not result.get("process_complete", False):
             failed_history.append(result)
@@ -1747,6 +1804,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "qualification_required": True,
         "allow_unqualified_timings": bool(args.allow_unqualified_timings),
         "qualification_only": bool(args.qualification_only),
+        "quick": bool(args.quick),
+        "diagnostic_only": bool(args.quick or args.allow_unqualified_timings),
+        "effective_replicates": args.replicates,
+        "minimum_publishable_replicates": 3,
+        "classification": (
+            "quick_known_divergence_diagnostic"
+            if args.quick and args.allow_unqualified_timings else
+            "known_divergence_diagnostic"
+            if args.allow_unqualified_timings else
+            "quick_diagnostic" if args.quick else "equivalent_output"),
         "skipped_arms": {},
     }
     qualification_failed = any(
@@ -1792,7 +1859,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                                      args.replay_rate, derived_cores, args.gpus,
                                      False, args.affinity,
                                      arm == "cpu" and pinned_reference_revision is not None,
-                                     expected_workload_digest)
+                                     expected_workload_digest,
+                                     args.output_dir / 'jax-compilation-cache' / arm,
+                                     True)
             while len(runs[arm]) <= replicate:
                 runs[arm].append({})
             runs[arm][replicate] = result
@@ -1828,7 +1897,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                              args.replay_rate, derived_cores, args.gpus,
                              True, args.affinity,
                              arm == "cpu" and pinned_reference_revision is not None,
-                             expected_workload_digest)
+                             expected_workload_digest,
+                             args.output_dir / 'jax-compilation-cache' / arm,
+                             True)
             profile_results[arm] = [result]
             _timed_science_comparisons({arm: [result]}, qualification, timed_config)
             _enforce_workload_digest({arm: [result]}, expected_workload_digest)
@@ -1890,9 +1961,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "provided": reference_source_root is not None,
         "unqualified": bool(args.allow_unqualified_timings),
         "pristine": _pristine_source(reference_identity),
-        "stable": reference_stable and not args.allow_unqualified_timings,
+        "stable": reference_stable,
         "publishable": (reference_ready and reference_stable and
-                        not args.allow_unqualified_timings),
+                        not args.allow_unqualified_timings and not args.quick),
         "qualification_only": bool(args.qualification_only),
     }
     receipt["campaign"] = {
@@ -1903,7 +1974,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                                reference_stable and
                                not args.allow_unqualified_timings),
         "passed": (process_complete and profile_complete and science_qualified and reference_ready and
-                    reference_stable and not args.allow_unqualified_timings),
+                    reference_stable and not args.allow_unqualified_timings
+                    and not args.quick),
     }
     if args.allow_unqualified_timings:
         receipt["campaign"].update({
@@ -1919,13 +1991,35 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "performance_claim": False,
             "status": "science_qualification_only",
         })
+    if args.quick:
+        receipt.update({
+            "status": "complete_quick_diagnostic",
+            "performance_claim": False,
+            "publishable": False,
+            "diagnostic_only": True,
+            "benchmark_tier": "quick",
+        })
+        receipt["campaign"].update({
+            "status": "complete_quick_diagnostic",
+            "performance_claim": False,
+            "publishable": False,
+            "quick": True,
+            "diagnostic_only": True,
+            "known_divergence": bool(args.allow_unqualified_timings),
+        })
+    else:
+        receipt.setdefault("performance_claim", bool(receipt["campaign"]["passed"]))
+        receipt.setdefault("publishable", bool(receipt["campaign"]["passed"]))
+        receipt.setdefault("diagnostic_only", bool(args.allow_unqualified_timings))
+        receipt.setdefault("benchmark_tier", "full")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
     _save_progress(progress_path, identity, "complete", qualification, runs,
                    failed_history, timing_policy=timing_policy,
                    input_contract=expected_workload["contract"],
                    workload=workload_from_config(config))
-    return 0 if receipt["campaign"]["passed"] else 1
+    return 0 if (receipt["campaign"]["passed"]
+                 or (args.quick and process_complete and profile_complete)) else 1
 
 
 if __name__ == "__main__":

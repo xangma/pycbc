@@ -695,7 +695,21 @@ class DataBuffer(object):
         data: TimeSeries
             TimeSeries containg 'blocksize' seconds of frame data
         """
-        if self.force_update_cache:
+        replay_reader = getattr(self, '_jax_replay_reader', None)
+        refresh_cache = self.force_update_cache
+        if replay_reader is not None:
+            from pycbc.frame.frame_jax import JAXReplayReadError
+            try:
+                return replay_reader.advance(self, blocksize)
+            except JAXReplayReadError as exc:
+                logger.warning(
+                    "JAX replay read-ahead unavailable for %s; falling back "
+                    "to incremental frame reads: %s", self.channel_name, exc
+                )
+                self._jax_replay_reader = None
+                self.update_cache()
+                refresh_cache = False
+        if refresh_cache:
             self.update_cache()
         while True:
             try:

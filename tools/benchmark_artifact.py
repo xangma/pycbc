@@ -54,6 +54,61 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def compilation_audit(output_dir, label, cache_dir, require_cache_hits):
+    """Summarize JAX cache receipts and reject unaudited compilation."""
+    audit_dir = Path(output_dir) / "jax-compilation-audit"
+    files = sorted(audit_dir.glob("process-*.json"))
+    if not files:
+        raise RuntimeError(f"JAX compilation audit is missing for {label}")
+    receipts = [json.loads(path.read_text()) for path in files]
+    requests = sum(
+        item["events"]["compile_requests_use_cache"] for item in receipts
+    )
+    hits = sum(item["events"]["cache_hits"] for item in receipts)
+    uncached = sum(item["uncached_compile_requests"] for item in receipts)
+    cache_dir = Path(cache_dir).resolve()
+    cache_entries = sum(path.is_file() for path in cache_dir.rglob("*"))
+    if requests <= 0:
+        raise RuntimeError(
+            f"JAX compilation audit observed no cache requests for {label}"
+        )
+    if cache_entries <= 0:
+        raise RuntimeError(f"JAX persistent compilation cache is empty for {label}")
+    if any(item.get("cache_enabled", "").lower() != "true"
+           for item in receipts):
+        raise RuntimeError(f"JAX compilation cache was not enabled for {label}")
+    for item in receipts:
+        config = item.get("jax_config", {})
+        configured_dir = config.get("compilation_cache_dir")
+        if (
+            not config.get("enable_compilation_cache")
+            or not config.get("raise_persistent_cache_errors")
+            or config.get("min_compile_time_secs") != 0
+            or config.get("min_entry_size_bytes") != 0
+            or configured_dir is None
+            or Path(configured_dir).resolve() != cache_dir
+        ):
+            raise RuntimeError(
+                f"JAX cache runtime configuration is invalid for {label}: "
+                f"{config!r}"
+            )
+    if require_cache_hits and uncached:
+        raise RuntimeError(
+            f"timed JAX run recompiled {uncached} executable(s) for {label}"
+        )
+    return {
+        "enabled": True,
+        "cache_dir": str(cache_dir),
+        "cache_entries": cache_entries,
+        "process_receipts": [str(path) for path in files],
+        "compile_requests": requests,
+        "cache_hits": hits,
+        "uncached_compile_requests": uncached,
+        "all_requests_hit": requests == hits,
+        "timed_cache_hits_required": bool(require_cache_hits),
+    }
+
+
 def percentile(values: Iterable[float], fraction: float) -> float:
     ordered = sorted(float(value) for value in values)
     if not ordered:

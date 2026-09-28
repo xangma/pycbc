@@ -146,6 +146,31 @@ def test_long_template_bin_edges_match_standard_backend():
     np.testing.assert_array_equal(batch, expected)
 
 
+def test_batch_bin_edges_match_with_per_template_lower_cutoffs():
+    nfreq = 16385
+    psd = FrequencySeries(
+        np.linspace(0.75, 2.0, nfreq, dtype=np.float32), delta_f=0.25
+    )
+    base = np.linspace(0.05, 1.0, nfreq, dtype=np.float32).astype(
+        np.complex64
+    )
+    templates = [
+        FrequencySeries(base * scale, delta_f=0.25)
+        for scale in (1.0, 1.7, 0.6)
+    ]
+    flows = [20.0, 31.0, 24.0]
+    with scheme.CPUScheme():
+        expected = np.asarray([
+            power_chisq_bins(template, 8, psd, flow)
+            for template, flow in zip(templates, flows)
+        ])
+    with scheme.JAXScheme():
+        got = chisq_jax.batch_power_chisq_bins_jax(
+            templates, 8, psd, flows
+        )
+    np.testing.assert_array_equal(got, expected)
+
+
 def test_batch_bin_cache_matches_standard_backend_across_support_groups(
         monkeypatch):
     from pycbc.waveform.bank import TemplateBatchList

@@ -32,6 +32,7 @@ from tools.bench_jax_inspiral_campaign import (
     _run_profile_campaign,
     main,
 )
+from tools.benchmark_artifact import compilation_audit
 
 
 class TestBenchJaxInspiralCampaign(unittest.TestCase):
@@ -368,7 +369,9 @@ class TestBenchJaxInspiralCampaign(unittest.TestCase):
                 }},
             }
 
-        with patch('tools.profile_jax_gpu_timeline.run_command_profiling', side_effect=fake_profile):
+        with patch('tools.profile_jax_gpu_timeline.run_command_profiling', side_effect=fake_profile), patch(
+                'tools.bench_jax_inspiral_campaign.compilation_audit',
+                return_value={'enabled': True, 'all_requests_hit': True}):
             results = _run_profile_campaign(
                 ['jax_cuda_batched'],
                 {'jax_cuda_batched': {'triggers_path': str(old_output),
@@ -659,6 +662,32 @@ class TestBenchJaxInspiralCampaign(unittest.TestCase):
         retry = _retry_output_dir(base)
         self.assertEqual(retry.name, "jax_cpu_rep1.retry1")
         self.assertFalse(retry.exists())
+
+    def test_timed_compilation_audit_rejects_cache_miss(self):
+        cache = self.path / 'cache'
+        cache.mkdir()
+        (cache / 'entry').write_bytes(b'cached executable')
+        audit = self.path / 'run' / 'jax-compilation-audit'
+        audit.mkdir(parents=True)
+        receipt = {
+            'cache_enabled': 'true',
+            'jax_config': {
+                'enable_compilation_cache': True,
+                'compilation_cache_dir': str(cache),
+                'min_compile_time_secs': 0,
+                'min_entry_size_bytes': 0,
+                'raise_persistent_cache_errors': True,
+            },
+            'events': {
+                'compile_requests_use_cache': 2,
+                'cache_hits': 1,
+            },
+            'uncached_compile_requests': 1,
+        }
+        (audit / 'process-1.json').write_text(json.dumps(receipt))
+        with self.assertRaisesRegex(RuntimeError, 'recompiled 1 executable'):
+            compilation_audit(
+                self.path / 'run', 'arm=jax_cuda_batched', cache, True)
 
     def test_diffgw_arm_fails_before_launch(self):
         frame = self.path / "frame.gwf"

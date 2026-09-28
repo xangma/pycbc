@@ -32,12 +32,16 @@ import numpy as np
 
 try:
     from tools.benchmark_science import compare_scientific_hdf
-    from tools.benchmark_artifact import runtime_metadata, source_identity
+    from tools.benchmark_artifact import (
+        compilation_audit,
+        runtime_metadata,
+        source_identity,
+    )
     from tools.benchmark_reference import validate_reference
     from tools.observe_pycbc_inspiral import validate_source as validate_observer_source
 except ModuleNotFoundError:
     from benchmark_science import compare_scientific_hdf
-    from benchmark_artifact import runtime_metadata, source_identity
+    from benchmark_artifact import compilation_audit, runtime_metadata, source_identity
     from benchmark_reference import validate_reference
     from observe_pycbc_inspiral import validate_source as validate_observer_source
 
@@ -463,6 +467,7 @@ def _campaign_identity(
             "waveform_mode": args.waveform_mode,
             "qualification_only": args.qualification_only,
             "profile_utilization": args.profile_utilization,
+            "quick": args.quick,
             "allow_unqualified_timings": args.allow_unqualified_timings,
             "search_config": search_config,
             "sample_rate": BENCHMARK_SAMPLE_RATE,
@@ -505,6 +510,13 @@ def _completed_case(run: Dict[str, Any], qualification: bool = False,
     if qualification:
         evidence = run.get("evidence_path")
         if not evidence or not Path(evidence).is_file():
+            return False
+    if str(run.get('arm', '')).startswith('jax_'):
+        audit = run.get('compilation_cache')
+        if (not isinstance(audit, dict) or audit.get('enabled') is not True
+                or int(audit.get('compile_requests', 0)) <= 0):
+            return False
+        if not qualification and audit.get('all_requests_hit') is not True:
             return False
     return True
 
@@ -667,6 +679,15 @@ def _run_profile_campaign(
                     "Profile scientific qualification failed for "
                     f"arm={arm}: {profile_science.get('missing_gates', [])}"
                 )
+        cache_audit = (
+            compilation_audit(
+                profile_dir,
+                f"arm={arm}",
+                environment.get('JAX_COMPILATION_CACHE_DIR'),
+                require_cache_hits=True,
+            )
+            if arm.startswith('jax_') else None
+        )
         _require_profile_inputs_unchanged(frame_file, bank_file, run_contract)
         if source_root is not None and expected_source is not None:
             _require_source_unchanged(Path(source_root), expected_source)
@@ -698,6 +719,7 @@ def _run_profile_campaign(
             "profile_triggers_path": str(profile_triggers),
             "profile_evidence_path": str(profile_evidence),
             "science": profile_science,
+            "compilation_cache": cache_audit,
             "excluded_from_unprofiled_timing": True,
             "fresh_process": True,
         }
@@ -885,6 +907,7 @@ def _run_single_case(
     search_config=None,
     qualification=False,
     expected_contract=None,
+    jax_cache_dir=None,
 ) -> Dict[str, Any]:
     """Execute a single unprofiled run of pycbc_inspiral."""
     if arm.endswith('_diffgw'):
@@ -1056,6 +1079,12 @@ def _run_single_case(
         command = ["taskset", "-c", affinity] + command
 
     env = os.environ.copy()
+    is_jax = scheme.startswith('jax')
+    if is_jax:
+        if jax_cache_dir is None:
+            raise ValueError('JAX benchmark arm requires a persistent cache directory')
+        jax_cache_dir = Path(jax_cache_dir).resolve()
+        jax_cache_dir.mkdir(parents=True, exist_ok=True)
     env.update(
         {
             "OMP_NUM_THREADS": "1",
@@ -1070,15 +1099,26 @@ def _run_single_case(
             "PYTHONDONTWRITEBYTECODE": "1",
             "PYTHONPATH": str(source_root),
             "JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS": "0",
-            "JAX_COMPILATION_CACHE_DIR": "off",
+            "JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES": "0",
+            "JAX_RAISE_PERSISTENT_CACHE_ERRORS": "true",
         }
     )
 
     env.update(PYCBC_BENCHMARK_WORK=str(output_dir / 'work.json'),
                PYCBC_BENCHMARK_SCIENCE_CONFIG=json.dumps(science_config, sort_keys=True),
-               XLA_PYTHON_CLIENT_PREALLOCATE='false',
-               JAX_ENABLE_COMPILATION_CACHE='false',
-               JAX_COMPILATION_CACHE_DIR='off')
+               XLA_PYTHON_CLIENT_PREALLOCATE='false')
+    if is_jax:
+        env.update(
+            JAX_ENABLE_COMPILATION_CACHE='true',
+            JAX_COMPILATION_CACHE_DIR=str(jax_cache_dir),
+            PYCBC_JAX_COMPILATION_AUDIT_DIR=str(
+                output_dir / 'jax-compilation-audit'),
+        )
+    else:
+        for key in ('JAX_ENABLE_COMPILATION_CACHE', 'JAX_COMPILATION_CACHE_DIR',
+                    'JAX_RAISE_PERSISTENT_CACHE_ERRORS',
+                    'PYCBC_JAX_COMPILATION_AUDIT_DIR'):
+            env.pop(key, None)
     env.pop('PYCBC_BENCHMARK_EVIDENCE', None)
     env.pop('PYCBC_BENCHMARK_STAGES', None)
     if qualification:
@@ -1087,7 +1127,11 @@ def _run_single_case(
                     environment={k: v for k, v in env.items() if k in (
                         'OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS',
                         'PYTHONPATH', 'XLA_PYTHON_CLIENT_PREALLOCATE',
-                        'JAX_ENABLE_COMPILATION_CACHE', 'JAX_COMPILATION_CACHE_DIR')
+                        'JAX_ENABLE_COMPILATION_CACHE', 'JAX_COMPILATION_CACHE_DIR',
+                        'JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS',
+                        'JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES',
+                        'JAX_RAISE_PERSISTENT_CACHE_ERRORS',
+                        'PYCBC_JAX_COMPILATION_AUDIT_DIR')
                         or k.startswith('PYCBC_BENCHMARK_')})
     atomic_receipt(output_dir / 'command.json', manifest)
     t0 = time.perf_counter()
@@ -1112,6 +1156,15 @@ def _run_single_case(
     if (file_sha256(bank_file) != contract['bank_sha256']
             or file_sha256(frame_file) != contract['frame_sha256']):
         raise RuntimeError('Benchmark inputs changed during execution')
+    cache_audit = (
+        compilation_audit(
+            output_dir,
+            f"arm={arm}",
+            jax_cache_dir,
+            require_cache_hits=not qualification,
+        )
+        if is_jax else None
+    )
 
     with h5py.File(triggers_hdf, "r") as hf:
         search_grp = hf["H1/search"]
@@ -1170,6 +1223,7 @@ def _run_single_case(
         "triggers_path": str(triggers_hdf),
         "stdout_path": str(stdout_path),
         "stderr_path": str(stderr_path),
+        "compilation_cache": cache_audit,
     }
 
 
@@ -1275,8 +1329,8 @@ def main():
     parser.add_argument(
         "--replicates",
         type=int,
-        default=3,
-        help="Number of counterbalanced replicates (default: 3)",
+        default=None,
+        help="Number of counterbalanced replicates (default: 1 for quick, otherwise 3)",
     )
     parser.add_argument(
         "--affinity",
@@ -1362,6 +1416,12 @@ def main():
               "never emit an equivalence-qualified performance claim"),
     )
     parser.add_argument(
+        "--quick",
+        action="store_true",
+        help=("Run exactly one fresh timing repetition per arm and mark all "
+              "performance output diagnostic-only"),
+    )
+    parser.add_argument(
         "--profile-utilization",
         action="store_true",
         help="Run one fresh per-arm GPU/CPU timeline campaign after qualification; exclude it from unprofiled timing",
@@ -1369,13 +1429,20 @@ def main():
     parser.add_argument('--search-config', type=Path,
                         help='JSON overrides for the fixed scientific CLI settings')
     args = parser.parse_args()
+    if args.replicates is None:
+        args.replicates = 1 if args.quick else 3
     unsupported_diffgw = [arm for arm in args.arms if arm.endswith("_diffgw")]
     if unsupported_diffgw:
         parser.error(
             "diffgw arms are unsupported by this executable: "
             + ", ".join(unsupported_diffgw)
         )
-    if args.replicates < 3 and not (args.qualification_only or args.profile_utilization):
+    if args.quick and (args.qualification_only or args.profile_utilization):
+        parser.error('--quick cannot be combined with qualification-only or profiling')
+    if args.quick and args.replicates != 1:
+        parser.error('--quick requires exactly one timing repetition')
+    if args.replicates < 3 and not (
+            args.quick or args.qualification_only or args.profile_utilization):
         parser.error('At least three fresh timing repetitions are required')
     if 'original_cpu' not in args.arms:
         parser.error('original_cpu is required as the pristine scientific reference')
@@ -1518,7 +1585,8 @@ def main():
                 use_compressed_waveforms=not args.uncompressed,
                 waveform_decompression_method=args.decompression_method,
                 batch_size=args.batch_size, search_config=search_config, qualification=True,
-                expected_contract=contract)
+                expected_contract=contract,
+                jax_cache_dir=args.output_dir / 'jax-compilation-cache' / arm)
         except Exception as exc:
             checkpoint.update(status="failed", failure={
                 "phase": "qualification", "arm": arm,
@@ -1558,10 +1626,17 @@ def main():
         "qualification_required": True,
         "allow_unqualified_timings": bool(args.allow_unqualified_timings),
         "qualification_only": bool(args.qualification_only),
+        "quick": bool(args.quick),
+        "diagnostic_only": bool(args.quick or args.allow_unqualified_timings),
+        "effective_replicates": args.replicates,
+        "minimum_publishable_replicates": 3,
         "failed_qualification_arms": failed_arms,
-        "classification": ("known_divergence_diagnostic"
-                           if args.allow_unqualified_timings else
-                           "equivalent_output"),
+        "classification": (
+            "quick_known_divergence_diagnostic"
+            if args.quick and args.allow_unqualified_timings else
+            "known_divergence_diagnostic"
+            if args.allow_unqualified_timings else
+            "quick_diagnostic" if args.quick else "equivalent_output"),
     }
     checkpoint["timing_policy"] = timing_policy
     atomic_receipt(args.output, checkpoint)
@@ -1653,8 +1728,10 @@ def main():
                 "OPENBLAS_NUM_THREADS": "1",
                 "PYTHONHASHSEED": "0",
                 "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
-                "JAX_ENABLE_COMPILATION_CACHE": "false",
-                "JAX_COMPILATION_CACHE_DIR": "off",
+                "JAX_ENABLE_COMPILATION_CACHE": "true for JAX arms",
+                "JAX_COMPILATION_CACHE_DIR":
+                    str(args.output_dir / "jax-compilation-cache" / "<arm>"),
+                "timed_uncached_compile_requests_allowed": 0,
             },
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "workload": {
@@ -1745,6 +1822,7 @@ def main():
                     batch_size=args.batch_size,
                     search_config=search_config,
                     expected_contract=contract,
+                    jax_cache_dir=args.output_dir / 'jax-compilation-cache' / arm,
                 )
             except Exception as exc:
                 checkpoint.update(status="failed", failure={
@@ -1824,7 +1902,8 @@ def main():
             "triggers_count": runs[0]["num_triggers"],
         }
 
-    if (not args.allow_unqualified_timings and "original_cpu" in summaries
+    if (not args.quick and not args.allow_unqualified_timings
+            and "original_cpu" in summaries
             and all(r["science"]["passed"]
                     for runs in raw_results.values() for r in runs)):
         base_wall = summaries["original_cpu"]["wall_sec"]["median"]
@@ -1844,9 +1923,11 @@ def main():
         run['science']['passed']
         for runs in raw_results.values() for run in runs
     )
-    campaign_passed = science_qualified and not args.allow_unqualified_timings
-    campaign_status = ("complete" if campaign_passed
-                       else "complete_known_divergence")
+    campaign_passed = (science_qualified and not args.allow_unqualified_timings
+                       and not args.quick)
+    campaign_status = (
+        "complete_quick_diagnostic" if args.quick else
+        "complete" if campaign_passed else "complete_known_divergence")
     receipt = {
         "schema_version": 4,
         "executable": "pycbc_inspiral",
@@ -1854,6 +1935,9 @@ def main():
         "precision": BENCHMARK_PRECISION,
         "status": campaign_status,
         "performance_claim": campaign_passed,
+        "publishable": campaign_passed,
+        "diagnostic_only": bool(args.quick or args.allow_unqualified_timings),
+        "benchmark_tier": "quick" if args.quick else "full",
         "timing_policy": timing_policy,
         "campaign": {
             "status": campaign_status,
@@ -1861,6 +1945,9 @@ def main():
             "science_qualified": science_qualified,
             "passed": campaign_passed,
             "performance_claim": campaign_passed,
+            "publishable": campaign_passed,
+            "quick": bool(args.quick),
+            "diagnostic_only": bool(args.quick or args.allow_unqualified_timings),
             "known_divergence": bool(args.allow_unqualified_timings),
         },
         "qualification": qualification,
@@ -1876,8 +1963,10 @@ def main():
             "OPENBLAS_NUM_THREADS": "1",
             "PYTHONHASHSEED": "0",
             "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
-            "JAX_ENABLE_COMPILATION_CACHE": "false",
-            "JAX_COMPILATION_CACHE_DIR": "off",
+            "JAX_ENABLE_COMPILATION_CACHE": "true for JAX arms",
+            "JAX_COMPILATION_CACHE_DIR":
+                str(args.output_dir / "jax-compilation-cache" / "<arm>"),
+            "timed_uncached_compile_requests_allowed": 0,
         },
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "workload": {

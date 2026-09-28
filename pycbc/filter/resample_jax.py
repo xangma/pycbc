@@ -269,9 +269,11 @@ def butterworth(timeseries, frequency, order=8, attenuation=0.1,
             raise RuntimeError("lal-serial high-pass requires JAX 64-bit support")
         # A GPU scan has substantial loop-iteration overhead. Partial unrolling
         # retains the sample recurrence and was faster on the measured CUDA
-        # device; keep the CPU path rolled for its existing rounding behavior.
+        # device. A factor of 128 captures nearly all of the measured gain
+        # without the much larger compile/cache cost of further unrolling.
+        # Keep the CPU path rolled for its existing rounding behavior.
         device = getattr(scheme.mgr.state, 'jax_device', None)
-        unroll = (16 if device is not None and
+        unroll = (128 if device is not None and
                   device.platform in ('cuda', 'gpu') else 1)
         values = _highpass_lal_serial_core(jnp.asarray(_raw(timeseries)),
                                            frequency, timeseries.delta_t,

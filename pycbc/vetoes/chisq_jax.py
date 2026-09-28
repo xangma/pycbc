@@ -361,6 +361,31 @@ def _power_chisq_bins_numpy(h_arr, psd_arr, kmin, kmax, num_bins, delta_f):
     return jax.vmap(row_bins)(cumulative)
 
 
+@functools.partial(
+    jax.jit,
+    static_argnames=("min_kmin", "kmax", "num_bins", "delta_f"),
+)
+def _power_chisq_bins_varied_support(
+        h_arr, psd_arr, kmins, min_kmin, kmax, num_bins, delta_f):
+    """Build exact batched edges for rows with different lower cutoffs."""
+    h_slice = jnp.asarray(h_arr)[..., min_kmin:kmax]
+    psd_slice = jnp.asarray(psd_arr)[min_kmin:kmax]
+    magnitude = h_slice.real ** 2 + h_slice.imag ** 2
+    power = _weighted_power_divide(magnitude, psd_slice)
+    frequencies = jnp.arange(min_kmin, kmax, dtype=jnp.int32)
+    power = jnp.where(frequencies[None, :] >= kmins[:, None], power, 0)
+    cumulative = jax.vmap(_ordered_cumsum)(power) * (4.0 * delta_f)
+
+    def row_bins(row):
+        edges = jnp.arange(num_bins, dtype=jnp.float64) * row[-1] / num_bins
+        bins = jnp.searchsorted(row, edges, side="right") + min_kmin
+        return jnp.concatenate(
+            (bins, jnp.asarray([kmax], dtype=bins.dtype))
+        ).astype(jnp.uint32)
+
+    return jax.vmap(row_bins)(cumulative)
+
+
 def _weighted_power_divide(magnitude, psd):
     """Divide template power by PSD with the reference float32 rounding.
 
@@ -396,15 +421,41 @@ def batch_power_chisq_bins_jax(
     low_frequency_cutoff=None,
     high_frequency_cutoff=None,
 ):
-    """Calculate standard-backend-compatible bin edges for JAX template rows."""
+    """Calculate standard-backend-compatible bin edges for JAX template rows.
+
+    ``low_frequency_cutoff`` may be one value for the whole batch or one
+    value per template. The latter keeps each ordered frequency scan exact
+    while allowing independent templates to execute concurrently.
+    """
     from pycbc.filter.matchedfilter import get_cutoff_indices
 
     _ensure_x64()
     n_pts = (len(templates[0]) - 1) * 2
     delta_f = float(templates[0].delta_f)
-    kmin, kmax = get_cutoff_indices(
-        low_frequency_cutoff, high_frequency_cutoff, delta_f, n_pts
+    varied_support = (
+        low_frequency_cutoff is not None
+        and not np.isscalar(low_frequency_cutoff)
     )
+    if varied_support:
+        cutoffs = list(low_frequency_cutoff)
+        if len(cutoffs) != len(templates):
+            raise ValueError("Expected one lower cutoff per template")
+        bounds = [
+            get_cutoff_indices(
+                cutoff, high_frequency_cutoff, delta_f, n_pts
+            )
+            for cutoff in cutoffs
+        ]
+        kmins = np.asarray([bound[0] for bound in bounds], dtype=np.int32)
+        kmaxs = {bound[1] for bound in bounds}
+        if len(kmaxs) != 1:
+            raise ValueError("Batched templates must share an upper cutoff")
+        kmax = kmaxs.pop()
+        min_kmin = int(kmins.min())
+    else:
+        kmin, kmax = get_cutoff_indices(
+            low_frequency_cutoff, high_frequency_cutoff, delta_f, n_pts
+        )
 
     from pycbc import scheme
     state = getattr(scheme.mgr, "state", None)
@@ -418,13 +469,18 @@ def batch_power_chisq_bins_jax(
 
     psd_arr = to_jax(psd, device=target_dev)
 
+    if varied_support:
+        return _power_chisq_bins_varied_support(
+            tmpls_tensor,
+            psd_arr,
+            jnp.asarray(kmins),
+            min_kmin,
+            int(kmax),
+            int(num_bins),
+            delta_f,
+        )
     return _power_chisq_bins_numpy(
-        tmpls_tensor,
-        psd_arr,
-        int(kmin),
-        int(kmax),
-        int(num_bins),
-        delta_f,
+        tmpls_tensor, psd_arr, int(kmin), int(kmax), int(num_bins), delta_f
     )
 
 
@@ -443,22 +499,38 @@ def _batch_power_chisq_bins_host(
 
     n_pts = (len(templates[0]) - 1) * 2
     delta_f = float(templates[0].delta_f)
-    kmin, kmax = get_cutoff_indices(
-        low_frequency_cutoff, high_frequency_cutoff, delta_f, n_pts
+    varied_support = (
+        low_frequency_cutoff is not None
+        and not np.isscalar(low_frequency_cutoff)
     )
-    rows = np.asarray(host_tensor)[:, kmin:kmax]
-    psd_host = np.asarray(jax.device_get(to_jax(psd)))[kmin:kmax]
+    cutoffs = (list(low_frequency_cutoff) if varied_support else
+               [low_frequency_cutoff] * len(templates))
+    if len(cutoffs) != len(templates):
+        raise ValueError("Expected one lower cutoff per template")
+    bounds = [
+        get_cutoff_indices(cutoff, high_frequency_cutoff, delta_f, n_pts)
+        for cutoff in cutoffs
+    ]
+    kmins = np.asarray([bound[0] for bound in bounds], dtype=np.int32)
+    kmaxs = {bound[1] for bound in bounds}
+    if len(kmaxs) != 1:
+        raise ValueError("Batched templates must share an upper cutoff")
+    kmax = kmaxs.pop()
+    min_kmin = int(kmins.min())
+    rows = np.asarray(host_tensor)[:, min_kmin:kmax]
+    psd_host = np.asarray(jax.device_get(to_jax(psd)))[min_kmin:kmax]
     cumulative = np.empty(rows.shape, dtype=rows.real.dtype)
     np.square(rows.real, out=cumulative)
     cumulative += np.square(rows.imag)
     cumulative /= psd_host[None, :]
+    cumulative[np.arange(min_kmin, kmax)[None, :] < kmins[:, None]] = 0
     np.cumsum(cumulative, axis=-1, out=cumulative)
     cumulative *= 4.0 * delta_f
     bins = np.empty((len(rows), num_bins + 1), dtype=np.uint32)
     for index, row in enumerate(cumulative):
         edges = np.arange(num_bins) * row[-1] / num_bins
         bins[index, :-1] = (
-            np.searchsorted(row, edges, side="right") + kmin
+            np.searchsorted(row, edges, side="right") + min_kmin
         )
         bins[index, -1] = kmax
     return bins
@@ -499,19 +571,14 @@ def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd):
             continue
 
         num_bins = int(power_chisq.parse_option(template, power_chisq.num_bins))
-        f_lower = getattr(template, "f_lower", None)
-        key = (
-            num_bins,
-            None if f_lower is None else float(f_lower),
-            len(template),
-            float(template.delta_f),
-        )
+        key = (num_bins, len(template), float(template.delta_f))
         groups[key].append(index)
 
     source_tensor = getattr(templates, "_batch_tensor", None)
     source_host = getattr(templates, "_host_batch_tensor", None)
-    for (num_bins, f_lower, _, _), indices in groups.items():
+    for (num_bins, _, _), indices in groups.items():
         grouped = TemplateBatchList([templates[index] for index in indices])
+        f_lowers = [getattr(template, "f_lower", None) for template in grouped]
         if source_tensor is not None:
             if indices == list(range(len(templates))):
                 grouped._batch_tensor = source_tensor
@@ -525,11 +592,11 @@ def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd):
             else:
                 grouped_host = source_host[indices]
             edges = _batch_power_chisq_bins_host(
-                grouped, grouped_host, num_bins, psd, f_lower
+                grouped, grouped_host, num_bins, psd, f_lowers
             )
         else:
             edges = np.asarray(jax.device_get(batch_power_chisq_bins_jax(
-                grouped, num_bins, psd, f_lower
+                grouped, num_bins, psd, f_lowers
             )))
         for row, index in enumerate(indices):
             template = templates[index]

@@ -2136,7 +2136,7 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             frame_src = [args.frame_src[ifo]]
         strain_channel = ':'.join([ifo, args.channel_name[ifo]])
 
-        return cls(
+        buffer = cls(
             frame_src,
             strain_channel,
             args.start_time,
@@ -2171,3 +2171,10 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             data_quality_flags=dq_flags,
             dq_padding=args.data_quality_padding
         )
+        if (getattr(args, 'replay_clock', False)
+                and isinstance(scheme.mgr.state, scheme.JAXScheme)):
+            from pycbc.frame.frame_jax import configure_jax_replay
+            configure_jax_replay(
+                buffer, args.end_time, args.analysis_chunk
+            )
+        return buffer

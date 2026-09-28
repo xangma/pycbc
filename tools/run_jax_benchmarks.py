@@ -2,9 +2,10 @@
 """Reproduce the four-arm, 2048 Hz/complex64 complete-search benchmark suite.
 
 The plan command is read-only. prepare builds inputs; qualify performs a small
-science-only preflight; run qualifies, times, profiles, and renders the suite.
-Every invocation writes to a new phase directory and stops on the first failure.
-The scope selects inspiral, live, or both without changing their pinned arms.
+science-only preflight; run executes either a quick diagnostic or the full
+timing, scaling, paced-replay, and profiling suite. Every invocation writes to
+a new phase directory and stops on the first failure. The scope selects
+inspiral, live, or both without changing their pinned arms.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = "40e94792b3edf59f39b18b65102b28a4f74433a7"
 INSPIRAL_ARMS = ["original_cpu", "branch_cpu", "jax_cpu_batched", "jax_cuda_batched"]
 LIVE_ARMS = ["cpu", "branch_cpu", "jax_cpu", "jax_cuda"]
+QUICK_LIVE_DURATION_SEC = 64
 PATH_FIELDS = ("reference_source", "candidate_source", "python", "inputs_dir",
                "frame_file", "output_dir", "bank_xml")
 
@@ -102,7 +104,7 @@ def load_config(path):
     return config
 
 
-def live_config(config, size):
+def live_config(config, size, quick=False):
     result = json.loads((ROOT / "tools/live_campaign_h1.example.json").read_text())
     bank = str(Path(config["inputs_dir"]) / f"o2-subset-{size}.hdf")
     result["bank_file"] = bank
@@ -112,6 +114,11 @@ def live_config(config, size):
     result["workload"]["templates"] = size
     args = result["args"]
     args[args.index("--bank-file") + 1] = bank
+    if quick:
+        start = int(result["workload"]["start_time"])
+        end = start + QUICK_LIVE_DURATION_SEC
+        result["workload"]["end_time"] = end
+        args[args.index("--end-time") + 1] = str(end)
     frame_pos = args.index("--frame-src")
     args[frame_pos + 1] = "H1:" + config["frame_file"]
     channel_pos = args.index("--channel-name")
@@ -127,11 +134,13 @@ def live_config(config, size):
 
 
 def campaign(config, directory, kind, size, mode="timing",
-             allow_unqualified_timings=False):
+             allow_unqualified_timings=False, replicates=None, quick=False,
+             short_live=False):
     """Return an explicit argv and any configuration file it consumes."""
     output = Path(directory) / f"{kind}-{size}-{mode}"
+    repetitions = config["replicates"] if replicates is None else replicates
     common = ["--python", config["python"], "--reference-revision", REFERENCE,
-              "--replicates", str(config["replicates"]),
+              "--replicates", str(repetitions),
               "--output", str(output / "campaign.json"),
               "--output-dir", str(output / "runs")]
     generated = {}
@@ -146,7 +155,8 @@ def campaign(config, directory, kind, size, mode="timing",
             "--affinity", str(config["inspiral_affinity"]), *common]
     else:
         configuration = output / "live-config.json"
-        generated[str(configuration)] = live_config(config, size)
+        generated[str(configuration)] = live_config(
+            config, size, quick=(quick or short_live))
         command = [config["python"], str(ROOT / "tools/bench_jax_live_campaign.py"),
             "--config", str(configuration), "--source-root", config["candidate_source"],
             "--reference-source-root", config["reference_source"],
@@ -160,18 +170,37 @@ def campaign(config, directory, kind, size, mode="timing",
         command.append("--profile-utilization")
     if allow_unqualified_timings:
         command.append("--allow-unqualified-timings")
+    if quick:
+        command.append("--quick")
     return {"kind": kind, "templates": size, "mode": mode, "command": command,
             "receipt": str(output / "campaign.json"), "generated_files": generated}
 
 
-def make_plan(config, phase, scope="both", allow_unqualified_timings=False):
+def make_plan(config, phase, scope="both", allow_unqualified_timings=False,
+              preset="full", quick_profiles=False):
     if scope not in ("both", "inspiral", "live"):
         raise ValueError("scope must be both, inspiral, or live")
-    directory = Path(config["output_dir"]) / phase
-    steps = [campaign(config, directory, kind, 32, "qualification",
-                      allow_unqualified_timings)
-             for kind in ("inspiral", "live-unpaced")]
-    if phase == "run":
+    if preset not in ("quick", "full"):
+        raise ValueError("preset must be quick or full")
+    if quick_profiles and (phase != "run" or preset != "quick"):
+        raise ValueError("quick_profiles requires the quick run preset")
+    directory_name = "quick" if phase == "run" and preset == "quick" else phase
+    directory = Path(config["output_dir"]) / directory_name
+    if phase == "run" and preset == "quick":
+        size = config["qualification_size"]
+        steps = [campaign(config, directory, kind, size, "timing",
+                          allow_unqualified_timings, replicates=1, quick=True)
+                 for kind in ("inspiral", "live-unpaced")]
+        if quick_profiles:
+            steps += [campaign(config, directory, kind, size, "profile",
+                               allow_unqualified_timings, replicates=1,
+                               short_live=True)
+                      for kind in ("inspiral", "live-unpaced")]
+    else:
+        steps = [campaign(config, directory, kind, 32, "qualification",
+                          allow_unqualified_timings)
+                 for kind in ("inspiral", "live-unpaced")]
+    if phase == "run" and preset == "full":
         steps += [campaign(config, directory, kind, size, "timing",
                            allow_unqualified_timings)
                   for size in config["sizes"] for kind in ("inspiral", "live-unpaced")]
@@ -185,9 +214,13 @@ def make_plan(config, phase, scope="both", allow_unqualified_timings=False):
         selected_kinds = ({"inspiral"} if scope == "inspiral"
                           else {"live-unpaced", "live-paced"})
         steps = [step for step in steps if step["kind"] in selected_kinds]
-    return {"config": config, "phase": phase, "scope": scope, "steps": steps,
+    return {"config": config, "phase": phase, "scope": scope,
+            "preset": preset, "quick_profiles": bool(quick_profiles),
+            "steps": steps,
             "allow_unqualified_timings": bool(allow_unqualified_timings),
             "sample_rate": 2048, "precision": "complex64",
+            "performance_claim": (preset == "full"
+                                  and not allow_unqualified_timings),
             "convergence": "<5% change in median full-process capacity at each of two successive template doublings; bank-size convergence only, always finite detector duration"}
 
 
@@ -285,7 +318,8 @@ def known_divergence_complete(receipt, step):
     campaign_result = receipt.get("campaign", {})
     arms = INSPIRAL_ARMS if step["kind"] == "inspiral" else LIVE_ARMS
     science = receipt.get("science", {})
-    if (policy.get("allow_unqualified_timings") is not True
+    if (policy.get("quick") is True
+            or policy.get("allow_unqualified_timings") is not True
             or campaign_result.get("process_complete") is not True
             or set(science) != set(arms)
             or any(type(science[arm].get("passed")) is not bool for arm in arms)
@@ -306,6 +340,78 @@ def known_divergence_complete(receipt, step):
         "qualification" if step["kind"] == "inspiral"
         else "qualification_results", {})
     return set(qualification) == set(arms)
+
+
+def quick_diagnostic_complete(receipt, step):
+    """Require complete single-sample evidence with no performance claim."""
+    if step["mode"] != "timing":
+        return False
+    arms = INSPIRAL_ARMS if step["kind"] == "inspiral" else LIVE_ARMS
+    policy = receipt.get("timing_policy", {})
+    campaign_result = receipt.get("campaign", {})
+    science = receipt.get("science", {})
+    runs = receipt.get("raw_results", {})
+    qualification = receipt.get(
+        "qualification" if step["kind"] == "inspiral"
+        else "qualification_results", {})
+    profiles = receipt.get("profile_results", {})
+    profile_free = (
+        isinstance(profiles, dict)
+        and all(not results for results in profiles.values())
+    )
+    qualification_complete = (
+        all(isinstance(qualification[arm], dict)
+            and qualification[arm].get("qualification_run") is True
+            and qualification[arm].get("elapsed_wall_sec", 0) > 0
+            for arm in arms)
+        if step["kind"] == "inspiral" else
+        all(isinstance(qualification[arm], list)
+            and len(qualification[arm]) == 1
+            and qualification[arm][0].get("process_complete") is True
+            and qualification[arm][0].get("returncode") == 0
+            for arm in arms)
+    ) if set(qualification) == set(arms) else False
+    timed_complete = (
+        set(runs) == set(arms)
+        and all(len(runs[arm]) == 1 for arm in arms)
+        and all(run.get("process_complete",
+                        run.get("elapsed_wall_sec", 0) > 0) is True
+                and run.get("returncode", 0) == 0
+                for arm in arms for run in runs[arm])
+    )
+    science_failed = any(
+        science.get(arm, {}).get("passed") is False for arm in arms)
+    return (
+        receipt.get("executable") == (
+            "pycbc_inspiral" if step["kind"] == "inspiral" else "pycbc_live")
+        and receipt.get("status") == "complete_quick_diagnostic"
+        and receipt.get("benchmark_tier") == "quick"
+        and receipt.get("diagnostic_only") is True
+        and policy.get("quick") is True
+        and policy.get("diagnostic_only") is True
+        and policy.get("effective_replicates") == 1
+        and policy.get("minimum_publishable_replicates") == 3
+        and campaign_result.get("quick") is True
+        and campaign_result.get("status") == "complete_quick_diagnostic"
+        and campaign_result.get("diagnostic_only") is True
+        and campaign_result.get("process_complete") is True
+        and campaign_result.get("passed") is False
+        and campaign_result.get("performance_claim") is False
+        and campaign_result.get("publishable") is False
+        and receipt.get("performance_claim") is False
+        and receipt.get("publishable") is False
+        and set(science) == set(arms)
+        and all(type(science[arm].get("passed")) is bool for arm in arms)
+        and (not science_failed
+             or policy.get("allow_unqualified_timings") is True)
+        and qualification_complete
+        and timed_complete
+        and profile_free
+        and (step["kind"] == "inspiral"
+             or (receipt.get("baseline", {}).get("pristine") is True
+                 and receipt.get("baseline", {}).get("provided") is True
+                 and receipt.get("baseline", {}).get("stable") is True))
+    )
 
 
 def completed_science_failure(receipt, step):
@@ -381,6 +487,43 @@ def reconcile_science_failure(state):
         step["failure"] = failure
 
 
+def reconcile_quick_diagnostics(state):
+    """Recover a quick suite after completed receipts pass current validation."""
+    if state.get("preset") != "quick" or not state.get("steps"):
+        return False
+    receipts = []
+    for step in state["steps"]:
+        path = Path(step["receipt"])
+        if not path.is_file():
+            return False
+        receipt = json.loads(path.read_text())
+        complete = (quick_diagnostic_complete(receipt, step)
+                    if step["mode"] == "timing" else
+                    (science_passed(receipt)
+                     or known_divergence_complete(receipt, step)))
+        if not complete:
+            return False
+        receipts.append(receipt)
+    for step, receipt in zip(state["steps"], receipts):
+        step["status"] = (
+            "complete_quick_diagnostic" if step["mode"] == "timing" else
+            "passed" if science_passed(receipt) else
+            "complete_known_divergence")
+        step["figures"] = []
+        step["failed_science_arms"] = [
+            arm for arm, result in receipt["science"].items()
+            if result.get("passed") is False
+        ]
+    state.update(
+        status="complete_quick_diagnostic",
+        performance_claim=False,
+        publishable=False,
+        diagnostic_only=True,
+    )
+    state.pop("error", None)
+    return True
+
+
 def validate_inputs(config, manifest):
     """Require the frozen prepared bank set, not merely files with familiar names."""
     if manifest.get("reference_revision") != REFERENCE:
@@ -419,7 +562,8 @@ def render_figures(step):
     receipt = json.loads(path.read_text())
     outputs = []
     if (not science_passed(receipt)
-            and not known_divergence_complete(receipt, step)):
+            and not known_divergence_complete(receipt, step)
+            and not quick_diagnostic_complete(receipt, step)):
         return outputs
     if step["mode"] == "timing":
         output = path.parent / "capacity.png"
@@ -434,8 +578,12 @@ def render_figures(step):
             run = entries[0] if isinstance(entries, list) else entries
             timeline_path = Path(run["timeline_path"])
             data = json.loads(timeline_path.read_text())
+            # Pristine reference executables cannot emit the branch's
+            # structured markers.  Their observer still reconstructs phases
+            # from stable log boundaries, which is sufficient for stage
+            # figures.  Require usable windows rather than one marker source.
             if (data.get("returncode") != 0 or not data.get("telemetry")
-                    or not data.get("stage_events") or not stage_zoom_windows(data)):
+                    or not stage_zoom_windows(data)):
                 raise ValueError(f"Incomplete process/stage profile for {arm}")
             if not data.get("process_tree", {}).get("completion", {}).get(
                     "all_observed_processes_exited"):
@@ -457,17 +605,29 @@ def render_report(directory):
     plan_config = (json.loads(plan_path.read_text()).get("config", {})
                    if plan_path.exists() else {})
     scope = state.get("scope", "both")
+    preset = state.get("preset", "full")
+    live_duration = QUICK_LIVE_DURATION_SEC if preset == "quick" else 640
+    live_start = 1187007080
+    live_end = live_start + live_duration
     live_detectors = "H1+L1" if plan_config.get("live_l1_frame_file") else "H1"
     selected = ("Both executables" if scope == "both" else
                 "pycbc_inspiral" if scope == "inspiral" else "pycbc_live")
     lines = ["JAX complete-search benchmark run", "=================================", "",
              f"Suite status: {state['status']}.  Analysis: 2048 Hz, complex64.", "",
-             f"Selected scope: {selected}.",
+             f"Selected scope: {selected}.  Preset: {preset}.",
              "Selected executable(s) compare pristine original CPU, branch ordinary CPU, JAX CPU and JAX CUDA.",
              "Full-process timing includes startup, conditioning, compilation, output and shutdown.",
              "Qualification and profiling processes do not contribute to timing medians.", "",
              "The exact input hashes, bank row selection, source patches, dependency versions and commands",
              "are retained alongside this report in inputs-manifest.json, provenance.json and plan.json.", ""]
+    if preset == "quick":
+        lines += ["Quick diagnostic", "----------------", "",
+                  "This preset records one fresh timing sample per arm at the 32-template diagnostic bank size.",
+                  "It is diagnostic-only: replication and convergence are not established, and no result",
+                  "in this report is a publishable performance claim.", ""]
+        if state.get("quick_profiles"):
+            lines += ["Separate 32-template process and stage profiles were also captured for each arm.",
+                      "Profile processes are excluded from the timing samples above.", ""]
     if state.get("allow_unqualified_timings"):
         lines += ["Known-divergence timing policy", "------------------------------", "",
                   "Scientific gates remain strict and their failures are reported below. Timings are descriptive",
@@ -491,8 +651,10 @@ def render_report(directory):
                 "GPS input [1187007048,1187009080), requested trigger interval [1187007160,1187009064). "
                 "512 s segments, 112/16 s start/end pads; CPU batch 1, JAX CPU batch 16, JAX CUDA batch 64.")
         else:
-            description = (f"TaylorF2 generated templates; {live_detectors} replay [1187007080,1187007720) in 8 s chunks, "
-                "640 s requested input; " + ("paced at real time." if step["kind"] == "live-paced" else "unpaced throughput replay."))
+            description = (f"TaylorF2 generated templates; {live_detectors} replay "
+                f"[{live_start},{live_end}) in 8 s chunks, {live_duration} s requested input; "
+                + ("paced at real time." if step["kind"] == "live-paced"
+                   else "unpaced throughput replay."))
         channel_description = ("H1:LOSC-STRAIN; L1:LOSC-STRAIN;" if step["kind"] != "inspiral" and live_detectors == "H1+L1"
                                else "H1:LOSC-STRAIN;")
         lines += [description, channel_description + " low-frequency cutoff 30 Hz; SNR threshold 5.5; chi-square 16 bins.",
@@ -513,15 +675,20 @@ def render_report(directory):
             lines += [f".. image:: {relative}", "   :width: 100%", ""]
         if (step["mode"] == "timing" and
                 (science_passed(receipt) or
-                 known_divergence_complete(receipt, step))):
+                 known_divergence_complete(receipt, step) or
+                 quick_diagnostic_complete(receipt, step))):
             rows = campaign_rows(receipt)
-            lines += ["Capacity (templates/core for CPU, templates/GPU for CUDA)::", ""]
+            heading = ("Single-sample diagnostic throughput"
+                       if preset == "quick" else
+                       "Capacity (templates/core for CPU, templates/GPU for CUDA)")
+            lines += [heading + "::", ""]
             lines += ["   " + line for line in render_campaign_report(receipt).splitlines()]
             for row in rows:
                 lines.append(f"   {row['arm']}: valid detector-seconds={row['valid_detector_seconds']}; "
                              f"completed template-seconds={row['work']}; wall samples={row['wall_seconds']}")
             lines += [""]
-            samples.setdefault(step["kind"], []).append((step["templates"], rows))
+            if preset != "quick":
+                samples.setdefault(step["kind"], []).append((step["templates"], rows))
     lines += ["Workload scaling", "----------------", ""]
     for kind in ("inspiral", "live-unpaced"):
         if scope == "inspiral" and kind != "inspiral":
@@ -548,20 +715,27 @@ def render_report(directory):
     (directory / "benchmark-report.rst").write_text("\n".join(lines))
 
 
-def execute_suite(config, phase, scope="both", allow_unqualified_timings=False):
+def execute_suite(config, phase, scope="both", allow_unqualified_timings=False,
+                  preset="full", quick_profiles=False):
     if Path(config["candidate_source"]) != ROOT:
         raise ValueError("Run the driver from the configured candidate checkout")
     validate_reference(Path(config["reference_source"]), REFERENCE)
     manifest_path = Path(config["inputs_dir"]) / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     validate_inputs(config, manifest)
-    directory = Path(config["output_dir"]) / phase
+    directory_name = "quick" if phase == "run" and preset == "quick" else phase
+    directory = Path(config["output_dir"]) / directory_name
     directory.mkdir(parents=True, exist_ok=False)
-    plan = make_plan(config, phase, scope, allow_unqualified_timings)
+    plan = make_plan(config, phase, scope, allow_unqualified_timings, preset,
+                     quick_profiles)
     write_json(directory / "plan.json", plan)
     write_json(directory / "inputs-manifest.json", manifest)
     frozen = capture_provenance(config, directory)
-    state = {"status": "running", "scope": scope,
+    state = {"status": "running", "scope": scope, "preset": preset,
+             "quick_profiles": bool(quick_profiles),
+             "performance_claim": False if preset == "quick" else None,
+             "publishable": False if preset == "quick" else None,
+             "diagnostic_only": preset == "quick",
              "allow_unqualified_timings": bool(allow_unqualified_timings),
              "steps": copy.deepcopy(plan["steps"])}
     write_json(directory / "suite.json", state)
@@ -596,10 +770,26 @@ def execute_suite(config, phase, scope="both", allow_unqualified_timings=False):
                 allow_unqualified_timings
                 and known_divergence_complete(receipt, step)
             )
+            quick_complete = (
+                preset == "quick" and quick_diagnostic_complete(receipt, step)
+            )
             if (process.returncode != 0
                     and not completed_science_failure(receipt, step)
-                    and not diagnostic_complete):
+                    and not diagnostic_complete
+                    and not quick_complete):
                 raise subprocess.CalledProcessError(process.returncode, step["command"])
+            if preset == "quick" and step["mode"] == "timing":
+                if not quick_complete:
+                    raise ValueError("Quick campaign did not produce a complete diagnostic receipt: "
+                                     + step["receipt"])
+                step["status"] = "complete_quick_diagnostic"
+                step["figures"] = []
+                step["failed_science_arms"] = [
+                    arm for arm, result in receipt["science"].items()
+                    if result.get("passed") is False]
+                write_json(directory / "suite.json", state)
+                render_report(directory)
+                continue
             if not science_passed(receipt):
                 if diagnostic_complete:
                     step["status"] = "complete_known_divergence"
@@ -626,8 +816,10 @@ def execute_suite(config, phase, scope="both", allow_unqualified_timings=False):
         if science_failures and not allow_unqualified_timings:
             raise RuntimeError("Scientific qualification failed; no timing or profiling launched: "
                                + ", ".join(science_failures))
-        state["status"] = ("complete_known_divergence"
-                           if allow_unqualified_timings else "complete")
+        state["status"] = (
+            "complete_quick_diagnostic" if preset == "quick" else
+            "complete_known_divergence" if allow_unqualified_timings else
+            "complete")
     except BaseException as exc:
         state["status"] = "failed"
         state["error"] = str(exc)
@@ -647,32 +839,52 @@ def main():
     parser.add_argument("--scope", choices=("both", "inspiral", "live"),
                         default="both")
     parser.add_argument(
+        "--preset", choices=("quick", "full"), default="full",
+        help=("quick runs one diagnostic sample per arm at the 32-template "
+              "diagnostic size; full runs replicated scaling, paced replay "
+              "and profiles"),
+    )
+    parser.add_argument(
         "--allow-unqualified-timings", action="store_true",
         help=("continue with clearly labelled known-divergence diagnostics "
               "when strict scientific qualification fails"),
+    )
+    parser.add_argument(
+        "--quick-profiles", action="store_true",
+        help=("with the quick run preset, add separate 32-template process "
+              "and stage profiles that are excluded from timing samples"),
     )
     args = parser.parse_args()
     config = load_config(args.config)
     if args.phase == "plan":
         plan = make_plan(config, "run", args.scope,
-                         args.allow_unqualified_timings)
+                         args.allow_unqualified_timings, args.preset,
+                         args.quick_profiles)
         plan["prepare_command"] = preparation_command(config)
         print(json.dumps(plan, indent=2))
     elif args.phase == "prepare":
         subprocess.run(preparation_command(config), check=True,
                        env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
     elif args.phase == "report":
-        directory = Path(config["output_dir"]) / "run"
+        directory = Path(config["output_dir"]) / (
+            "quick" if args.preset == "quick" else "run")
         state = json.loads((directory / "suite.json").read_text())
         reconcile_science_failure(state)
+        if args.preset == "quick":
+            reconcile_quick_diagnostics(state)
         for step in state["steps"]:
-            if step.get("status") in ("passed", "complete_known_divergence"):
-                step["figures"] = render_figures(step)
+            if step.get("status") in ("passed", "complete_known_divergence",
+                                       "complete_quick_diagnostic"):
+                step["figures"] = (
+                    [] if args.preset == "quick" and step["mode"] == "timing"
+                    else render_figures(step)
+                )
         write_json(directory / "suite.json", state)
         render_report(directory)
     else:
         execute_suite(config, args.phase, args.scope,
-                      args.allow_unqualified_timings)
+                      args.allow_unqualified_timings, args.preset,
+                      args.quick_profiles)
 
 
 if __name__ == "__main__":

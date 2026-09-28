@@ -136,6 +136,8 @@ over windowed strain segments).
   Intel MKL to FFTW changes 30,637 in-band Welch PSD bins and causes the pristine
   CPU path to fail the exact same four chi-square values against itself.
 
+.. _jax-highpass-compat-evidence:
+
 3. Segment Spectra and Conditioning Differences
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

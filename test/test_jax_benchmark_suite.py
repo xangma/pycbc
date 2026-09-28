@@ -90,6 +90,7 @@ def test_live_config_contains_both_frames_and_background_estimation(tmp_path):
     assert args.count("--channel-name") == 1
     assert "L1:LOSC-STRAIN" in args
     assert "--enable-background-estimation" in args
+    assert generated["workload"]["end_time"] - generated["workload"]["start_time"] == 640
     for option in ("--ifar-double-followup-threshold", "--ifar-upload-threshold"):
         assert args[args.index(option) + 1] == "1e9"
 
@@ -143,6 +144,95 @@ def test_plan_has_four_arms_for_both_executables_and_all_modes(tmp_path):
                for step in plan["steps"])
 
 
+def test_full_preset_is_the_default_and_preserves_the_complete_plan(tmp_path):
+    config = suite.load_config(_write_config(tmp_path))
+    default = suite.make_plan(config, "run")
+    explicit = suite.make_plan(config, "run", preset="full")
+
+    assert default == explicit
+    assert explicit["preset"] == "full"
+    assert len(explicit["steps"]) == 12
+    assert {step["mode"] for step in explicit["steps"]} == {
+        "qualification", "timing", "profile"}
+
+
+def test_quick_preset_is_one_small_unprofiled_timing_campaign_per_scope(tmp_path):
+    config = suite.load_config(_write_config(tmp_path))
+    plan = suite.make_plan(config, "run", preset="quick")
+
+    assert plan["preset"] == "quick"
+    assert [(step["kind"], step["templates"], step["mode"])
+            for step in plan["steps"]] == [
+        ("inspiral", config["qualification_size"], "timing"),
+        ("live-unpaced", config["qualification_size"], "timing"),
+    ]
+    for step in plan["steps"]:
+        command = step["command"]
+        assert command[command.index("--replicates") + 1] == "1"
+        assert command.count("--quick") == 1
+        assert "--qualification-only" not in command
+        assert "--profile-utilization" not in command
+        assert step["kind"] != "live-paced"
+        if step["kind"] == "inspiral":
+            assert (command[command.index("--arms") + 1:command.index("--affinity")]
+                    == suite.INSPIRAL_ARMS)
+        else:
+            assert (command[command.index("--arms") + 1:command.index("--ranks")]
+                    == suite.LIVE_ARMS)
+            live_config = next(iter(step["generated_files"].values()))
+            workload = live_config["workload"]
+            assert workload["end_time"] - workload["start_time"] == 64
+            args = live_config["args"]
+            assert args[args.index("--end-time") + 1] == str(workload["end_time"])
+
+
+def test_quick_profiles_are_separate_short_campaigns(tmp_path):
+    config = suite.load_config(_write_config(tmp_path))
+    plan = suite.make_plan(config, "run", preset="quick", quick_profiles=True)
+
+    assert plan["quick_profiles"] is True
+    assert [(step["kind"], step["templates"], step["mode"])
+            for step in plan["steps"]] == [
+        ("inspiral", 32, "timing"),
+        ("live-unpaced", 32, "timing"),
+        ("inspiral", 32, "profile"),
+        ("live-unpaced", 32, "profile"),
+    ]
+    for step in plan["steps"][2:]:
+        command = step["command"]
+        assert command[command.index("--replicates") + 1] == "1"
+        assert "--profile-utilization" in command
+        assert "--quick" not in command
+    live_profile = plan["steps"][-1]
+    generated = next(iter(live_profile["generated_files"].values()))
+    assert (generated["workload"]["end_time"]
+            - generated["workload"]["start_time"] == 64)
+
+
+def test_quick_profiles_require_quick_run_preset(tmp_path):
+    config = suite.load_config(_write_config(tmp_path))
+    with pytest.raises(ValueError, match="requires the quick run preset"):
+        suite.make_plan(config, "run", preset="full", quick_profiles=True)
+    with pytest.raises(ValueError, match="requires the quick run preset"):
+        suite.make_plan(config, "qualify", preset="quick", quick_profiles=True)
+
+
+@pytest.mark.parametrize("scope, expected_kind", [
+    ("inspiral", "inspiral"),
+    ("live", "live-unpaced"),
+])
+def test_quick_preset_respects_scope_without_weakening_arms(
+        tmp_path, scope, expected_kind):
+    config = suite.load_config(_write_config(tmp_path))
+    plan = suite.make_plan(config, "run", scope=scope, preset="quick")
+
+    assert len(plan["steps"]) == 1
+    step = plan["steps"][0]
+    assert step["kind"] == expected_kind
+    assert step["templates"] == config["qualification_size"]
+    assert step["mode"] == "timing"
+
+
 def test_known_divergence_plan_marks_every_campaign(tmp_path):
     config = suite.load_config(_write_config(tmp_path))
     plan = suite.make_plan(config, "run", allow_unqualified_timings=True)
@@ -164,6 +254,102 @@ def test_known_divergence_completion_does_not_pass_science():
     }
     assert suite.known_divergence_complete(receipt, step)
     assert not suite.science_passed(receipt)
+
+
+def _quick_inspiral_receipt():
+    return {
+        "executable": "pycbc_inspiral",
+        "status": "complete_quick_diagnostic",
+        "benchmark_tier": "quick",
+        "performance_claim": False,
+        "publishable": False,
+        "diagnostic_only": True,
+        "timing_policy": {
+            "quick": True,
+            "diagnostic_only": True,
+            "allow_unqualified_timings": False,
+            "effective_replicates": 1,
+            "minimum_publishable_replicates": 3,
+        },
+        "campaign": {
+            "status": "complete_quick_diagnostic",
+            "process_complete": True,
+            "passed": False,
+            "performance_claim": False,
+            "publishable": False,
+            "quick": True,
+            "diagnostic_only": True,
+        },
+        "science": {arm: {"passed": True} for arm in suite.INSPIRAL_ARMS},
+        "qualification": {
+            arm: {"qualification_run": True, "elapsed_wall_sec": 1.0}
+            for arm in suite.INSPIRAL_ARMS},
+        "raw_results": {
+            arm: [{"elapsed_wall_sec": 1.0}]
+            for arm in suite.INSPIRAL_ARMS},
+        "profile_results": {},
+    }
+
+
+def test_quick_diagnostic_completion_is_fail_closed():
+    step = {"kind": "inspiral", "mode": "timing"}
+    receipt = _quick_inspiral_receipt()
+    assert suite.quick_diagnostic_complete(receipt, step)
+    assert not suite.science_passed(receipt)
+
+    for mutation in (
+            lambda value: value.update(publishable=True),
+            lambda value: value["campaign"].update(performance_claim=True),
+            lambda value: value["raw_results"]["original_cpu"].append(
+                {"elapsed_wall_sec": 1.0}),
+            lambda value: value.update(profile_results={"original_cpu": [{}]})):
+        invalid = json.loads(json.dumps(receipt))
+        mutation(invalid)
+        assert not suite.quick_diagnostic_complete(invalid, step)
+
+
+def test_quick_diagnostic_accepts_empty_profile_lists():
+    step = {"kind": "inspiral", "mode": "timing"}
+    receipt = _quick_inspiral_receipt()
+    receipt["profile_results"] = {
+        arm: [] for arm in suite.INSPIRAL_ARMS
+    }
+    assert suite.quick_diagnostic_complete(receipt, step)
+    receipt["profile_results"]["jax_cuda_batched"].append({})
+    assert not suite.quick_diagnostic_complete(receipt, step)
+
+
+def test_quick_science_failure_requires_explicit_known_divergence_policy():
+    step = {"kind": "inspiral", "mode": "timing"}
+    receipt = _quick_inspiral_receipt()
+    receipt["science"]["jax_cuda_batched"]["passed"] = False
+    assert not suite.quick_diagnostic_complete(receipt, step)
+    receipt["timing_policy"]["allow_unqualified_timings"] = True
+    assert suite.quick_diagnostic_complete(receipt, step)
+
+
+def test_report_recovers_completed_quick_receipts(tmp_path):
+    receipt_path = tmp_path / "campaign.json"
+    receipt_path.write_text(json.dumps(_quick_inspiral_receipt()))
+    state = {
+        "status": "failed",
+        "preset": "quick",
+        "error": "outdated validator rejected receipt",
+        "performance_claim": False,
+        "publishable": False,
+        "diagnostic_only": True,
+        "steps": [{
+            "kind": "inspiral",
+            "mode": "timing",
+            "receipt": str(receipt_path),
+            "status": "failed",
+        }],
+    }
+    assert suite.reconcile_quick_diagnostics(state)
+    assert state["status"] == "complete_quick_diagnostic"
+    assert state["steps"][0]["status"] == "complete_quick_diagnostic"
+    assert state["steps"][0]["figures"] == []
+    assert "error" not in state
 
 
 @pytest.mark.parametrize("scope", ["inspiral", "live"])
@@ -253,6 +439,34 @@ def test_plan_cli_accepts_selected_scope(tmp_path, monkeypatch, capsys):
     assert plan["scope"] == "live"
     assert {step["kind"] for step in plan["steps"]} == {
         "live-unpaced", "live-paced"}
+
+
+def test_plan_cli_accepts_quick_preset(tmp_path, monkeypatch, capsys):
+    path = _write_config(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["run_jax_benchmarks.py", "plan",
+                                      "--config", str(path),
+                                      "--preset", "quick"])
+    suite.main()
+    plan = json.loads(capsys.readouterr().out)
+    assert plan["preset"] == "quick"
+    assert [(step["kind"], step["templates"], step["mode"])
+            for step in plan["steps"]] == [
+        ("inspiral", 32, "timing"),
+        ("live-unpaced", 32, "timing"),
+    ]
+
+
+def test_plan_cli_accepts_quick_profiles(tmp_path, monkeypatch, capsys):
+    path = _write_config(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["run_jax_benchmarks.py", "plan",
+                                      "--config", str(path),
+                                      "--preset", "quick",
+                                      "--quick-profiles"])
+    suite.main()
+    plan = json.loads(capsys.readouterr().out)
+    assert plan["quick_profiles"] is True
+    assert [step["mode"] for step in plan["steps"]] == [
+        "timing", "timing", "profile", "profile"]
 
 
 def test_scientific_failure_stops_later_steps_and_saves_failed_status(tmp_path, monkeypatch):
@@ -470,7 +684,7 @@ def test_validate_inputs_rejects_hash_mismatch_and_row_nesting(tmp_path, monkeyp
         suite.validate_inputs(config, bad_rows)
 
 
-def test_render_figures_requires_all_profiles_and_stage_events(tmp_path, monkeypatch):
+def test_render_figures_requires_all_profiles_and_usable_stages(tmp_path, monkeypatch):
     receipt_path = tmp_path / "campaign.json"
     receipt_path.write_text(json.dumps({
         "executable": "pycbc_live", "campaign": {"passed": True},
@@ -499,6 +713,45 @@ def test_render_figures_requires_all_profiles_and_stage_events(tmp_path, monkeyp
     }))
     with pytest.raises(ValueError, match="Incomplete process/stage profile"):
         suite.render_figures(step)
+
+
+def test_render_figures_accepts_inferred_reference_stages(tmp_path, monkeypatch):
+    from tools import plot_jax_gpu_timeline as timeline_plot
+
+    receipt_path = tmp_path / "campaign.json"
+    profile_dir = tmp_path / "profiles"
+    profile_dir.mkdir()
+    profiles = {}
+    for arm in suite.INSPIRAL_ARMS:
+        timeline = profile_dir / f"{arm}.json"
+        timeline.write_text(json.dumps({
+            "returncode": 0,
+            "telemetry": [{"timestamp": 1}],
+            "stage_events": [],
+            "phases": [{
+                "name": "conditioning", "label": "Conditioning",
+                "start_sec": 0.1, "end_sec": 1.1,
+            }],
+            "process_tree": {
+                "completion": {"all_observed_processes_exited": True}},
+        }))
+        profiles[arm] = {"timeline_path": str(timeline)}
+    receipt_path.write_text(json.dumps({
+        "executable": "pycbc_inspiral",
+        "status": "profiled_science_qualification",
+        "campaign": {"passed": True},
+        "science": {arm: {"passed": True} for arm in suite.INSPIRAL_ARMS},
+        "profile_results": profiles,
+    }))
+    monkeypatch.setattr(
+        timeline_plot, "plot_campaign_figures",
+        lambda data, output, stage_zoom_dir=None: [output])
+
+    step = {
+        "kind": "inspiral", "mode": "profile",
+        "receipt": str(receipt_path),
+    }
+    assert len(suite.render_figures(step)) == len(suite.INSPIRAL_ARMS)
 
 
 def test_report_preserves_measured_resources_and_finite_workload_label(tmp_path, monkeypatch):

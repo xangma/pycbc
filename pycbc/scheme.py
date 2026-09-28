@@ -258,9 +258,19 @@ class JAXScheme(Scheme):
                 os.makedirs(cache_dir, exist_ok=True)
                 os.environ.setdefault("JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS", "0")
                 from jax.experimental.compilation_cache import compilation_cache as cc
-                cc.initialize_cache(cache_dir)
-            except Exception:
-                pass
+                if hasattr(cc, "set_cache_dir"):
+                    cc.set_cache_dir(cache_dir)
+                else:
+                    cc.initialize_cache(cache_dir)
+            except Exception as exc:
+                if os.environ.get("PYCBC_JAX_COMPILATION_AUDIT_DIR"):
+                    raise RuntimeError(
+                        f"Could not initialize JAX compilation cache {cache_dir!r}"
+                    ) from exc
+
+        if os.environ.get("PYCBC_JAX_COMPILATION_AUDIT_DIR"):
+            from pycbc.benchmark import enable_jax_compilation_audit
+            enable_jax_compilation_audit(jax)
 
         if os.environ.get("PYCBC_JAX_ENABLE_X64", "1").strip().lower() not in (
             "0",

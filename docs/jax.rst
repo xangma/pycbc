@@ -158,7 +158,7 @@ change the FIR/LDAS path used by the measured live campaign. The mode is
 intended for compatibility and has not passed complete-search qualification.
 Select ``--jax-highpass-mode parallel`` (or
 ``JAXScheme(..., highpass_mode="parallel")``) to use the previous parallel
-prefix-scan calculation. On CUDA, the serial scans unroll 16 samples per loop
+prefix-scan calculation. On CUDA, the serial scans unroll 128 samples per loop
 iteration while retaining the sample-order recurrence; on CPU they remain
 rolled. See
 :ref:`jax-highpass-compat-evidence` for results and costs.

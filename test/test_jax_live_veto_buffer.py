@@ -14,10 +14,12 @@ from pycbc.vetoes.chisq_cpu import point_chisq_code
 jax = pytest.importorskip("jax")
 
 
-def test_live_veto_scratch_preserves_batch_and_reuses_matching_lengths():
+def test_live_veto_scratch_preserves_batch_and_reuses_matching_lengths(
+        monkeypatch):
     rng = np.random.default_rng(342)
     captures = []
     references = []
+    cache_calls = []
     bins = np.array([40, 100, 600, 1400], dtype=np.uint32)
 
     def values(corr, snrv, norm, psd, indices, template):
@@ -28,9 +30,22 @@ def test_live_veto_scratch_preserves_batch_and_reuses_matching_lengths():
         return np.asarray(chisq), np.array([4], dtype=np.uint32)
 
     control = object.__new__(LiveBatchMatchedFilter)
-    control.power_chisq = SimpleNamespace(values=values)
+    control.power_chisq = SimpleNamespace(
+        do=True,
+        cached_chisq_bins=lambda *args: bins,
+        values=values,
+    )
     control.sg_chisq = SimpleNamespace(values=lambda *args: None)
     control.newsnr_threshold = None
+
+    from pycbc.vetoes import chisq_jax
+    monkeypatch.setattr(
+        chisq_jax,
+        "cache_batch_power_chisq_bins_jax",
+        lambda power_chisq, templates, psd: cache_calls.append(
+            (power_chisq, list(templates), psd)
+        ),
+    )
 
     with scheme.JAXScheme("cpu"):
         parents, vetoes = [], []
@@ -58,6 +73,10 @@ def test_live_veto_scratch_preserves_batch_and_reuses_matching_lengths():
         for (corr, got), expected in zip(captures, references):
             assert corr._data.parent is None
             np.testing.assert_allclose(got, expected, rtol=2e-6, atol=2e-6)
+
+    # Small CPU batches retain scalar exact scans; CUDA batches are populated
+    # together to reduce executable loads and dispatch overhead.
+    assert cache_calls == []
 
     # Use the captured device correlation as input to the independent native
     # CPU point-chi-square kernel. This compares the veto reduction against

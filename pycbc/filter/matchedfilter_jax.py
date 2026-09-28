@@ -146,6 +146,35 @@ def live_veto_buffer_jax(size, dtype):
 
 def process_live_vetoes_jax(control, results, veto_info):
     """Run live veto reductions while retaining numeric result columns on JAX."""
+    power_chisq = control.power_chisq
+    from pycbc import scheme
+    device = getattr(scheme.mgr.state, "jax_device", None)
+    platform = getattr(device, "platform", None)
+    if (
+        veto_info
+        and platform in ("cuda", "gpu")
+        and getattr(power_chisq, "do", False)
+        and hasattr(power_chisq, "cached_chisq_bins")
+    ):
+        from collections import defaultdict
+        from pycbc.vetoes.chisq_jax import cache_batch_power_chisq_bins_jax
+        from pycbc.waveform.bank import TemplateBatchList
+
+        # A live batch has at most one candidate per template. CUDA benefits
+        # from replacing several executable loads and dispatches with one
+        # exact batched scan. Small CPU batches retain the scalar scans, which
+        # have better cache locality.
+        by_psd = defaultdict(list)
+        psds = {}
+        for _, _, _, template, stilde in veto_info:
+            key = id(stilde.psd)
+            psds[key] = stilde.psd
+            by_psd[key].append(template)
+        for key, templates in by_psd.items():
+            cache_batch_power_chisq_bins_jax(
+                power_chisq, TemplateBatchList(templates), psds[key]
+            )
+
     chisq_values = []
     dof_values = []
     sg_values = []
@@ -156,8 +185,8 @@ def process_live_vetoes_jax(control, results, veto_info):
             veto_corr[size] = live_veto_buffer_jax(size, htilde.dtype)
         corr = veto_corr[size]
         correlate(htilde, stilde, corr)
-        c, d = control.power_chisq.values(corr, snrv, norm,
-                                          stilde.psd, [l], htilde)
+        c, d = power_chisq.values(corr, snrv, norm,
+                                  stilde.psd, [l], htilde)
         c = jnp.asarray(c)
         d = jnp.asarray(d)
         chisq_values.append(jnp.asarray(c[0] / d[0], dtype=jnp.float32))

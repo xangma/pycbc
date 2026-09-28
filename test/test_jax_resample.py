@@ -196,7 +196,7 @@ def test_parallel_butterworth_long_record_matches_lal(dtype, device):
 @pytest.mark.parametrize("order", [1, 2, 3, 8])
 @pytest.mark.parametrize("device", _DEVICES)
 def test_lal_serial_highpass_mode_matches_reference(dtype, order, device):
-    # The extra sample exercises the scan tail when CUDA unrolls 16 steps.
+    # The extra sample exercises the scan tail when CUDA unrolls 128 steps.
     data = np.random.default_rng(818).normal(size=513).astype(dtype)
     data[256] += 10
     reference = highpass(TimeSeries(data, delta_t=1 / 2048), 25,

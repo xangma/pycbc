@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 from statistics import median
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -34,6 +33,8 @@ def capacity_summary(work, elapsed):
 
 def plot_live(data, output, advance_seconds=56.0):
     """Render the retained synthetic filter diagnostic (opt-in only)."""
+    from matplotlib import pyplot as plt
+
     if not 0 < advance_seconds <= 64:
         raise ValueError("Live block advance must be in (0, 64]")
     arms = data["experiments"]["streaming_n131072"]["arms"]
@@ -518,6 +519,8 @@ def _summary_text(summary):
 
 def plot_campaign(receipt, output):
     """Plot full-wall and steady capacity from a complete campaign receipt."""
+    from matplotlib import pyplot as plt
+
     rows = campaign_rows(receipt)
     if not any(row["measured"] for row in rows):
         fig, ax = plt.subplots(figsize=(10, max(3.5, 1.0 + 0.6 * len(rows))))
@@ -613,6 +616,8 @@ def plot_campaign(receipt, output):
 
 def plot_inspiral(data, output):
     """Backward-compatible renderer for the historical comparison receipt."""
+    from matplotlib import pyplot as plt
+
     if "raw_results" in data or data.get("executable"):
         return plot_campaign(data, output)
     work = 384 * 1904

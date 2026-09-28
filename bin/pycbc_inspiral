@@ -760,6 +760,10 @@ with ctx:
             import gc
             gc.collect()
         except Exception as _exc:
+            if os.environ.get("PYCBC_JAX_COMPILATION_AUDIT_DIR"):
+                raise RuntimeError(
+                    "JAX benchmark warmup failed; refusing an unaudited run"
+                ) from _exc
             logging.warning("JAX JIT warmup pass skipped: %s", _exc)
 
     stage_event("warmup", "end")

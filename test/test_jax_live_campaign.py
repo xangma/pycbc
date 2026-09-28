@@ -1207,3 +1207,37 @@ def test_live_receipt_exposes_stable_input_contract(tmp_path):
     assert first["inputs"]["config"] != second["inputs"]["config"]
     assert first["input_contract"] == second["input_contract"]
     assert first["input_contract"] == first["workload_digest"]["contract"]
+
+
+def test_timed_jax_compilation_audit_requires_all_cache_hits(tmp_path):
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    (cache / "entry").write_bytes(b"cached executable")
+    audit = tmp_path / "run" / "jax-compilation-audit"
+    audit.mkdir(parents=True)
+    receipt = {
+        "cache_enabled": "true",
+        "jax_config": {
+            "enable_compilation_cache": True,
+            "compilation_cache_dir": str(cache),
+            "min_compile_time_secs": 0,
+            "min_entry_size_bytes": 0,
+            "raise_persistent_cache_errors": True,
+        },
+        "events": {"compile_requests_use_cache": 3, "cache_hits": 3},
+        "uncached_compile_requests": 0,
+    }
+    path = audit / "process-1.json"
+    path.write_text(json.dumps(receipt))
+    summary = bench.compilation_audit(
+        tmp_path / "run", "arm=jax_cuda", cache, True
+    )
+    assert summary["all_requests_hit"] is True
+
+    receipt["events"]["cache_hits"] = 2
+    receipt["uncached_compile_requests"] = 1
+    path.write_text(json.dumps(receipt))
+    with pytest.raises(RuntimeError, match="recompiled 1 executable"):
+        bench.compilation_audit(
+            tmp_path / "run", "arm=jax_cuda", cache, True
+        )
