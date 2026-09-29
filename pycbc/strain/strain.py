@@ -1896,6 +1896,10 @@ class StrainBuffer(pycbc.frame.DataBuffer):
         htilde: FrequencySeries
             Overwhited strain data
         """
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.strain.strain_jax import overwhitened_data_jax
+            return overwhitened_data_jax(self, delta_f)
+
         # we haven't already computed htilde for this delta_f
         if delta_f not in self.segments:
             buffer_length = int(1.0 / delta_f)

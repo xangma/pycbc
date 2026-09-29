@@ -466,3 +466,110 @@ def fourier_segments_jax(segments):
         series.seg_slice = seg
         result.append(series)
     return result
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=("reduced_pad", "pad_samples", "output_length"),
+)
+def _overwhiten_fused_core(
+    strain_slice,
+    psdt_array,
+    delta_t,
+    reduced_pad,
+    pad_samples,
+    output_length,
+):
+    """Fused real FFT -> PSD division -> inverse FFT -> taper -> real FFT.
+
+    Executes on the active JAX device in a single fused XLA computation without
+    allocating intermediate TimeSeries or FrequencySeries objects.
+    """
+    if reduced_pad == 0:
+        return (jnp.fft.rfft(strain_slice) * delta_t) / psdt_array
+
+    # 1. Forward FFT & PSD division & Inverse FFT
+    w1 = jnp.fft.irfft(
+        jnp.fft.rfft(strain_slice) / psdt_array,
+        n=strain_slice.shape[0],
+    )
+    # 2. Trim padding
+    w2 = w1[reduced_pad:reduced_pad + output_length]
+    # 3. Taper ends
+    if pad_samples > 0:
+        pad = 0.5 * (1.0 + jnp.cos(
+            jnp.pi * jnp.arange(pad_samples, dtype=w2.dtype) / pad_samples
+        ))
+        taper = jnp.ones(output_length, dtype=w2.dtype)
+        taper = taper.at[:pad_samples].set(pad[::-1])
+        taper = taper.at[-pad_samples:].set(pad)
+        w2 = w2 * taper
+    # 4. Final Forward FFT
+    return jnp.fft.rfft(w2) * delta_t
+
+
+def overwhitened_data_jax(buffer, delta_f):
+    """Compute and cache overwhitened strain data on the JAX device."""
+    if delta_f in buffer.segments:
+        return buffer.segments[delta_f]
+
+    _ensure_x64()
+    import pycbc.psd
+
+    buffer_length = int(1.0 / delta_f)
+    e = len(buffer.strain)
+    reduced_pad = int(buffer.reduced_pad)
+    s = int(e - buffer_length * buffer.sample_rate - reduced_pad * 2)
+    output_length = int(buffer_length * buffer.sample_rate)
+
+    fseries_len = e - s
+    fseries_delta_f = 1.0 / (fseries_len * buffer.strain.delta_t)
+
+    if delta_f not in buffer.psds:
+        psdt = pycbc.psd.interpolate(buffer.psd, fseries_delta_f)
+        psdt = pycbc.psd.inverse_spectrum_truncation(
+            psdt,
+            int(buffer.sample_rate * buffer.psd_inverse_length),
+            low_frequency_cutoff=buffer.low_frequency_cutoff,
+        )
+        psdt._delta_f = fseries_delta_f
+
+        psd = pycbc.psd.interpolate(buffer.psd, delta_f)
+        psd = pycbc.psd.inverse_spectrum_truncation(
+            psd,
+            int(buffer.sample_rate * buffer.psd_inverse_length),
+            low_frequency_cutoff=buffer.low_frequency_cutoff,
+        )
+        psd.psdt = psdt
+        buffer.psds[delta_f] = psd
+
+    psd = buffer.psds[delta_f]
+    strain_slice = to_jax(buffer.strain)[s:e]
+    psdt_array = to_jax(psd.psdt)
+    delta_t = float(buffer.strain.delta_t)
+
+    if reduced_pad != 0:
+        taper_window = buffer.trim_padding / 2.0 / buffer.sample_rate
+        pad_samples = int(buffer.sample_rate * taper_window)
+    else:
+        pad_samples = 0
+
+    values = _overwhiten_fused_core(
+        strain_slice,
+        psdt_array,
+        delta_t,
+        reduced_pad,
+        pad_samples,
+        output_length,
+    )
+
+    epoch = buffer.strain._epoch + (s + reduced_pad) * buffer.strain.delta_t
+    result = pycbc.types.FrequencySeries(
+        JAXArrayData(values),
+        delta_f=delta_f,
+        epoch=epoch,
+        copy=False,
+    )
+    result.psd = psd
+    buffer.segments[delta_f] = result
+    return result
