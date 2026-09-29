@@ -168,7 +168,7 @@ def campaign(config, directory, kind, size, mode="timing",
 
 
 def make_plan(config, phase, scope="both", allow_unqualified_timings=False,
-              preset="full", quick_profiles=False):
+              preset="quick", quick_profiles=False):
     if scope not in ("both", "inspiral", "live"):
         raise ValueError("scope must be both, inspiral, or live")
     if preset not in ("quick", "full"):
@@ -707,7 +707,7 @@ def render_report(directory):
 
 
 def execute_suite(config, phase, scope="both", allow_unqualified_timings=False,
-                  preset="full", quick_profiles=False):
+                  preset="quick", quick_profiles=False):
     if Path(config["candidate_source"]) != ROOT:
         raise ValueError("Run the driver from the configured candidate checkout")
     validate_reference(Path(config["reference_source"]), REFERENCE)
@@ -722,11 +722,12 @@ def execute_suite(config, phase, scope="both", allow_unqualified_timings=False,
     write_json(directory / "plan.json", plan)
     write_json(directory / "inputs-manifest.json", manifest)
     frozen = capture_provenance(config, directory)
+    is_quick_run = (phase == "run" and preset == "quick")
     state = {"status": "running", "scope": scope, "preset": preset,
              "quick_profiles": bool(quick_profiles),
-             "performance_claim": False if preset == "quick" else None,
-             "publishable": False if preset == "quick" else None,
-             "diagnostic_only": preset == "quick",
+             "performance_claim": False if is_quick_run else None,
+             "publishable": False if is_quick_run else None,
+             "diagnostic_only": is_quick_run,
              "allow_unqualified_timings": bool(allow_unqualified_timings),
              "steps": copy.deepcopy(plan["steps"])}
     write_json(directory / "suite.json", state)
@@ -762,14 +763,14 @@ def execute_suite(config, phase, scope="both", allow_unqualified_timings=False,
                 and known_divergence_complete(receipt, step)
             )
             quick_complete = (
-                preset == "quick" and quick_diagnostic_complete(receipt, step)
+                is_quick_run and quick_diagnostic_complete(receipt, step)
             )
             if (process.returncode != 0
                     and not completed_science_failure(receipt, step)
                     and not diagnostic_complete
                     and not quick_complete):
                 raise subprocess.CalledProcessError(process.returncode, step["command"])
-            if preset == "quick" and step["mode"] == "timing":
+            if is_quick_run and step["mode"] == "timing":
                 if not quick_complete:
                     raise ValueError("Quick campaign did not produce a complete diagnostic receipt: "
                                      + step["receipt"])
@@ -808,7 +809,7 @@ def execute_suite(config, phase, scope="both", allow_unqualified_timings=False,
             raise RuntimeError("Scientific qualification failed; no timing or profiling launched: "
                                + ", ".join(science_failures))
         state["status"] = (
-            "complete_quick_diagnostic" if preset == "quick" else
+            "complete_quick_diagnostic" if is_quick_run else
             "complete_known_divergence" if allow_unqualified_timings else
             "complete")
     except BaseException as exc:
@@ -830,10 +831,10 @@ def main():
     parser.add_argument("--scope", choices=("both", "inspiral", "live"),
                         default="both")
     parser.add_argument(
-        "--preset", choices=("quick", "full"), default="full",
+        "--preset", choices=("quick", "full"), default="quick",
         help=("quick runs one diagnostic sample per arm at the 32-template "
-              "diagnostic size; full runs replicated scaling, paced replay "
-              "and profiles"),
+              "diagnostic size (default); full runs replicated scaling, "
+              "paced replay and profiles"),
     )
     parser.add_argument(
         "--allow-unqualified-timings", action="store_true",
@@ -859,17 +860,21 @@ def main():
     elif args.phase == "report":
         directory = Path(config["output_dir"]) / (
             "quick" if args.preset == "quick" else "run")
+        if not directory.exists() and args.preset == "quick":
+            fallback = Path(config["output_dir"]) / "run"
+            if fallback.exists():
+                directory = fallback
         state = json.loads((directory / "suite.json").read_text())
         reconcile_science_failure(state)
-        if args.preset == "quick":
+        report_preset = state.get("preset", "quick" if directory.name == "quick" else "full")
+        if report_preset == "quick":
             reconcile_quick_diagnostics(state)
         for step in state["steps"]:
             if step.get("status") in ("passed", "complete_known_divergence",
                                        "complete_quick_diagnostic"):
                 step["figures"] = (
-                    [] if args.preset == "quick" and step["mode"] == "timing"
-                    else render_figures(step)
-                )
+                    [] if report_preset == "quick" and step["mode"] == "timing"
+                    else render_figures(step))
         write_json(directory / "suite.json", state)
         render_report(directory)
     else:

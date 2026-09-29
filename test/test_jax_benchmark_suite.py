@@ -119,7 +119,7 @@ def test_load_config_requires_l1_hash_when_l1_frame_is_configured(tmp_path):
 
 def test_plan_has_four_arms_for_both_executables_and_all_modes(tmp_path):
     config = suite.load_config(_write_config(tmp_path))
-    plan = suite.make_plan(config, "run")
+    plan = suite.make_plan(config, "run", preset="full")
     assert plan["sample_rate"] == 2048
     assert plan["precision"] == "complex64"
     assert plan["convergence"]
@@ -144,12 +144,21 @@ def test_plan_has_four_arms_for_both_executables_and_all_modes(tmp_path):
                for step in plan["steps"])
 
 
-def test_full_preset_is_the_default_and_preserves_the_complete_plan(tmp_path):
+def test_quick_preset_is_the_default_and_matches_explicit_quick(tmp_path):
     config = suite.load_config(_write_config(tmp_path))
     default = suite.make_plan(config, "run")
-    explicit = suite.make_plan(config, "run", preset="full")
+    explicit = suite.make_plan(config, "run", preset="quick")
 
     assert default == explicit
+    assert explicit["preset"] == "quick"
+    assert len(explicit["steps"]) == 2
+    assert {step["mode"] for step in explicit["steps"]} == {"timing"}
+
+
+def test_full_preset_preserves_the_complete_plan(tmp_path):
+    config = suite.load_config(_write_config(tmp_path))
+    explicit = suite.make_plan(config, "run", preset="full")
+
     assert explicit["preset"] == "full"
     assert len(explicit["steps"]) == 12
     assert {step["mode"] for step in explicit["steps"]} == {
@@ -357,8 +366,8 @@ def test_report_recovers_completed_quick_receipts(tmp_path):
 def test_selected_scope_filters_plan_without_changing_pinned_arms(
         tmp_path, scope, phase):
     config = suite.load_config(_write_config(tmp_path))
-    whole = suite.make_plan(config, phase)
-    selected = suite.make_plan(config, phase, scope)
+    whole = suite.make_plan(config, phase, preset="full")
+    selected = suite.make_plan(config, phase, scope, preset="full")
     assert selected["scope"] == scope
     expected = [step for step in whole["steps"] if
                 (step["kind"] == "inspiral") == (scope == "inspiral")]
@@ -433,7 +442,8 @@ def test_plan_is_read_only_and_does_not_launch_benchmarks(tmp_path, monkeypatch,
 def test_plan_cli_accepts_selected_scope(tmp_path, monkeypatch, capsys):
     path = _write_config(tmp_path)
     monkeypatch.setattr(sys, "argv", ["run_jax_benchmarks.py", "plan",
-                                      "--config", str(path), "--scope", "live"])
+                                      "--config", str(path), "--scope", "live",
+                                      "--preset", "full"])
     suite.main()
     plan = json.loads(capsys.readouterr().out)
     assert plan["scope"] == "live"
@@ -555,7 +565,7 @@ def test_complete_science_failures_collect_both_executables_before_timing(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     with pytest.raises(RuntimeError, match="no timing or profiling launched"):
-        suite.execute_suite(config, "run")
+        suite.execute_suite(config, "run", preset="full")
     state = json.loads((Path(config["output_dir"]) / "run" / "suite.json").read_text())
     assert state["status"] == "failed"
     assert [step.get("status") for step in state["steps"][:2]] == ["failed", "failed"]
