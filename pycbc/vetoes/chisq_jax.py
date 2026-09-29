@@ -842,13 +842,33 @@ def batch_power_chisq_jax(
     r_dev = jax.device_put(r_buf)
     p_dev = jax.device_put(p_buf)
     if compatible:
-        res_dev = _compatible_shift_sum(
-            corr_dev, r_dev, p_dev, jnp.asarray(bins_arr), tlen, kmin)
+        try:
+            from .chisq_cpu import point_chisq_code
+            have_chisq_cpu = bool(point_chisq_code)
+        except ImportError:
+            have_chisq_cpu = False
+
+        if have_chisq_cpu:
+            all_shift_sums_list = []
+            for item in points_to_compute:
+                act_pos = item["act_pos"]
+                shifts = item["above_indices"]
+                bins = bins_arr[act_pos]
+                corr_row = np.asarray(corr_dev[act_pos])
+                shifts_out = _point_chisq_cpu_compatible(
+                    corr_row, shifts, bins, tlen, base_k=kmin
+                )
+                all_shift_sums_list.append(shifts_out)
+            all_shift_sums = np.concatenate(all_shift_sums_list) if all_shift_sums_list else np.empty(0, dtype=real_dtype)
+        else:
+            res_dev = _compatible_shift_sum(
+                corr_dev, r_dev, p_dev, jnp.asarray(bins_arr), tlen, kmin)
+            all_shift_sums = np.asarray(res_dev[:total_points])
     else:
         res_dev = _batched_points_chisq_core(
             corr_dev, r_dev, p_dev, bins_rel_all, kmin_f, n_time_f,
             bucket_size=chosen_bucket)
-    all_shift_sums = res_dev[:total_points]
+        all_shift_sums = np.asarray(res_dev[:total_points])
 
     # 5. Distribute results back to each template
     offset = 0
@@ -863,10 +883,10 @@ def batch_power_chisq_jax(
         shifts = all_shift_sums[offset:offset + n_ab]
         offset += n_ab
 
-        above_snrv_dev = jnp.asarray(above_snrv)
-        chisq_vals = (shifts * num_bins - (above_snrv_dev.conj() * above_snrv_dev).real) * (norm ** 2.0)
-        chisq_out = jnp.zeros(n_idx, dtype=real_dtype).at[jnp.asarray(above_mask)].set(
-            chisq_vals.astype(real_dtype))
+        above_snrv_np = np.asarray(above_snrv)
+        chisq_vals = (shifts * num_bins - (above_snrv_np.conj() * above_snrv_np).real) * (norm ** 2.0)
+        chisq_out = np.zeros(n_idx, dtype=real_dtype)
+        chisq_out[above_mask] = chisq_vals.astype(real_dtype)
         chisq_dof = np.repeat(dof, n_idx)
 
         chisq_map[act_pos] = (chisq_out, chisq_dof)

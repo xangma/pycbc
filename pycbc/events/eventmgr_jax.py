@@ -95,9 +95,9 @@ class JAXEventManager(EventManager):
             return
         chunks = self._pending_event_chunks
         self._events = {
-            name: jnp.concatenate(
-                [self._events[name]] + [chunk[name] for chunk in chunks]
-            )
+            name: jnp.asarray(numpy.concatenate(
+                [numpy.asarray(self._events[name])] + [numpy.asarray(chunk[name]) for chunk in chunks]
+            ), dtype=self._events[name].dtype)
             for name in self._events
         }
         self._pending_event_chunks = []
@@ -113,51 +113,38 @@ class JAXEventManager(EventManager):
         length = next((len(value) for value in vectors if value is not None), 0)
         if not length:
             return
-        data = {name: jnp.zeros(length, dtype=value.dtype)
+        data = {name: numpy.zeros(length, dtype=value.dtype)
                 for name, value in self.template_events.items()}
-        data["template_id"] = jnp.full(length, self.template_index,
-                                        dtype=jnp.int32)
+        data["template_id"] = numpy.full(length, self.template_index,
+                                          dtype=numpy.int32)
         for name, value in zip(columns, vectors):
             if value is not None:
-                data[name] = jnp.asarray(value, dtype=data[name].dtype)
+                data[name] = numpy.asarray(value, dtype=data[name].dtype)
         self.template_events = {
-            name: jnp.concatenate((self.template_events[name], data[name]))
+            name: numpy.concatenate((numpy.asarray(self.template_events[name]), data[name]))
             for name in self.template_events
         }
 
     def cluster_template_events(self, tcolumn, column, window_size):
-        if window_size <= 0 or not self.template_events[tcolumn].size:
+        if window_size <= 0 or not len(self.template_events[tcolumn]):
             return
-        # Trigger vectors are small, irregular final products.  The native
-        # implementation is both exact and avoids compiling one scan for each
-        # distinct trigger count. Transfer the compact event record once;
-        # selecting every column separately on device creates thousands of
-        # tiny shape-specific launches over a realistic bank.
-        names = tuple(self.template_events)
-        host_values = jax.device_get(tuple(
-            self.template_events[name] for name in names
-        ))
-        host_events = dict(zip(names, host_values))
-        times = host_events[tcolumn]
-        values = host_events[column]
+        times = numpy.asarray(self.template_events[tcolumn], dtype=numpy.int32)
+        values = numpy.asarray(self.template_events[column])
         indices = numpy.zeros(len(times), dtype=numpy.int32)
         count = findchirp_cluster_over_window_cython(
-            numpy.asarray(times, dtype=numpy.int32),
-            numpy.asarray(abs(values)), window_size, indices, len(times)
+            times, numpy.asarray(abs(values)), window_size, indices, len(times)
         )
         indices = indices[:count + 1]
         self.template_events = {
-            name: value[indices] for name, value in host_events.items()
+            name: numpy.asarray(value)[indices] for name, value in self.template_events.items()
         }
 
     def finalize_template_events(self):
-        if self.template_events["template_id"].size:
+        if len(self.template_events["template_id"]):
             self._pending_event_chunks.append(self.template_events)
-        # Start the next template with typed device empties. Completed chunks
-        # may be NumPy arrays after exact host clustering and are converted
-        # only once when the global event record is materialized.
         self.template_events = {
-            name: value[:0] for name, value in self._events.items()
+            name: numpy.zeros(0, dtype=self._events[name].dtype)
+            for name in self._events
         }
 
     def cut_events_via_mask(self, keep):

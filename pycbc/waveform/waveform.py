@@ -1255,6 +1255,8 @@ def get_waveform_filter(out, template=None, **kwargs):
         wav_gen = fd_wav[type(_scheme.mgr.state)]
 
         duration = get_waveform_filter_length_in_time(**input_params)
+        if out is not None and 'dtype' not in input_params:
+            input_params['dtype'] = out.dtype
         hp, _ = wav_gen[input_params['approximant']](duration=duration,
                                                return_hc=False, **input_params)
 

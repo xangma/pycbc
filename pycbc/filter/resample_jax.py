@@ -126,13 +126,7 @@ def lfilter(coefficients, timeseries):
         return TimeSeries(values, epoch=timeseries.start_time,
                           delta_t=timeseries.delta_t)
     b = jnp.asarray(coefficients, dtype=x.dtype)
-    if len(x) < len(b) * 10 or len(x) < 2**18:
-        return _series(_circular_fir(x, b), timeseries)
-    chunksize = max(len(b) * 5, len(x) // 2)
-    first = lfilter(b, timeseries[:chunksize])
-    second = lfilter(b, timeseries[chunksize - len(b):])
-    return _series(jnp.concatenate((_raw(first), _raw(second)[len(b):])),
-                   timeseries)
+    return _series(_circular_fir(x, b), timeseries)
 
 
 def fir_zero_filter(coefficients, timeseries):

@@ -1235,8 +1235,8 @@ def batched_matched_filter_and_cluster_jax(
         )
         snr_series = None
 
-    empty_idx = jnp.empty(0, dtype=jnp.uint32)
-    empty_snrv = jnp.empty(0, dtype=jnp.complex64)
+    empty_idx = np.empty(0, dtype=np.uint32)
+    empty_snrv = np.empty(0, dtype=np.complex64)
 
     # One bounded device-to-host transfer replaces per-template boolean
     # synchronizations.  These arrays contain one candidate per clustering
@@ -1260,10 +1260,10 @@ def batched_matched_filter_and_cluster_jax(
             results.append(([], norm_i, [], empty_idx, empty_snrv))
             continue
 
-        survivor_indices = jnp.asarray(
-            host_max_idx[i][mask], dtype=jnp.uint32
+        survivor_indices = np.asarray(
+            host_max_idx[i][mask], dtype=np.uint32
         )
-        survivor_values = jnp.asarray(host_max_snr[i][mask])
+        survivor_values = np.asarray(host_max_snr[i][mask])
 
         corr = LazyFrequencySeries(corr_slice, i, delta_f)
         corr._kmin = kmin

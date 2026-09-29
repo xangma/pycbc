@@ -1019,6 +1019,8 @@ def _run_single_case(
         cli_args.extend([
             "--jax-chisq-mode",
             str((search_config or {}).get("jax_chisq_mode", "cpu-compatible")),
+            "--jax-highpass-mode",
+            str((search_config or {}).get("jax_highpass_mode", "parallel")),
         ])
 
     if "_batched" in arm:

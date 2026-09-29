@@ -540,11 +540,12 @@ def from_cli(opt):
                 dev = extra
         else:
             dev = "cpu"
+        default_highpass = "parallel" if (extra in ("cuda", "gpu") or (isinstance(extra, str) and extra.startswith("cuda"))) else "lal-serial"
         ctx = JAXScheme(
             device=dev,
             chisq_mode=getattr(opt, "jax_chisq_mode", None) or "cpu-compatible",
             highpass_mode=(getattr(opt, "jax_highpass_mode", None)
-                           or "lal-serial"),
+                           or default_highpass),
         )
         logger.info("Running with JAX support on device %s", ctx.jax_device)
     else:

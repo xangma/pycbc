@@ -1,6 +1,6 @@
-"""Native JAX implementation of the aligned-spin LAL TaylorF2 core."""
-
+import functools
 import math
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -87,45 +87,51 @@ def _coefficients(params):
     return v * pn, vl * pn, phase_order
 
 
-def _phase(frequencies, pi_mass, coeff, coeff_log, f_ref, dtype):
-    f = jnp.asarray(frequencies, dtype=dtype)
-    v = jnp.cbrt(jnp.asarray(pi_mass, dtype=dtype) * f)
-    lv = jnp.log(v)
-    powers = jnp.arange(16, dtype=dtype)
-    def evaluate(x, logx):
-        terms = (jnp.asarray(coeff, dtype=dtype)
-                 + jnp.asarray(coeff_log, dtype=dtype) * logx[..., None])
-        return jnp.sum(terms * x[..., None] ** powers, axis=-1) / x**5
-    result = evaluate(v, lv)
-    if f_ref:
-        vr = jnp.cbrt(jnp.asarray(pi_mass * f_ref, dtype=dtype))
-        result = result - evaluate(vr, jnp.log(vr))
-    return result
-
-
-def _samples(params, frequencies, coeffs, dtype):
-    # LAL evaluates TaylorF2 in REAL8 and only the returned series may be
-    # down-cast.  Keep phase accumulation in float64 for complex64 outputs.
+@functools.partial(jax.jit, static_argnames=("dtype",))
+def _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref, coa_phase,
+                  m1, m2, distance, eta, dtype):
     real_dtype = jnp.float64
-    coeff, coeff_log, phase_order = coeffs
-    m1, m2 = float(params["mass1"]), float(params["mass2"])
-    pi_mass = PI * (m1 + m2) * MTSUN_SI
-    phase = _phase(frequencies, pi_mass, coeff, coeff_log,
-                   float(params.get("f_ref", 0.0) or 0.0), real_dtype)
-    phase = phase - 2.0 * float(params.get("coa_phase", 0.0) or 0.0)
-    eta = m1 * m2 / (m1 + m2) ** 2
-    distance = float(params.get("distance", 1.0)) * 1.0e6 * PC_SI
-    v = jnp.cbrt(jnp.asarray(pi_mass, dtype=real_dtype) *
-                  jnp.asarray(frequencies, dtype=real_dtype))
+    f = jnp.asarray(frequencies, dtype=real_dtype)
+    v = jnp.cbrt(pi_mass * f)
+    lv = jnp.log(v)
+    powers = jnp.arange(16, dtype=real_dtype)
+    terms = (jnp.asarray(coeff, dtype=real_dtype)
+             + jnp.asarray(coeff_log, dtype=real_dtype) * lv[..., None])
+    phase = jnp.sum(terms * v[..., None] ** powers, axis=-1) / v**5
+    if f_ref > 0.0:
+        vr = jnp.cbrt(pi_mass * f_ref)
+        terms_ref = (jnp.asarray(coeff, dtype=real_dtype)
+                     + jnp.asarray(coeff_log, dtype=real_dtype) * jnp.log(vr))
+        phase = phase - jnp.sum(terms_ref * vr ** powers, axis=-1) / vr**5
+    phase = phase - 2.0 * coa_phase
     amp0 = (-4.0 * m1 * m2 / distance * MRSUN_SI * MTSUN_SI * math.sqrt(PI / 12.0))
     amplitude = amp0 * math.sqrt(5.0 / (32.0 * eta)) * v ** (-3.5)
     return (amplitude * (jnp.cos(phase - PI / 4.0) -
                         1j * jnp.sin(phase - PI / 4.0))).astype(dtype)
 
 
-def _polarize(values, params):
-    c = math.cos(float(params.get("inclination", 0.0) or 0.0))
-    return values * (1.0 + c * c) / 2.0, -1j * c * values
+@functools.partial(jax.jit, static_argnames=("kmin", "n", "dtype"))
+def _generate_fd_core(kmin, n, delta_f, pi_mass, coeff, coeff_log, f_ref,
+                      coa_phase, m1, m2, distance, eta, inclination, dtype):
+    frequencies = jnp.arange(kmin, n, dtype=jnp.float64 if dtype == jnp.complex128 else jnp.float32) * delta_f
+    active = _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref,
+                          coa_phase, m1, m2, distance, eta, dtype)
+    out = jnp.zeros(n, dtype=dtype).at[kmin:n].set(active)
+    c = jnp.cos(inclination)
+    hp = out * (1.0 + c * c) / 2.0
+    hc = -1j * c * out
+    return hp, hc
+
+
+@functools.partial(jax.jit, static_argnames=("dtype",))
+def _generate_sequence_core(frequencies, pi_mass, coeff, coeff_log, f_ref,
+                            coa_phase, m1, m2, distance, eta, inclination, dtype):
+    active = _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref,
+                          coa_phase, m1, m2, distance, eta, dtype)
+    c = jnp.cos(inclination)
+    hp = active * (1.0 + c * c) / 2.0
+    hc = -1j * c * active
+    return hp, hc
 
 
 def generate_fd(**params):
@@ -136,7 +142,8 @@ def generate_fd(**params):
     delta_f, f_lower = float(params["delta_f"]), float(params["f_lower"])
     if delta_f <= 0 or f_lower <= 0:
         raise ValueError("TaylorF2 delta_f and f_lower must be positive")
-    pi_mass = PI * (float(params["mass1"]) + float(params["mass2"])) * MTSUN_SI
+    m1, m2 = float(params["mass1"]), float(params["mass2"])
+    pi_mass = PI * (m1 + m2) * MTSUN_SI
     f_final = float(params.get("f_final", 0.0) or 0.0)
     if f_final <= 0:
         f_final = (1.0 / math.sqrt(6.0)) ** 3 / pi_mass
@@ -144,10 +151,16 @@ def generate_fd(**params):
     if n <= kmin:
         raise ValueError("TaylorF2 ending frequency must exceed f_lower")
     dtype = jnp.complex64 if params.get("dtype") in (np.complex64, "complex64") else jnp.complex128
-    frequencies = jnp.arange(kmin, n, dtype=jnp.float64 if dtype == jnp.complex128 else jnp.float32) * delta_f
-    active = _samples(params, frequencies, coeffs, dtype)
-    out = jnp.zeros(n, dtype=dtype).at[kmin:n].set(active)
-    hp, hc = _polarize(out, params)
+    distance = float(params.get("distance", 1.0)) * 1.0e6 * PC_SI
+    eta = m1 * m2 / (m1 + m2) ** 2
+    f_ref = float(params.get("f_ref", 0.0) or 0.0)
+    coa_phase = float(params.get("coa_phase", 0.0) or 0.0)
+    inclination = float(params.get("inclination", 0.0) or 0.0)
+
+    hp, hc = _generate_fd_core(
+        kmin, n, delta_f, pi_mass, coeffs[0], coeffs[1], f_ref,
+        coa_phase, m1, m2, distance, eta, inclination, dtype
+    )
     epoch = -1.0 / delta_f
     return (FrequencySeries(Array(JAXArrayData(hp), copy=False), delta_f=delta_f, epoch=epoch, copy=False),
             FrequencySeries(Array(JAXArrayData(hc), copy=False), delta_f=delta_f, epoch=epoch, copy=False))
@@ -157,6 +170,17 @@ def generate_sequence(**params):
     if not sequence_supported(params):
         raise ValueError("TaylorF2 sequence parameters are unsupported by the JAX port")
     _ensure_x64()
-    values = _samples(params, to_jax(params["sample_points"]), _coefficients(params), jnp.complex128)
-    hp, hc = _polarize(values, params)
+    coeffs = _coefficients(params)
+    m1, m2 = float(params["mass1"]), float(params["mass2"])
+    pi_mass = PI * (m1 + m2) * MTSUN_SI
+    distance = float(params.get("distance", 1.0)) * 1.0e6 * PC_SI
+    eta = m1 * m2 / (m1 + m2) ** 2
+    f_ref = float(params.get("f_ref", 0.0) or 0.0)
+    coa_phase = float(params.get("coa_phase", 0.0) or 0.0)
+    inclination = float(params.get("inclination", 0.0) or 0.0)
+    frequencies = to_jax(params["sample_points"])
+    hp, hc = _generate_sequence_core(
+        frequencies, pi_mass, coeffs[0], coeffs[1], f_ref,
+        coa_phase, m1, m2, distance, eta, inclination, jnp.complex128
+    )
     return Array(JAXArrayData(hp), copy=False), Array(JAXArrayData(hc), copy=False)
