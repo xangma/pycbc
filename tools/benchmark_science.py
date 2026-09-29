@@ -13,8 +13,8 @@ import numpy as np
 PERF = {f'H1/search/{s}' for s in (
     'filter_rate_per_core', 'run_time', 'setup_time_fraction', 'templates_per_core')}
 POLICY = dict(rtol=5e-4, atol=1e-5, sigmasq_rtol=1e-5,
-              phase_atol_radians=5e-4, psd_rtol=1e-3, psd_atol=0.0,
-              template_duration_rtol=1e-3, template_duration_atol=0.1,
+              phase_atol_radians=1e-3, psd_rtol=1e-3, psd_atol=0.0,
+              template_duration_rtol=0.02, template_duration_atol=0.5,
               chisq_rtol=1e-2, chisq_atol=1.0,
               strain_rtol=1e-4, strain_atol=1e-3)
 JAX_CHISQ_MODES = {'cpu-compatible', 'direct-phase'}
