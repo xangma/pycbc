@@ -145,15 +145,15 @@ def execute_batch_decompression_jax(bank, indices, power_chisq=None, psd=None):
                 bank.max_template_length, **bank.extra_args
             )
 
-            p = props(bank.table[index])
-            p.pop('approximant', None)
             try:
                 tmpltdur = bank.table[index].template_duration
             except AttributeError:
                 tmpltdur = None
             if tmpltdur is None or tmpltdur == 0.0:
+                p = props(bank.table[index])
+                p.pop('approximant', None)
                 tmpltdur = get_waveform_filter_length_in_time(approximant, **p)
-            bank.table[index].template_duration = tmpltdur
+                bank.table[index].template_duration = tmpltdur
 
             k = len(freq)
             counts.append(k)
