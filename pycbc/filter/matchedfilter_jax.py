@@ -32,9 +32,35 @@ from pycbc.types.array_jax import (
 )
 
 
+_EMPTY_F32 = np.zeros(0, dtype=np.float32)
+_EMPTY_U32 = np.zeros(0, dtype=np.uint32)
+
+
 def batch_template_matrix_jax(templates, size):
     """Pack immutable live templates on the active JAX device."""
-    return jnp.stack([to_jax(template)[:size] for template in templates], axis=0)
+    if templates:
+        first = templates[0]
+        batch_tensor = getattr(first, "_batch_tensor", None)
+        if batch_tensor is not None:
+            positions = [getattr(t, "_batch_pos", None) for t in templates]
+            if None not in positions:
+                start = positions[0]
+                shape = getattr(batch_tensor, "shape", ())
+                if positions == list(range(start, start + len(positions))):
+                    if len(shape) == 2 and start >= 0:
+                        stop = start + len(positions)
+                        if stop <= shape[0] and size <= shape[1]:
+                            return to_jax(batch_tensor)[start:stop, :size]
+                if (
+                    len(shape) == 2
+                    and all(0 <= p < shape[0] for p in positions)
+                    and size <= shape[1]
+                ):
+                    pos_idx = jnp.asarray(positions, dtype=jnp.int32)
+                    return to_jax(batch_tensor)[pos_idx, :size]
+    return jnp.stack(
+        [to_jax(template)[:size] for template in templates], axis=0
+    )
 
 
 @jax.jit
@@ -69,7 +95,13 @@ def live_template_norms_jax(
     """
     _ensure_x64()
     delta_f = float(templates[0].delta_f)
-    psd_j = to_jax(psd)
+    psd_j = getattr(psd, "_jax_psd", None)
+    if psd_j is None:
+        psd_j = to_jax(psd)
+        try:
+            psd._jax_psd = psd_j
+        except AttributeError:
+            pass
     rows = [None] * len(templates)
     generic_indices = []
     generic_kmins = []
@@ -370,9 +402,9 @@ def process_live_vetoes_jax(control, results, veto_info):
         dof = jnp.stack(dof_values)
         sg_chisq = jnp.stack(sg_values)
     else:
-        chisq = jnp.zeros(0, dtype=jnp.float32)
-        dof = jnp.zeros(0, dtype=jnp.uint32)
-        sg_chisq = jnp.zeros(0, dtype=jnp.float32)
+        chisq = _EMPTY_F32
+        dof = _EMPTY_U32
+        sg_chisq = _EMPTY_F32
     results["chisq"] = chisq
     results["chisq_dof"] = dof
     results["sg_chisq"] = sg_chisq

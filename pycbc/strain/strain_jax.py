@@ -541,11 +541,16 @@ def overwhitened_data_jax(buffer, delta_f):
             low_frequency_cutoff=buffer.low_frequency_cutoff,
         )
         psd.psdt = psdt
+        psd._jax_psdt = to_jax(psdt)
+        psd._jax_psd = to_jax(psd)
         buffer.psds[delta_f] = psd
 
     psd = buffer.psds[delta_f]
+    psdt_array = getattr(psd, "_jax_psdt", None)
+    if psdt_array is None:
+        psdt_array = to_jax(psd.psdt)
+        psd._jax_psdt = psdt_array
     strain_slice = to_jax(buffer.strain)[s:e]
-    psdt_array = to_jax(psd.psdt)
     delta_t = float(buffer.strain.delta_t)
 
     if reduced_pad != 0:
