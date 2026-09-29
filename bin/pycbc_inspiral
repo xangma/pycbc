@@ -324,11 +324,7 @@ def template_triggers(t_num):
 
         out_vals['time_index'] = idx
         out_vals['snr'] = snrv * norm
-        if is_jax:
-            import jax.numpy as jnp
-            out_vals['sigmasq'] = jnp.full(len(snrv), sigmasq, dtype=float32)
-        else:
-            out_vals['sigmasq'] = numpy.zeros(len(snrv), dtype=float32) + sigmasq
+        out_vals['sigmasq'] = numpy.full(len(snrv), sigmasq, dtype=float32)
         if opt.psdvar_short_segment is not None:
             out_vals['psd_var_val'] = \
                         pycbc.psd.find_trigger_value(psd_var,

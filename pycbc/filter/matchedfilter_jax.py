@@ -1349,24 +1349,59 @@ def batched_matched_filter_and_cluster_jax(
     # clustering in one compiled boundary. This prevents a duplicate pass
     # over the full valid SNR matrix and avoids an intermediate launch.
     need_snr = getattr(mf_control, "need_snr_series", False)
-    if need_snr:
-        (snr_series, corr_slice, batched_max_idx,
-         batched_survivor_mask, batched_max_snr) = _batched_filter_and_cluster(
-            templates_2d,
-            seg_slice,
-            thresh_sq,
-            kmin,
-            kmax,
-            tlen,
-            valid_start,
-            valid_stop,
-            window,
-            full_templates=full_templates,
+    platform = getattr(target_dev, "platform", "cpu") if target_dev else "cpu"
+    is_cuda = platform in ("cuda", "gpu")
+
+    if not is_cuda and b > 1:
+        corr_slices, max_idxs, masks, max_snrs = [], [], [], []
+        snr_series_list = [] if need_snr else None
+        for i in range(b):
+            t_slice = templates_2d[i:i + 1]
+            th_slice = thresh_sq[i:i + 1]
+            if need_snr:
+                (snr_s, c_s, m_idx, s_mask, m_snr) = _batched_filter_and_cluster(
+                    t_slice,
+                    seg_slice,
+                    th_slice,
+                    kmin,
+                    kmax,
+                    tlen,
+                    valid_start,
+                    valid_stop,
+                    window,
+                    full_templates=full_templates,
+                )
+                snr_series_list.append(snr_s[0])
+            else:
+                (c_s, m_idx, s_mask, m_snr) = (
+                    _batched_filter_and_cluster_lean(
+                        t_slice,
+                        seg_slice,
+                        th_slice,
+                        kmin,
+                        kmax,
+                        tlen,
+                        valid_start,
+                        valid_stop,
+                        window,
+                        full_templates=full_templates,
+                    )
+                )
+            corr_slices.append(c_s[0])
+            max_idxs.append(m_idx[0])
+            masks.append(s_mask[0])
+            max_snrs.append(m_snr[0])
+        corr_slice = jnp.stack(corr_slices, axis=0)
+        batched_max_idx = jnp.stack(max_idxs, axis=0)
+        batched_survivor_mask = jnp.stack(masks, axis=0)
+        batched_max_snr = jnp.stack(max_snrs, axis=0)
+        snr_series = (
+            jnp.stack(snr_series_list, axis=0) if need_snr else None
         )
     else:
-        (corr_slice, batched_max_idx,
-         batched_survivor_mask, batched_max_snr) = (
-            _batched_filter_and_cluster_lean(
+        if need_snr:
+            (snr_series, corr_slice, batched_max_idx,
+             batched_survivor_mask, batched_max_snr) = _batched_filter_and_cluster(
                 templates_2d,
                 seg_slice,
                 thresh_sq,
@@ -1378,8 +1413,23 @@ def batched_matched_filter_and_cluster_jax(
                 window,
                 full_templates=full_templates,
             )
-        )
-        snr_series = None
+        else:
+            (corr_slice, batched_max_idx,
+             batched_survivor_mask, batched_max_snr) = (
+                _batched_filter_and_cluster_lean(
+                    templates_2d,
+                    seg_slice,
+                    thresh_sq,
+                    kmin,
+                    kmax,
+                    tlen,
+                    valid_start,
+                    valid_stop,
+                    window,
+                    full_templates=full_templates,
+                )
+            )
+            snr_series = None
 
     empty_idx = np.empty(0, dtype=np.uint32)
     empty_snrv = np.empty(0, dtype=np.complex64)
