@@ -176,6 +176,146 @@ def _cache_live_veto_bins_jax(power_chisq, veto_info):
         stage_event("filter_veto_bins", "end", templates=len(templates))
 
 
+@jax.jit
+def _batched_live_chisq_core(corr_tensor, pts, bins_rel_all, kmin_f, n_time_f):
+    """JIT-compiled batched power chisq prefix sum for live triggers."""
+    from pycbc.vetoes.chisq_jax import _time_shift_phase
+    n_slice = corr_tensor.shape[-1]
+
+    def _point_chisq(row, pt, bin_rel):
+        phases = _time_shift_phase(
+            n_slice, kmin_f, jnp.reshape(pt, (1,)), n_time_f, row.dtype
+        )[:, 0]
+        weighted = row * phases
+        C = jnp.cumsum(weighted)
+        C_padded = jnp.pad(C, (1, 0))
+        edges = jnp.clip(bin_rel, 0, n_slice)
+        i0 = edges[:-1]
+        i1 = edges[1:]
+        zb = C_padded[i1] - C_padded[i0]
+        return jnp.sum(zb.real ** 2 + zb.imag ** 2)
+
+    return jax.vmap(_point_chisq)(corr_tensor, pts, bins_rel_all)
+
+
+def _batched_live_vetoes_gpu(control, results, veto_info, power_chisq):
+    """Evaluate power chisq for all batch triggers in a single GPU pass."""
+    if not veto_info:
+        return None
+    try:
+        from pycbc.vetoes.chisq_jax import _require_point_chisq_x64
+
+        bins_list = []
+        for info in veto_info:
+            tmpl = info[3]
+            stilde = info[4]
+            b_edges = None
+            if hasattr(power_chisq, "cached_chisq_bins"):
+                b_edges = power_chisq.cached_chisq_bins(tmpl, stilde.psd)
+            elif (
+                hasattr(tmpl, "_bin_cache")
+                and id(stilde.psd) in tmpl._bin_cache
+            ):
+                b_edges = tmpl._bin_cache[id(stilde.psd)]
+            if b_edges is None:
+                return None
+            bins_list.append(b_edges)
+
+        num_bins_set = set(len(b) for b in bins_list)
+        if len(num_bins_set) != 1:
+            return None
+
+        bins_arr = np.array(bins_list, dtype=np.int32)
+        htilde0 = veto_info[0][3]
+        stilde = veto_info[0][4]
+        kmin = int(htilde0.f_lower / htilde0.delta_f)
+        max_kmax = int(np.max(bins_arr[:, -1]))
+        size = len(htilde0.cout) if hasattr(htilde0, "cout") else len(stilde)
+        n_time = size
+
+        if all(
+            len(info) > 6 and info[5] is not None and info[6] is not None
+            for info in veto_info
+        ):
+            source = veto_info[0][5]
+            positions = jnp.asarray(
+                [info[6] for info in veto_info], dtype=jnp.int32
+            )
+            templates_mat = to_jax(source)[positions]
+        else:
+            templates_mat = jnp.stack([to_jax(info[3]) for info in veto_info])
+
+        stilde_dev = to_jax(stilde)
+        corr_tensor = (
+            jnp.conj(templates_mat[:, kmin:max_kmax])
+            * stilde_dev[None, kmin:max_kmax]
+        )
+
+        pts = jnp.asarray(
+            [int(info[2]) for info in veto_info], dtype=jnp.int32
+        )
+        bins_rel_all = jnp.asarray(bins_arr - kmin, dtype=jnp.int32)
+        snr_arr = jnp.asarray(
+            [
+                info[0][0] if hasattr(info[0], "__getitem__") else info[0]
+                for info in veto_info
+            ]
+        )
+        norm_arr = jnp.asarray(
+            [info[1] for info in veto_info], dtype=jnp.float64
+        )
+
+        _require_point_chisq_x64()
+        shifts = _batched_live_chisq_core(
+            corr_tensor, pts, bins_rel_all, float(kmin), float(n_time)
+        )
+        num_bins = bins_arr.shape[1] - 1
+        dof_val = num_bins * 2 - 2
+        chisq_raw = (
+            shifts * num_bins - (snr_arr.conj() * snr_arr).real
+        ) * (norm_arr ** 2.0)
+        chisq_red = (chisq_raw / dof_val).astype(jnp.float32)
+        if getattr(power_chisq, "snr_threshold", None):
+            above = abs(snr_arr * norm_arr) > power_chisq.snr_threshold
+            chisq_red = jnp.where(above, chisq_red, 0.0)
+        dof = jnp.full(len(veto_info), dof_val, dtype=jnp.uint32)
+
+        if getattr(control.sg_chisq, "do", False):
+            sg_values = []
+            for i, info in enumerate(veto_info):
+                snrv, norm, l, htilde, stilde_i = info[:5]
+                c = chisq_raw[i:i + 1]
+                d = dof[i:i + 1]
+                sgv = control.sg_chisq.values(
+                    stilde_i, htilde, stilde_i.psd, snrv, norm, c, d, [l]
+                )
+                if sgv is not None:
+                    sg_values.append(jnp.asarray(sgv[0], dtype=jnp.float32))
+                else:
+                    sg_values.append(jnp.asarray(0, dtype=jnp.float32))
+            sg_chisq = jnp.stack(sg_values)
+        else:
+            sg_chisq = jnp.zeros(len(veto_info), dtype=jnp.float32)
+
+        results["chisq"] = chisq_red
+        results["chisq_dof"] = dof
+        results["sg_chisq"] = sg_chisq
+
+        if control.newsnr_threshold:
+            keep_mask = ranking.newsnr(results["snr"], chisq_red) >= (
+                control.newsnr_threshold
+            )
+            keep = jnp.asarray(
+                np.flatnonzero(jax.device_get(keep_mask)), dtype=jnp.uint32
+            )
+            for key in results:
+                results[key] = results[key][keep]
+
+        return results
+    except Exception:
+        return None
+
+
 def process_live_vetoes_jax(control, results, veto_info):
     """Run live veto reductions while retaining numeric result columns on JAX."""
     from pycbc.benchmark import stage_event
@@ -195,6 +335,12 @@ def process_live_vetoes_jax(control, results, veto_info):
         # exact batched scan. Small CPU batches retain the scalar scans, which
         # have better cache locality.
         _cache_live_veto_bins_jax(power_chisq, veto_info)
+        batched_res = _batched_live_vetoes_gpu(
+            control, results, veto_info, power_chisq
+        )
+        if batched_res is not None:
+            stage_event("filter_veto", "end", triggers=len(veto_info))
+            return batched_res
 
     chisq_values = []
     dof_values = []
