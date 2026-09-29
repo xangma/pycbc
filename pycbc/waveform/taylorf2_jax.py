@@ -87,9 +87,9 @@ def _coefficients(params):
     return v * pn, vl * pn, phase_order
 
 
-@functools.partial(jax.jit, static_argnames=("dtype",))
+@functools.partial(jax.jit, static_argnames=("dtype", "has_f_ref"))
 def _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref, coa_phase,
-                  m1, m2, distance, eta, dtype):
+                  m1, m2, distance, eta, dtype, has_f_ref=False):
     real_dtype = jnp.float64
     f = jnp.asarray(frequencies, dtype=real_dtype)
     v = jnp.cbrt(pi_mass * f)
@@ -98,7 +98,7 @@ def _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref, coa_phase,
     terms = (jnp.asarray(coeff, dtype=real_dtype)
              + jnp.asarray(coeff_log, dtype=real_dtype) * lv[..., None])
     phase = jnp.sum(terms * v[..., None] ** powers, axis=-1) / v**5
-    if f_ref > 0.0:
+    if has_f_ref:
         vr = jnp.cbrt(pi_mass * f_ref)
         terms_ref = (jnp.asarray(coeff, dtype=real_dtype)
                      + jnp.asarray(coeff_log, dtype=real_dtype) * jnp.log(vr))
@@ -110,12 +110,13 @@ def _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref, coa_phase,
                         1j * jnp.sin(phase - PI / 4.0))).astype(dtype)
 
 
-@functools.partial(jax.jit, static_argnames=("kmin", "n", "dtype"))
+@functools.partial(jax.jit, static_argnames=("kmin", "n", "dtype", "has_f_ref"))
 def _generate_fd_core(kmin, n, delta_f, pi_mass, coeff, coeff_log, f_ref,
-                      coa_phase, m1, m2, distance, eta, inclination, dtype):
+                      coa_phase, m1, m2, distance, eta, inclination, dtype,
+                      has_f_ref=False):
     frequencies = jnp.arange(kmin, n, dtype=jnp.float64 if dtype == jnp.complex128 else jnp.float32) * delta_f
     active = _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref,
-                          coa_phase, m1, m2, distance, eta, dtype)
+                          coa_phase, m1, m2, distance, eta, dtype, has_f_ref=has_f_ref)
     out = jnp.zeros(n, dtype=dtype).at[kmin:n].set(active)
     c = jnp.cos(inclination)
     hp = out * (1.0 + c * c) / 2.0
@@ -123,11 +124,12 @@ def _generate_fd_core(kmin, n, delta_f, pi_mass, coeff, coeff_log, f_ref,
     return hp, hc
 
 
-@functools.partial(jax.jit, static_argnames=("dtype",))
+@functools.partial(jax.jit, static_argnames=("dtype", "has_f_ref"))
 def _generate_sequence_core(frequencies, pi_mass, coeff, coeff_log, f_ref,
-                            coa_phase, m1, m2, distance, eta, inclination, dtype):
+                            coa_phase, m1, m2, distance, eta, inclination, dtype,
+                            has_f_ref=False):
     active = _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref,
-                          coa_phase, m1, m2, distance, eta, dtype)
+                          coa_phase, m1, m2, distance, eta, dtype, has_f_ref=has_f_ref)
     c = jnp.cos(inclination)
     hp = active * (1.0 + c * c) / 2.0
     hc = -1j * c * active
@@ -154,12 +156,14 @@ def generate_fd(**params):
     distance = float(params.get("distance", 1.0)) * 1.0e6 * PC_SI
     eta = m1 * m2 / (m1 + m2) ** 2
     f_ref = float(params.get("f_ref", 0.0) or 0.0)
+    has_f_ref = f_ref > 0.0
     coa_phase = float(params.get("coa_phase", 0.0) or 0.0)
     inclination = float(params.get("inclination", 0.0) or 0.0)
 
     hp, hc = _generate_fd_core(
         kmin, n, delta_f, pi_mass, coeffs[0], coeffs[1], f_ref,
-        coa_phase, m1, m2, distance, eta, inclination, dtype
+        coa_phase, m1, m2, distance, eta, inclination, dtype,
+        has_f_ref=has_f_ref
     )
     epoch = -1.0 / delta_f
     return (FrequencySeries(Array(JAXArrayData(hp), copy=False), delta_f=delta_f, epoch=epoch, copy=False),
@@ -176,11 +180,13 @@ def generate_sequence(**params):
     distance = float(params.get("distance", 1.0)) * 1.0e6 * PC_SI
     eta = m1 * m2 / (m1 + m2) ** 2
     f_ref = float(params.get("f_ref", 0.0) or 0.0)
+    has_f_ref = f_ref > 0.0
     coa_phase = float(params.get("coa_phase", 0.0) or 0.0)
     inclination = float(params.get("inclination", 0.0) or 0.0)
     frequencies = to_jax(params["sample_points"])
     hp, hc = _generate_sequence_core(
         frequencies, pi_mass, coeffs[0], coeffs[1], f_ref,
-        coa_phase, m1, m2, distance, eta, inclination, jnp.complex128
+        coa_phase, m1, m2, distance, eta, inclination, jnp.complex128,
+        has_f_ref=has_f_ref
     )
     return Array(JAXArrayData(hp), copy=False), Array(JAXArrayData(hc), copy=False)
