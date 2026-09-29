@@ -1293,7 +1293,15 @@ with ctx:
             bank.table.sort(order='mchirp')
             _stage_event('filter_bank_sort', 'end')
             _stage_event('filter_waveform_generation', 'start')
-            waveforms = list(bank[evnt.rank-1::evnt.size-1])
+            if isinstance(scheme.mgr.state, scheme.JAXScheme):
+                from pycbc.waveform.live_bank_jax import (
+                    generate_live_waveforms_jax,
+                )
+                waveforms = generate_live_waveforms_jax(
+                    bank, evnt.rank, evnt.size
+                )
+            else:
+                waveforms = list(bank[evnt.rank-1::evnt.size-1])
             _stage_event('filter_waveform_generation', 'end', templates=len(waveforms))
             _stage_event('filter_bank_length_check', 'start')
             check_max_length(args, waveforms)
