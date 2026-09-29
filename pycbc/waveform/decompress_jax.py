@@ -146,7 +146,7 @@ def stage_batched_inline_interp_jax(
         raise ValueError("Batched decompression inputs must have equal lengths")
 
     complex_dtype = np.dtype(dtype)
-    host = np.empty((batch_size, int(out_len)), dtype=complex_dtype)
+    host = np.zeros((batch_size, int(out_len)), dtype=complex_dtype)
     for index in range(batch_size):
         _decompress_host_row_into(
             host[index],
