@@ -694,11 +694,7 @@ def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd):
                 grouped._batch_tensor = to_jax(source_tensor)[
                     jnp.asarray(indices, dtype=jnp.int32)
                 ]
-        if source_tensor is not None:
-            edges = np.asarray(jax.device_get(batch_power_chisq_bins_jax(
-                grouped, num_bins, psd, f_lowers
-            )))
-        elif source_host is not None:
+        if source_host is not None:
             if indices == list(range(len(templates))):
                 grouped_host = source_host
             else:
@@ -747,15 +743,20 @@ def batch_power_chisq_jax(
 
     # 1. Gather bin edges for all active templates
     bins_list = []
+    cached_key = getattr(psd, "_chisq_cached_key", None)
     for tmpl in active_templates:
         b_edges = None
-        if hasattr(tmpl, "_bin_cache") and psd_id in tmpl._bin_cache:
+        if (
+            hasattr(tmpl, "_bin_cache")
+            and psd_id in tmpl._bin_cache
+            and cached_key is not None
+            and id(tmpl.params) in cached_key
+        ):
             b_edges = tmpl._bin_cache[psd_id]
-        elif hasattr(tmpl, "_bin_cache") and len(tmpl._bin_cache) > 0:
-            b_edges = next(iter(tmpl._bin_cache.values()))
-            tmpl._bin_cache[psd_id] = b_edges
         elif power_chisq is not None and hasattr(power_chisq, "cached_chisq_bins"):
             b_edges = power_chisq.cached_chisq_bins(tmpl, psd)
+        elif hasattr(tmpl, "_bin_cache") and psd_id in tmpl._bin_cache:
+            b_edges = tmpl._bin_cache[psd_id]
         if b_edges is None:
             return None
         bins_list.append(b_edges)
