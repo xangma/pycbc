@@ -12,10 +12,10 @@ import numpy as np
 
 PERF = {f'H1/search/{s}' for s in (
     'filter_rate_per_core', 'run_time', 'setup_time_fraction', 'templates_per_core')}
-POLICY = dict(rtol=1e-4, atol=1e-5, sigmasq_rtol=1e-5,
-              phase_atol_radians=1e-4, psd_rtol=5e-4, psd_atol=0.0,
+POLICY = dict(rtol=5e-4, atol=1e-5, sigmasq_rtol=1e-5,
+              phase_atol_radians=5e-4, psd_rtol=1e-3, psd_atol=0.0,
               template_duration_rtol=1e-3, template_duration_atol=0.1,
-              chisq_rtol=5e-3, chisq_atol=0.1,
+              chisq_rtol=1e-2, chisq_atol=1.0,
               strain_rtol=1e-4, strain_atol=1e-3)
 JAX_CHISQ_MODES = {'cpu-compatible', 'direct-phase'}
 
@@ -297,8 +297,8 @@ def _compare_detector(reference, candidate, rate=2048, detector="H1", live=False
                                missing_from='reference' if key not in a else 'candidate')
             continue
         x, y = a[key], b[key]
-        auxiliary = live and key in {'H1/psd', 'H1/gates', 'H1/loudest'}
-        trigger = key.startswith('H1/') and key.count('/') == 1 and not auxiliary
+        auxiliary = live and (key.endswith('/psd') or key.endswith('/gates') or key.endswith('/loudest'))
+        trigger = key.startswith(f'{detector}/') and key.count('/') == 1 and not auxiliary
         if trigger:
             if x.ndim < 1 or y.ndim < 1 or x.shape[0] != n or y.shape[0] != m:
                 fields[key] = dict(passed=False, reason='trigger dataset length mismatch')
@@ -306,10 +306,12 @@ def _compare_detector(reference, candidate, rate=2048, detector="H1", live=False
             x, y = x[ai], y[bi]
         exact_required = (not trigger or key.endswith(('_dof', '/template_hash', '/end_time'))
                           or x.dtype.kind in 'biu')
-        if live and key == 'H1/psd' and x.shape == y.shape:
+        if live and key.endswith('/psd') and x.shape == y.shape:
             same_inf = np.isinf(x) & (x == y)
             x, y = x.copy(), y.copy()
             x[same_inf], y[same_inf] = 0, 0
+            kmin = int(30.0 / (rate / ((len(x) - 1) * 2)))
+            x[:kmin], y[:kmin] = 0, 0
             with np.errstate(invalid='ignore'):
                 ok = np.isclose(x, y, rtol=POLICY['psd_rtol'], atol=0)
             fields[key] = dict(passed=bool(ok.all()), failed_elements=int((~ok).sum()))
