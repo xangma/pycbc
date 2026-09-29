@@ -105,7 +105,7 @@ def _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref, coa_phase,
         phase = phase - jnp.sum(terms_ref * vr ** powers, axis=-1) / vr**5
     phase = phase - 2.0 * coa_phase
     amp0 = (-4.0 * m1 * m2 / distance * MRSUN_SI * MTSUN_SI * math.sqrt(PI / 12.0))
-    amplitude = amp0 * math.sqrt(5.0 / (32.0 * eta)) * v ** (-3.5)
+    amplitude = amp0 * jnp.sqrt(5.0 / (32.0 * eta)) * v ** (-3.5)
     return (amplitude * (jnp.cos(phase - PI / 4.0) -
                         1j * jnp.sin(phase - PI / 4.0))).astype(dtype)
 
