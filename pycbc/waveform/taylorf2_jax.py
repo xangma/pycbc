@@ -45,46 +45,64 @@ def sequence_supported(params):
 
 
 def _coefficients(params):
-    """Construct the LAL PN series with scalar JAX operations."""
-    m1 = jnp.asarray(float(params["mass1"]), dtype=jnp.float64)
-    m2 = jnp.asarray(float(params["mass2"]), dtype=jnp.float64)
-    s1 = jnp.asarray(float(params.get("spin1z", 0.0)), dtype=jnp.float64)
-    s2 = jnp.asarray(float(params.get("spin2z", 0.0)), dtype=jnp.float64)
+    """Construct the LAL PN series with efficient NumPy operations."""
+    import math
+    import numpy as np
+    m1 = float(params["mass1"])
+    m2 = float(params["mass2"])
+    s1 = float(params.get("spin1z", 0.0))
+    s2 = float(params.get("spin2z", 0.0))
     mt = m1 + m2
     eta = m1 * m2 / mt**2
     x1, x2 = m1 / mt, m2 / mt
     pn = 3.0 / (128.0 * eta)
-    v = jnp.zeros(16, dtype=jnp.float64).at[0].set(1.0)
-    vl = jnp.zeros(16, dtype=jnp.float64)
-    v = v.at[2].set(5.0 * (74.3 / 8.4 + 11.0 * eta) / 9.0)
-    v = v.at[3].set(-16.0 * PI)
-    v = v.at[4].set(5.0 * (3058.673 / 7.056 + 5429.0 / 7.0 * eta + 617.0 * eta**2) / 72.0)
-    v = v.at[5].set(5.0 / 9.0 * (772.9 / 8.4 - 13.0 * eta) * PI)
-    vl = vl.at[5].set(5.0 / 3.0 * (772.9 / 8.4 - 13.0 * eta) * PI)
-    vl = vl.at[6].set(-684.8 / 2.1)
-    v = v.at[6].set(11583.231236531 / 4.694215680 - 640.0 / 3.0 * PI**2 - 684.8 / 2.1 * GAMMA + eta * (-15737.765635 / 3.048192 + 225.5 / 1.2 * PI**2) + eta**2 * 76.055 / 1.728 - eta**3 * 127.825 / 1.296 + vl[6] * jnp.log(4.0))
-    v = v.at[7].set(PI * (770.96675 / 2.54016 + 378.515 / 1.512 * eta - 740.45 / 7.56 * eta**2))
+    v = np.zeros(16, dtype=np.float64)
+    vl = np.zeros(16, dtype=np.float64)
+    v[0] = 1.0
+    v[2] = 5.0 * (74.3 / 8.4 + 11.0 * eta) / 9.0
+    v[3] = -16.0 * PI
+    v[4] = 5.0 * (3058.673 / 7.056 + 5429.0 / 7.0 * eta + 617.0 * eta**2) / 72.0
+    v[5] = 5.0 / 9.0 * (772.9 / 8.4 - 13.0 * eta) * PI
+    vl[5] = 5.0 / 3.0 * (772.9 / 8.4 - 13.0 * eta) * PI
+    vl[6] = -684.8 / 2.1
+    v[6] = (
+        11583.231236531 / 4.694215680 - 640.0 / 3.0 * PI**2 - 684.8 / 2.1 * GAMMA
+        + eta * (-15737.765635 / 3.048192 + 225.5 / 1.2 * PI**2)
+        + eta**2 * 76.055 / 1.728 - eta**3 * 127.825 / 1.296 + vl[6] * math.log(4.0)
+    )
+    v[7] = PI * (770.96675 / 2.54016 + 378.515 / 1.512 * eta - 740.45 / 7.56 * eta**2)
     so3 = lambda x: x * (25.0 + 38.0 / 3.0 * x)
     so5 = lambda x: -x * (1391.5 / 8.4 - x * (1.0 - x) * 10.0 / 3.0 + x * (1276.0 / 8.1 + x * (1.0 - x) * 170.0 / 9.0))
     so6 = lambda x: PI * x * (1490.0 / 3.0 + x * 260.0)
     so7 = lambda x: x * (-17097.8035 / 4.8384 + eta * 28764.25 / 6.72 + eta**2 * 47.35 / 1.44 + x * (-7189.233785 / 1.524096 + eta * 458.555 / 3.024 - eta**2 * 534.5 / 7.2))
     order = _order(params, "spin_order")
-    if order in (-1, 7): v = v.at[7].add(so7(x1)*s1 + so7(x2)*s2)
+    if order in (-1, 7):
+        v[7] += so7(x1) * s1 + so7(x2) * s2
     if order in (-1, 6, 7):
         q6 = lambda x: (4703.5 / 8.4 + 2935.0 / 6.0 * x - 120.0 * x**2) * x**2
         self6 = lambda x: (-4108.25 / 6.72 - 108.5 / 1.2 * x + 125.5 / 3.6 * x**2) * x**2
-        v = v.at[6].add(so6(x1)*s1 + so6(x2)*s2 + (326.75/1.12+557.5/1.8*eta)*eta*s1*s2 + (q6(x1)+self6(x1))*s1**2 + (q6(x2)+self6(x2))*s2**2)
+        v[6] += (
+            so6(x1) * s1 + so6(x2) * s2
+            + (326.75 / 1.12 + 557.5 / 1.8 * eta) * eta * s1 * s2
+            + (q6(x1) + self6(x1)) * s1**2 + (q6(x2) + self6(x2)) * s2**2
+        )
     if order in (-1, 5, 6, 7):
-        spin5 = so5(x1)*s1 + so5(x2)*s2
-        v = v.at[5].add(spin5); vl = vl.at[5].add(3.0*spin5)
+        spin5 = so5(x1) * s1 + so5(x2) * s2
+        v[5] += spin5
+        vl[5] += 3.0 * spin5
     if order in (-1, 4, 5, 6, 7):
         q4 = (-720.0 / 9.6 + 1.0 / 9.6 + 240.0 / 9.6 - 7.0 / 9.6)
-        v = v.at[4].add(247.0 / 4.8 * eta * s1 * s2 - 721.0 / 4.8 * eta * s1 * s2 + q4 * x1**2 * s1**2 + q4 * x2**2 * s2**2)
-    if order in (-1, 3, 4, 5, 6, 7): v = v.at[3].add(so3(x1)*s1 + so3(x2)*s2)
+        v[4] += (
+            247.0 / 4.8 * eta * s1 * s2 - 721.0 / 4.8 * eta * s1 * s2
+            + q4 * x1**2 * s1**2 + q4 * x2**2 * s2**2
+        )
+    if order in (-1, 3, 4, 5, 6, 7):
+        v[3] += so3(x1) * s1 + so3(x2) * s2
     phase_order = _order(params, "phase_order")
     if phase_order != -1:
-        v = v.at[phase_order + 1:8].set(0.0); vl = vl.at[phase_order + 1:8].set(0.0)
-    return v * pn, vl * pn, phase_order
+        v[phase_order + 1:8] = 0.0
+        vl[phase_order + 1:8] = 0.0
+    return jnp.asarray(v * pn), jnp.asarray(vl * pn), phase_order
 
 
 @functools.partial(jax.jit, static_argnames=("dtype", "has_f_ref"))
