@@ -972,20 +972,26 @@ class FilterBank(TemplateBank):
         from pycbc.waveform.bank_jax import clear_batch_cache_jax
         return clear_batch_cache_jax(self, indices=indices, collect=collect)
 
-    def _execute_batch_decompression_jax(self, indices):
+    def _execute_batch_decompression_jax(self, indices, power_chisq=None, psd=None):
         """Perform host decompression and device transfer for indices, returning the constructed cache data."""
         from pycbc.waveform.bank_jax import execute_batch_decompression_jax
-        return execute_batch_decompression_jax(self, indices)
+        return execute_batch_decompression_jax(
+            self, indices, power_chisq=power_chisq, psd=psd
+        )
 
-    def _decompress_batch_jax(self, indices):
+    def _decompress_batch_jax(self, indices, power_chisq=None, psd=None):
         """Decompress a host batch once, then transfer it to the JAX device."""
         from pycbc.waveform.bank_jax import decompress_batch_jax
-        return decompress_batch_jax(self, indices)
+        return decompress_batch_jax(
+            self, indices, power_chisq=power_chisq, psd=psd
+        )
 
-    def prefetch_batch_jax(self, indices):
+    def prefetch_batch_jax(self, indices, power_chisq=None, psd=None):
         """Asynchronously pre-decompress the next template batch in a background thread."""
         from pycbc.waveform.bank_jax import prefetch_batch_jax
-        return prefetch_batch_jax(self, indices)
+        return prefetch_batch_jax(
+            self, indices, power_chisq=power_chisq, psd=psd
+        )
 
     def get_decompressed_waveform(self, tempout, index, f_lower=None,
                                   approximant=None, df=None):

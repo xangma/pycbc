@@ -87,7 +87,7 @@ class LazyFrequencySeries(FrequencySeries):
         return int(self._batch_tensor.shape[1])
 
 
-def execute_batch_decompression_jax(bank, indices):
+def execute_batch_decompression_jax(bank, indices, power_chisq=None, psd=None):
     """Perform host decompression and device transfer for indices."""
     from pycbc.waveform.bank import sigma_cached, find_variable_start_frequency
 
@@ -199,13 +199,29 @@ def execute_batch_decompression_jax(bank, indices):
         fs._sigmasq = {}
         tmpls[idx] = fs
 
+    if (
+        power_chisq is not None
+        and getattr(power_chisq, "do", False)
+        and psd is not None
+    ):
+        try:
+            from pycbc.vetoes.chisq_jax import cache_batch_power_chisq_bins_jax
+            batch_list = TemplateBatchList([tmpls[idx] for idx in indices])
+            batch_list._batch_tensor = batch_waveforms
+            batch_list._host_batch_tensor = host_waveforms
+            cache_batch_power_chisq_bins_jax(power_chisq, batch_list, psd)
+        except Exception as e:
+            logging.warning("Pre-caching power chisq bins failed: %s", e)
+
     return tuple(indices), host_waveforms, batch_waveforms, tmpls
 
 
-def decompress_batch_jax(bank, indices):
+def decompress_batch_jax(bank, indices, power_chisq=None, psd=None):
     """Decompress a host batch once, then transfer it to the JAX device."""
     t_indices, host_waveforms, batch_waveforms, tmpls = (
-        execute_batch_decompression_jax(bank, indices)
+        execute_batch_decompression_jax(
+            bank, indices, power_chisq=power_chisq, psd=psd
+        )
     )
     bank._last_batch_tensor = batch_waveforms
     bank._last_batch_host_tensor = host_waveforms
@@ -214,7 +230,7 @@ def decompress_batch_jax(bank, indices):
         bank._template_cache[idx] = fs
 
 
-def prefetch_batch_jax(bank, indices):
+def prefetch_batch_jax(bank, indices, power_chisq=None, psd=None):
     """Pre-decompress the next template batch in a background thread."""
     compressed_ok = (
         bank.has_compressed_waveforms and bank.enable_compressed_waveforms
@@ -230,7 +246,7 @@ def prefetch_batch_jax(bank, indices):
         )
     bank._prefetch_indices = t_indices
     bank._prefetch_future = bank._prefetch_executor.submit(
-        execute_batch_decompression_jax, bank, list(indices)
+        execute_batch_decompression_jax, bank, list(indices), power_chisq, psd
     )
 
 

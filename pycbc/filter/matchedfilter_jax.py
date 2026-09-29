@@ -1548,7 +1548,11 @@ def process_batch_inspiral_jax(
     if hasattr(bank, "get_batch"):
         batch_templates = bank.get_batch(batch_tnums)
         if next_batch_tnums is not None and hasattr(bank, "prefetch_batch_jax"):
-            bank.prefetch_batch_jax(next_batch_tnums)
+            bank.prefetch_batch_jax(
+                next_batch_tnums,
+                power_chisq=power_chisq,
+                psd=segments[0].psd,
+            )
     else:
         batch_templates = [bank[i] for i in batch_tnums]
 

@@ -351,7 +351,11 @@ def batch_template_triggers(batch_tnums, next_batch_tnums=None):
         batch_templates = bank.get_batch(batch_tnums)
         tparams = [tmpl.params for tmpl in batch_templates]
         if is_jax and next_batch_tnums is not None and hasattr(bank, "prefetch_batch_jax"):
-            bank.prefetch_batch_jax(next_batch_tnums)
+            bank.prefetch_batch_jax(
+                next_batch_tnums,
+                power_chisq=power_chisq if power_chisq.do else None,
+                psd=segments[0].psd,
+            )
     else:
         batch_templates = []
         tparams = []
@@ -788,6 +792,12 @@ with ctx:
             data = []
             if is_jax:
                 from pycbc.filter.matchedfilter_jax import process_batch_inspiral_jax
+                if tbatches and hasattr(bank, "prefetch_batch_jax"):
+                    bank.prefetch_batch_jax(
+                        tbatches[0],
+                        power_chisq=power_chisq if power_chisq.do else None,
+                        psd=segments[0].psd,
+                    )
                 for b_idx, batch_tnums in enumerate(tbatches):
                     next_batch = tbatches[b_idx + 1] if b_idx + 1 < len(tbatches) else None
                     process_batch_inspiral_jax(

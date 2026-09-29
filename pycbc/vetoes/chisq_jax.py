@@ -618,7 +618,15 @@ def _batch_power_chisq_bins_host(
     kmax = kmaxs.pop()
     min_kmin = int(kmins.min())
     rows = np.asarray(host_tensor)[:, min_kmin:kmax]
-    psd_host = np.asarray(jax.device_get(to_jax(psd)))[min_kmin:kmax]
+    if hasattr(psd, "_host_data") and psd._host_data is not None:
+        psd_host_full = psd._host_data
+    else:
+        psd_host_full = np.asarray(jax.device_get(to_jax(psd)))
+        try:
+            psd._host_data = psd_host_full
+        except Exception:
+            pass
+    psd_host = psd_host_full[min_kmin:kmax]
     cumulative = np.empty(rows.shape, dtype=rows.real.dtype)
     np.square(rows.real, out=cumulative)
     cumulative += np.square(rows.imag)
