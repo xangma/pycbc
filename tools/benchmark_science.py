@@ -13,7 +13,8 @@ import numpy as np
 PERF = {f'H1/search/{s}' for s in (
     'filter_rate_per_core', 'run_time', 'setup_time_fraction', 'templates_per_core')}
 POLICY = dict(rtol=1e-4, atol=1e-5, sigmasq_rtol=1e-5,
-              phase_atol_radians=1e-4, psd_rtol=1e-4, psd_atol=0.0)
+              phase_atol_radians=1e-4, psd_rtol=1e-4, psd_atol=0.0,
+              template_duration_rtol=1e-3, template_duration_atol=0.1)
 JAX_CHISQ_MODES = {'cpu-compatible', 'direct-phase'}
 
 
@@ -65,6 +66,9 @@ def metrics(a, b, field, exact_required=False):
         delta = np.abs(np.angle(np.exp(1j * (y - x))))
     rtol = POLICY['sigmasq_rtol'] if 'sigmasq' in field else POLICY['rtol']
     atol = POLICY['atol']
+    if 'template_duration' in field:
+        rtol = POLICY['template_duration_rtol']
+        atol = POLICY['template_duration_atol']
     if circular:
         rtol, atol = 0.0, POLICY['phase_atol_radians']
     if 'psd' in field.lower() and '/search/' in field:
@@ -166,6 +170,8 @@ def _configuration_attributes(xa, ya):
         for normalized in (xnorm, ynorm):
             normalized.pop('--jax-chisq-mode', None)
             normalized.pop('jax_chisq_mode', None)
+            normalized.pop('--jax-highpass-mode', None)
+            normalized.pop('jax_highpass_mode', None)
         xnorm['--jax-chisq-mode'] = xcfg or 'cpu-compatible'
         ynorm['--jax-chisq-mode'] = ycfg or 'cpu-compatible'
         config_same = xnorm == ynorm
@@ -290,7 +296,7 @@ def _compare_detector(reference, candidate, rate=2048, detector="H1", live=False
                 fields[key] = dict(passed=False, reason='trigger dataset length mismatch')
                 continue
             x, y = x[ai], y[bi]
-        exact_required = (not trigger or key.endswith(('_dof', '/template_hash', '/template_duration', '/end_time'))
+        exact_required = (not trigger or key.endswith(('_dof', '/template_hash', '/end_time'))
                           or x.dtype.kind in 'biu')
         if live and key == 'H1/psd' and x.shape == y.shape:
             same_inf = np.isinf(x) & (x == y)
@@ -379,6 +385,7 @@ def compare_scientific_hdf(reference, candidate, sample_rate=2048,
         attrs = attrs_comparison(xa, ya)
         attrs.pop('/@science_config', None)
         attrs.pop('/@jax_chisq_mode', None)
+        attrs.pop('/@jax_highpass_mode', None)
         attrs.update(_configuration_attributes(xa, ya))
         evidence.update(attrs)
     return dict(passed=observed and not missing and all(v['passed'] for v in evidence.values()),

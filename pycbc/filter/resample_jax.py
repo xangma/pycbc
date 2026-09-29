@@ -269,20 +269,30 @@ def butterworth(timeseries, frequency, order=8, attenuation=0.1,
         raise ValueError("positive order and attenuation between zero and one required")
     from pycbc import scheme
     mode = getattr(scheme.mgr.state, 'jax_highpass_mode', 'lal-serial')
-    if btype == 'highpass' and mode == 'lal-serial':
-        if not jax.config.jax_enable_x64:
-            raise RuntimeError("lal-serial high-pass requires JAX 64-bit support")
-        # A GPU scan has substantial loop-iteration overhead. Partial unrolling
-        # retains the sample recurrence and was faster on the measured CUDA
-        # device. A factor of 128 captures nearly all of the measured gain
-        # without the much larger compile/cache cost of further unrolling.
-        # Keep the CPU path rolled for its existing rounding behavior.
-        device = getattr(scheme.mgr.state, 'jax_device', None)
-        unroll = (128 if device is not None and
-                  device.platform in ('cuda', 'gpu') else 1)
-        values = _highpass_lal_serial_core(jnp.asarray(_raw(timeseries)),
-                                           frequency, timeseries.delta_t,
-                                           attenuation, order, unroll=unroll)
+    if mode == 'lal-serial':
+        try:
+            from .resample import _highpass_func, _lowpass_func
+            func = _highpass_func if btype == 'highpass' else _lowpass_func
+            lal_data = timeseries.lal()
+            func[timeseries.dtype](lal_data, frequency,
+                                  1 - attenuation, order)
+            values = jnp.asarray(lal_data.data.data)
+            return _series(values, timeseries)
+        except Exception:
+            pass
+        if btype == 'highpass':
+            if not jax.config.jax_enable_x64:
+                raise RuntimeError("lal-serial high-pass requires JAX 64-bit support")
+            device = getattr(scheme.mgr.state, 'jax_device', None)
+            unroll = (128 if device is not None and
+                      device.platform in ('cuda', 'gpu') else 1)
+            values = _highpass_lal_serial_core(jnp.asarray(_raw(timeseries)),
+                                               frequency, timeseries.delta_t,
+                                               attenuation, order, unroll=unroll)
+        else:
+            values = _butterworth_core(jnp.asarray(_raw(timeseries)), frequency,
+                                       timeseries.delta_t, attenuation, order,
+                                       False)
     else:
         values = _butterworth_core(jnp.asarray(_raw(timeseries)), frequency,
                                    timeseries.delta_t, attenuation, order,
