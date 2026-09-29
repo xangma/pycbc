@@ -1516,3 +1516,247 @@ def batch_sigmasq_jax(templates, psd):
     psd_j = to_jax(psd, device=target_dev)[kmin:]
     ssq_gpu = _batched_sigmasq_core(tmpls_stack, psd_j, df)
     return ssq_gpu
+
+
+def process_batch_inspiral_jax(
+    event_mgr,
+    bank,
+    batch_tnums,
+    segments,
+    matched_filter,
+    power_chisq,
+    cluster_window,
+    next_batch_tnums=None,
+    bank_chisq=None,
+    autochisq=None,
+    sg_chisq=None,
+    inj_filter_rejector=None,
+    opt=None,
+):
+    """Execute batched filtering, vetoes, and direct event manager insertion for JAX."""
+    import logging
+    from pycbc.events.eventmgr import findchirp_cluster_over_window_cython
+    from pycbc.vetoes.chisq_jax import (
+        batch_power_chisq_jax,
+        cache_batch_power_chisq_bins_jax,
+    )
+
+    b = len(batch_tnums)
+    if b == 0:
+        return
+
+    if hasattr(bank, "get_batch"):
+        batch_templates = bank.get_batch(batch_tnums)
+        if next_batch_tnums is not None and hasattr(bank, "prefetch_batch_jax"):
+            bank.prefetch_batch_jax(next_batch_tnums)
+    else:
+        batch_templates = [bank[i] for i in batch_tnums]
+
+    # Pre-cache chi-square bins for the batch
+    if power_chisq is not None and getattr(power_chisq, "do", False):
+        cache_batch_power_chisq_bins_jax(
+            power_chisq, batch_templates, segments[0].psd
+        )
+
+    sigmasq_caches = {}
+    triggered_events = [[] for _ in range(b)]
+    flow = getattr(opt, "low_frequency_cutoff", None)
+
+    for s_num, stilde in enumerate(segments):
+        active_indices = []
+        active_templates = []
+        active_sigmasqs = []
+        psd_id = id(stilde.psd)
+
+        if psd_id not in sigmasq_caches:
+            sigmasq_caches[psd_id] = batch_sigmasq_jax(batch_templates, stilde.psd)
+        batch_sigmasqs = sigmasq_caches[psd_id]
+
+        for i, t_num in enumerate(batch_tnums):
+            if inj_filter_rejector is not None and not inj_filter_rejector.template_segment_checker(
+                bank, t_num, stilde
+            ):
+                continue
+            active_indices.append(i)
+            active_templates.append(batch_templates[i])
+            active_sigmasqs.append(batch_sigmasqs[i])
+
+        if not active_indices:
+            continue
+
+        batch_tensor = getattr(batch_templates, "_batch_tensor", None)
+        if batch_tensor is not None:
+            from pycbc.waveform.bank import TemplateBatchList
+            act_list = TemplateBatchList(active_templates)
+            if len(active_indices) == len(batch_templates):
+                act_list._batch_tensor = batch_tensor
+            else:
+                act_list._batch_tensor = batch_tensor[jnp.asarray(active_indices)]
+            active_templates = act_list
+
+        if opt and getattr(opt, "update_progress", None):
+            from pycbc.workflow import update_progress
+            update_progress(
+                (batch_tnums[0] + (s_num / float(len(segments)))) / len(bank),
+                opt.update_progress,
+                getattr(opt, "update_progress_file", None),
+            )
+
+        logging.info(
+            "Filtering template batch %d-%d/%d segment %d/%d"
+            % (batch_tnums[0] + 1, batch_tnums[-1] + 1, len(bank), s_num + 1, len(segments))
+        )
+
+        batch_results = matched_filter.batched_matched_filter_and_cluster(
+            s_num,
+            active_templates,
+            active_sigmasqs,
+            cluster_window,
+            epoch=stilde._epoch,
+        )
+
+        # Check if any template in this segment produced triggers
+        has_triggers = any(len(res[3]) > 0 for res in batch_results)
+        if not has_triggers:
+            continue
+
+        chisq_map = None
+        if power_chisq is not None and getattr(power_chisq, "do", False):
+            corr_tensor = None
+            for res in batch_results:
+                if res[2] is not None and hasattr(res[2], "_batch_tensor"):
+                    corr_tensor = res[2]._batch_tensor
+                    break
+            if corr_tensor is not None:
+                chisq_map = batch_power_chisq_jax(
+                    corr_tensor,
+                    batch_results,
+                    active_templates,
+                    stilde.psd,
+                    stilde.analyze.start,
+                    snr_threshold=power_chisq.snr_threshold,
+                    power_chisq=power_chisq,
+                )
+
+        for act_pos, tmpl_idx in enumerate(active_indices):
+            snr, norm, corr, idx, snrv = batch_results[act_pos]
+            if not len(idx):
+                continue
+
+            tmpl = active_templates[act_pos]
+            sigmasq = active_sigmasqs[act_pos]
+            idx_cum = idx + stilde.cumulative_index
+            snr_vals = snrv * norm
+
+            if chisq_map is not None and act_pos in chisq_map:
+                chisq_val, chisq_dof_val = chisq_map[act_pos]
+            elif power_chisq is not None and getattr(power_chisq, "do", False):
+                chisq_val, chisq_dof_val = power_chisq.values(
+                    corr, snrv, norm, stilde.psd, idx + stilde.analyze.start, tmpl
+                )
+            else:
+                chisq_val, chisq_dof_val = None, None
+
+            bank_chisq_val, bank_chisq_dof_val = (
+                bank_chisq.values(tmpl, stilde.psd, stilde, snrv, norm, idx + stilde.analyze.start)
+                if bank_chisq is not None and getattr(bank_chisq, "do", False)
+                else (None, None)
+            )
+            sg_chisq_val = (
+                sg_chisq.values(stilde, tmpl, stilde.psd, snrv, norm, chisq_val, chisq_dof_val, idx + stilde.analyze.start)
+                if sg_chisq is not None and getattr(sg_chisq, "do", False)
+                else None
+            )
+            cont_chisq_val, cont_chisq_dof_val = (
+                autochisq.values(snr, idx + stilde.analyze.start, tmpl, stilde.psd, norm, stilde=stilde, low_frequency_cutoff=flow)
+                if autochisq is not None and getattr(autochisq, "do", False)
+                else (None, None)
+            )
+
+            triggered_events[tmpl_idx].append({
+                "time_index": idx_cum,
+                "snr": snr_vals,
+                "chisq": chisq_val,
+                "chisq_dof": chisq_dof_val,
+                "sigmasq": sigmasq,
+                "bank_chisq": bank_chisq_val,
+                "bank_chisq_dof": bank_chisq_dof_val,
+                "sg_chisq": sg_chisq_val,
+                "cont_chisq": cont_chisq_val,
+                "cont_chisq_dof": cont_chisq_dof_val,
+            })
+
+    # Add accumulated events directly to event_mgr per template
+    for tmpl_idx, ev_list in enumerate(triggered_events):
+        if not ev_list:
+            continue
+        tmpl = batch_templates[tmpl_idx]
+        if len(ev_list) == 1:
+            ev = ev_list[0]
+            times = ev["time_index"]
+            snrs = ev["snr"]
+            chisqs = ev["chisq"]
+            dofs = ev["chisq_dof"]
+            sigmasq_val = ev["sigmasq"]
+            sigmasqs_arr = np.full(len(times), sigmasq_val, dtype=np.float32)
+            b_chisq = ev["bank_chisq"]
+            b_dof = ev["bank_chisq_dof"]
+            sg = ev["sg_chisq"]
+            cont = ev["cont_chisq"]
+            cont_dof = ev["cont_chisq_dof"]
+        else:
+            times = np.concatenate([e["time_index"] for e in ev_list])
+            snrs = np.concatenate([e["snr"] for e in ev_list])
+            chisqs = np.concatenate([e["chisq"] for e in ev_list]) if ev_list[0]["chisq"] is not None else None
+            dofs = np.concatenate([e["chisq_dof"] for e in ev_list]) if ev_list[0]["chisq_dof"] is not None else None
+            sigmasqs_arr = np.concatenate([np.full(len(e["time_index"]), e["sigmasq"], dtype=np.float32) for e in ev_list])
+            b_chisq = np.concatenate([e["bank_chisq"] for e in ev_list]) if ev_list[0]["bank_chisq"] is not None else None
+            b_dof = np.concatenate([e["bank_chisq_dof"] for e in ev_list]) if ev_list[0]["bank_chisq_dof"] is not None else None
+            sg = np.concatenate([e["sg_chisq"] for e in ev_list]) if ev_list[0]["sg_chisq"] is not None else None
+            cont = np.concatenate([e["cont_chisq"] for e in ev_list]) if ev_list[0]["cont_chisq"] is not None else None
+            cont_dof = np.concatenate([e["cont_chisq_dof"] for e in ev_list]) if ev_list[0]["cont_chisq_dof"] is not None else None
+
+        if cluster_window > 0 and len(times) > 1:
+            times_i32 = times.astype(np.int32)
+            indices = np.zeros(len(times), dtype=np.int32)
+            count = findchirp_cluster_over_window_cython(
+                times_i32, np.asarray(abs(snrs)), cluster_window, indices, len(times)
+            )
+            indices = indices[:count + 1]
+            times = times[indices]
+            snrs = snrs[indices]
+            if chisqs is not None:
+                chisqs = chisqs[indices]
+            if dofs is not None:
+                dofs = dofs[indices]
+            sigmasqs_arr = sigmasqs_arr[indices]
+            if b_chisq is not None:
+                b_chisq = b_chisq[indices]
+            if b_dof is not None:
+                b_dof = b_dof[indices]
+            if sg is not None:
+                sg = sg[indices]
+            if cont is not None:
+                cont = cont[indices]
+            if cont_dof is not None:
+                cont_dof = cont_dof[indices]
+
+        event_mgr.add_template_events_direct(
+            tmpl.params,
+            times,
+            snrs,
+            chisq=chisqs,
+            chisq_dof=dofs,
+            sigmasq=sigmasqs_arr,
+            bank_chisq=b_chisq,
+            bank_chisq_dof=b_dof,
+            cont_chisq=cont,
+            cont_chisq_dof=cont_dof,
+            sg_chisq=sg,
+        )
+
+    if hasattr(bank, "clear_batch_cache"):
+        bank.clear_batch_cache(batch_tnums, collect=False)
+    if hasattr(matched_filter, "clear_batch_cache"):
+        matched_filter.clear_batch_cache()
+

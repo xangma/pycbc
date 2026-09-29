@@ -271,3 +271,33 @@ def test_jax_checkpoint_roundtrip(tmp_path):
         columns, [jnp.array([3]), jnp.array([5. + 0j]),
                   jnp.array([1.]), jnp.array([2])])
     assert int(np.asarray(restored.template_events["template_id"])[0]) == 1
+
+
+def test_jax_add_template_events_direct_matches_standard():
+    opt = _options()
+    columns = ["time_index", "snr", "chisq", "chisq_dof", "sigmasq"]
+    types = [int, complex, float, float, float]
+
+    m1 = JAXEventManager(opt, columns, types)
+    m1.new_template(mass1=1.4)
+    m1.add_template_events(
+        columns,
+        [np.array([10, 20]), np.array([5.0 + 1.0j, 6.0 + 2.0j]),
+         np.array([1.1, 1.2]), np.array([30.0, 30.0]), np.array([100.0, 100.0])],
+    )
+    m1.finalize_template_events()
+
+    m2 = JAXEventManager(opt, columns, types)
+    m2.add_template_events_direct(
+        SimpleNamespace(mass1=1.4),
+        time_index=[10, 20],
+        snr=[5.0 + 1.0j, 6.0 + 2.0j],
+        chisq=[1.1, 1.2],
+        chisq_dof=[30.0, 30.0],
+        sigmasq=[100.0, 100.0],
+    )
+
+    for col in columns:
+        np.testing.assert_allclose(np.asarray(m1.events[col]), np.asarray(m2.events[col]))
+    np.testing.assert_array_equal(np.asarray(m1.events["template_id"]), np.asarray(m2.events["template_id"]))
+

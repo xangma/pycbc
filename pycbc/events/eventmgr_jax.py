@@ -147,6 +147,54 @@ class JAXEventManager(EventManager):
             for name in self._events
         }
 
+    def add_template_events_direct(
+        self,
+        tmplt_param,
+        time_index,
+        snr,
+        chisq=None,
+        chisq_dof=None,
+        sigmasq=None,
+        bank_chisq=None,
+        bank_chisq_dof=None,
+        cont_chisq=None,
+        cont_chisq_dof=None,
+        sg_chisq=None,
+        **extra_columns,
+    ):
+        """Add clustered events for a single template directly without Python dict copying."""
+        length = len(time_index)
+        if not length:
+            return
+        self.new_template(tmplt=tmplt_param)
+        chunk = {
+            name: numpy.zeros(length, dtype=self._events[name].dtype)
+            for name in self._events
+        }
+        chunk["template_id"] = numpy.full(length, self.template_index, dtype=numpy.int32)
+        chunk["time_index"] = numpy.asarray(time_index, dtype=chunk["time_index"].dtype)
+        chunk["snr"] = numpy.asarray(snr, dtype=chunk["snr"].dtype)
+        if chisq is not None and "chisq" in chunk:
+            chunk["chisq"] = numpy.asarray(chisq, dtype=chunk["chisq"].dtype)
+        if chisq_dof is not None and "chisq_dof" in chunk:
+            chunk["chisq_dof"] = numpy.asarray(chisq_dof, dtype=chunk["chisq_dof"].dtype)
+        if sigmasq is not None and "sigmasq" in chunk:
+            chunk["sigmasq"] = numpy.asarray(sigmasq, dtype=chunk["sigmasq"].dtype)
+        if bank_chisq is not None and "bank_chisq" in chunk:
+            chunk["bank_chisq"] = numpy.asarray(bank_chisq, dtype=chunk["bank_chisq"].dtype)
+        if bank_chisq_dof is not None and "bank_chisq_dof" in chunk:
+            chunk["bank_chisq_dof"] = numpy.asarray(bank_chisq_dof, dtype=chunk["bank_chisq_dof"].dtype)
+        if cont_chisq is not None and "cont_chisq" in chunk:
+            chunk["cont_chisq"] = numpy.asarray(cont_chisq, dtype=chunk["cont_chisq"].dtype)
+        if cont_chisq_dof is not None and "cont_chisq_dof" in chunk:
+            chunk["cont_chisq_dof"] = numpy.asarray(cont_chisq_dof, dtype=chunk["cont_chisq_dof"].dtype)
+        if sg_chisq is not None and "sg_chisq" in chunk:
+            chunk["sg_chisq"] = numpy.asarray(sg_chisq, dtype=chunk["sg_chisq"].dtype)
+        for col, val in extra_columns.items():
+            if col in chunk and val is not None:
+                chunk[col] = numpy.asarray(val, dtype=chunk[col].dtype)
+        self._pending_event_chunks.append(chunk)
+
     def cut_events_via_mask(self, keep):
         self._flush_event_chunks()
         keep = jnp.asarray(keep, dtype=bool)
