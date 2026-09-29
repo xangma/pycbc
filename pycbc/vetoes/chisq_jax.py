@@ -220,16 +220,16 @@ def _batched_points_chisq_core(
     n_slice = corr_tensor.shape[-1]
     def _point_chisq(row, pt, bin_rel):
         phases = _time_shift_phase(
-            n_slice, kmin_f, jnp.reshape(pt, (1,)), n_time_f, row.dtype
+            n_slice, kmin_f, jnp.reshape(pt, (1,)), n_time_f, jnp.complex128
         )[:, 0]
-        weighted = row * phases
+        weighted = row.astype(jnp.complex128) * phases
         C = jnp.cumsum(weighted)
         C_padded = jnp.pad(C, (1, 0))
         edges = jnp.clip(bin_rel, 0, n_slice)
         i0 = edges[:-1]
         i1 = edges[1:]
         zb = C_padded[i1] - C_padded[i0]
-        return jnp.sum(zb.real ** 2 + zb.imag ** 2)
+        return (jnp.sum(zb.real ** 2 + zb.imag ** 2)).astype(jnp.float32)
 
     rows = corr_tensor[row_indices]
     bins_pts = bins_rel_all[row_indices]
@@ -841,20 +841,25 @@ def batch_power_chisq_jax(
     p_buf[:total_points] = all_pts
     r_dev = jax.device_put(r_buf)
     p_dev = jax.device_put(p_buf)
-    if compatible:
-        dev = getattr(corr_dev, "device", None)
-        if callable(dev):
-            dev = dev()
-        platform = getattr(dev, "platform", "cpu")
-        is_cuda = platform in ("cuda", "gpu")
+    dev = getattr(corr_dev, "device", None)
+    if callable(dev):
+        dev = dev()
+    platform = getattr(dev, "platform", "cpu")
+    is_cuda = platform in ("cuda", "gpu")
 
+    if is_cuda:
+        res_dev = _batched_points_chisq_core(
+            corr_dev, r_dev, p_dev, bins_rel_all, kmin_f, n_time_f,
+            bucket_size=chosen_bucket)
+        all_shift_sums = np.asarray(res_dev[:total_points])
+    elif compatible:
         try:
             from .chisq_cpu import point_chisq_code
             have_chisq_cpu = bool(point_chisq_code)
         except ImportError:
             have_chisq_cpu = False
 
-        if have_chisq_cpu and not is_cuda:
+        if have_chisq_cpu:
             cached_rows = {}
             all_shift_sums_list = []
             for item in points_to_compute:

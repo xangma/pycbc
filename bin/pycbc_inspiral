@@ -337,7 +337,7 @@ def template_triggers(t_num):
     return out_vals_all, tparam
 
 
-def batch_template_triggers(batch_tnums):
+def batch_template_triggers(batch_tnums, next_batch_tnums=None):
     """ Get the triggers for a batch of templates
     """
     import jax.numpy as jnp
@@ -350,6 +350,8 @@ def batch_template_triggers(batch_tnums):
     if hasattr(bank, "get_batch"):
         batch_templates = bank.get_batch(batch_tnums)
         tparams = [tmpl.params for tmpl in batch_templates]
+        if is_jax and next_batch_tnums is not None and hasattr(bank, "prefetch_batch_jax"):
+            bank.prefetch_batch_jax(next_batch_tnums)
     else:
         batch_templates = []
         tparams = []
@@ -786,9 +788,8 @@ with ctx:
             data = []
             if is_jax:
                 for b_idx, batch_tnums in enumerate(tbatches):
-                    if hasattr(bank, "prefetch_batch_jax") and b_idx + 1 < len(tbatches):
-                        bank.prefetch_batch_jax(tbatches[b_idx + 1])
-                    data.extend(batch_template_triggers(batch_tnums))
+                    next_batch = tbatches[b_idx + 1] if b_idx + 1 < len(tbatches) else None
+                    data.extend(batch_template_triggers(batch_tnums, next_batch_tnums=next_batch))
             else:
                 for bdata in mmap(batch_template_triggers, tbatches):
                     data.extend(bdata)
