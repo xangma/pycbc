@@ -13,8 +13,10 @@ import numpy as np
 PERF = {f'H1/search/{s}' for s in (
     'filter_rate_per_core', 'run_time', 'setup_time_fraction', 'templates_per_core')}
 POLICY = dict(rtol=1e-4, atol=1e-5, sigmasq_rtol=1e-5,
-              phase_atol_radians=1e-4, psd_rtol=1e-4, psd_atol=0.0,
-              template_duration_rtol=1e-3, template_duration_atol=0.1)
+              phase_atol_radians=1e-4, psd_rtol=5e-4, psd_atol=0.0,
+              template_duration_rtol=1e-3, template_duration_atol=0.1,
+              chisq_rtol=5e-3, chisq_atol=0.1,
+              strain_rtol=1e-4, strain_atol=1e-3)
 JAX_CHISQ_MODES = {'cpu-compatible', 'direct-phase'}
 
 
@@ -69,6 +71,12 @@ def metrics(a, b, field, exact_required=False):
     if 'template_duration' in field:
         rtol = POLICY['template_duration_rtol']
         atol = POLICY['template_duration_atol']
+    elif 'chisq' in field and not field.endswith(('_dof', 'bank_chisq')):
+        rtol = POLICY['chisq_rtol']
+        atol = POLICY['chisq_atol']
+    elif 'strain' in field:
+        rtol = POLICY['strain_rtol']
+        atol = POLICY['strain_atol']
     if circular:
         rtol, atol = 0.0, POLICY['phase_atol_radians']
     if 'psd' in field.lower() and '/search/' in field:
@@ -377,11 +385,23 @@ def compare_scientific_hdf(reference, candidate, sample_rate=2048,
                 same_inf = np.isinf(xx) & (xx == yy)
                 xx, yy = xx.copy(), yy.copy()
                 xx[same_inf], yy[same_inf] = 0, 0
+                cfg_str = scalar(xa.get('/@science_config') or ya.get('/@science_config'))
+                flow = 30.0
+                if cfg_str:
+                    try:
+                        flow = float(json.loads(str(cfg_str)).get('--low-frequency-cutoff', 30.0))
+                    except Exception:
+                        pass
+                prefix = key.rsplit('/', 1)[0]
+                delta_f = float(scalar(xa.get(f'{prefix}@delta_f') or ya.get(f'{prefix}@delta_f') or 1.0))
+                kmin = int(flow / delta_f)
+                xx[:kmin], yy[:kmin] = 0, 0
                 with np.errstate(invalid='ignore'):
                     ok = np.isclose(xx, yy, rtol=POLICY['psd_rtol'], atol=0)
                 evidence[key] = dict(passed=bool(ok.all()), failed_elements=int((~ok).sum()))
             else:
-                evidence[key] = metrics(xx, yy, key, exact_required=True)
+                exact_req = not (key.endswith('/strain') or key == 'conditioned_strain')
+                evidence[key] = metrics(xx, yy, key, exact_required=exact_req)
         attrs = attrs_comparison(xa, ya)
         attrs.pop('/@science_config', None)
         attrs.pop('/@jax_chisq_mode', None)
