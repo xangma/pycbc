@@ -787,13 +787,14 @@ def batch_power_chisq_jax(
     points_to_compute = []
     total_points = 0
 
+    empty_real = np.zeros(0, dtype=real_dtype)
+    empty_dof = np.empty(0, dtype=np.int32)
+
     for act_pos in range(b):
         snr, norm, corr, idx, snrv = batch_results[act_pos]
         n_idx = len(idx)
         if n_idx == 0:
-            chisq_map[act_pos] = (
-                jnp.zeros(0, dtype=real_dtype), np.repeat(dof, 0)
-            )
+            chisq_map[act_pos] = (empty_real, empty_dof)
             continue
 
         if snr_threshold is not None:
@@ -827,8 +828,6 @@ def batch_power_chisq_jax(
         return chisq_map
 
     # 3. Stack bins array for active templates and build flattened point arrays
-    bins_arr = np.array(bins_list, dtype=np.int32)
-
     all_rows = np.empty(total_points, dtype=np.int32)
     all_pts = np.empty(total_points, dtype=np.int32)
 
@@ -840,7 +839,21 @@ def batch_power_chisq_jax(
         offset += n_ab
 
     _require_point_chisq_x64()
-    bins_rel_all = jax.device_put(bins_arr - kmin)
+    bins_rel_all = getattr(active_templates, "_cached_bins_rel", None)
+    cached_kmin = getattr(active_templates, "_cached_bins_kmin", None)
+    if bins_rel_all is None or cached_kmin != kmin:
+        bins_arr = np.array(bins_list, dtype=np.int32)
+        bins_rel_all = jax.device_put(bins_arr - kmin)
+        try:
+            active_templates._cached_bins_rel = bins_rel_all
+            active_templates._cached_bins_kmin = kmin
+            active_templates._cached_bins_arr = bins_arr
+        except Exception:
+            bins_arr = np.array(bins_list, dtype=np.int32)
+    else:
+        bins_arr = getattr(active_templates, "_cached_bins_arr", None)
+        if bins_arr is None:
+            bins_arr = np.array(bins_list, dtype=np.int32)
     # 4. Bucketed JAX execution. Padding keeps the compiled shapes stable,
     # while slicing remains a device operation and does not materialize the
     # correlation or veto values on the host.

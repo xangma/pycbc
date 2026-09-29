@@ -1340,13 +1340,13 @@ def batched_matched_filter_and_cluster_jax(
         mf_control._cached_templates_key = cache_key
         mf_control._cached_templates_2d = templates_2d
 
-    sigmasqs_arr = jnp.asarray(sigmasqs, dtype=jnp.float32)
-    norms = (4.0 * delta_f) / jnp.sqrt(jnp.maximum(sigmasqs_arr, 1e-30))
-    unnorm_thresh = threshold / norms
-    thresh_sq = unnorm_thresh ** 2
-
     sigmasqs_np = np.asarray(sigmasqs, dtype=np.float32)
     norms_host = (4.0 * delta_f) / np.sqrt(np.maximum(sigmasqs_np, 1e-30))
+    thresh_sq_np = (threshold / norms_host) ** 2
+    if target_dev is not None:
+        thresh_sq = jax.device_put(thresh_sq_np, target_dev)
+    else:
+        thresh_sq = jax.device_put(thresh_sq_np)
 
     # Keep correlation, IFFT, magnitude reduction, thresholding, and
     # clustering in one compiled boundary. This prevents a duplicate pass

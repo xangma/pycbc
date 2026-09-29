@@ -86,9 +86,21 @@ def _decompress_host_row_into(
     if count < 2 or stop <= start or not len(out_row):
         return
 
-    frequencies = _host_array(frequencies, real_dtype)[:count]
-    amp = _host_array(amp, real_dtype)[:count]
-    phase = _host_array(phase, real_dtype)[:count]
+    if not isinstance(frequencies, np.ndarray) or frequencies.dtype != real_dtype or not frequencies.flags.c_contiguous:
+        frequencies = _host_array(frequencies, real_dtype)[:count]
+    else:
+        frequencies = frequencies[:count]
+
+    if not isinstance(amp, np.ndarray) or amp.dtype != real_dtype or not amp.flags.c_contiguous:
+        amp = _host_array(amp, real_dtype)[:count]
+    else:
+        amp = amp[:count]
+
+    if not isinstance(phase, np.ndarray) or phase.dtype != real_dtype or not phase.flags.c_contiguous:
+        phase = _host_array(phase, real_dtype)[:count]
+    else:
+        phase = phase[:count]
+
     imin = min(max(0, int(imin)), count - 2)
     helper(
         out_row, float(df), stop, start, frequencies, amp, phase, count, imin
@@ -133,15 +145,21 @@ def stage_batched_inline_interp_jax(
     if any(len(field) != batch_size for field in fields):
         raise ValueError("Batched decompression inputs must have equal lengths")
 
-    host = np.zeros((batch_size, int(out_len)), dtype=np.dtype(dtype))
+    complex_dtype = np.dtype(dtype)
+    host = np.empty((batch_size, int(out_len)), dtype=complex_dtype)
     for index in range(batch_size):
         _decompress_host_row_into(
             host[index],
             amps_list[index], phases_list[index], freqs_list[index],
             imins[index], starts[index], ends[index], counts[index],
-            interpolations[index], df, out_len, dtype,
+            interpolations[index], df, out_len, complex_dtype,
         )
-    return host, jax.device_put(host, _target_device())
+    target_dev = _target_device()
+    if target_dev is not None:
+        device = jax.device_put(host, target_dev)
+    else:
+        device = jax.device_put(host)
+    return host, device
 
 
 def batched_inline_linear_interp_jax(

@@ -118,22 +118,34 @@ def execute_batch_decompression_jax(bank, indices, power_chisq=None, psd=None):
         bank._bank_lock = threading.Lock()
         bank_lock = bank._bank_lock
 
+    real_dtype = (
+        np.float32 if bank.dtype == np.complex64 else np.float64
+    )
+
     with bank_lock:
+        cw_group = getattr(bank, "_cw_group", None)
+        if cw_group is None:
+            cw_group = bank.filehandler['compressed_waveforms']
+            bank._cw_group = cw_group
+
         for index in indices:
             tmplt_hash = bank.table.template_hash[index]
-            group = bank.filehandler['compressed_waveforms'][str(tmplt_hash)]
+            group = cw_group[str(tmplt_hash)]
             interpolation = (
                 bank.waveform_decompression_method
                 if bank.waveform_decompression_method is not None
                 else group.attrs['interpolation']
             )
             interpolations.append(interpolation)
-            real_dtype = (
-                np.float32 if bank.dtype == np.complex64 else np.float64
-            )
-            amp = np.asarray(group['amplitude'], dtype=real_dtype)
-            phase = np.asarray(group['phase'], dtype=real_dtype)
-            freq = np.asarray(group['sample_points'], dtype=real_dtype)
+            amp = group['amplitude'][()]
+            if amp.dtype != real_dtype:
+                amp = amp.astype(real_dtype)
+            phase = group['phase'][()]
+            if phase.dtype != real_dtype:
+                phase = phase.astype(real_dtype)
+            freq = group['sample_points'][()]
+            if freq.dtype != real_dtype:
+                freq = freq.astype(real_dtype)
 
             approximant = bank.approximant(index)
             f_end = bank.end_frequency(index)

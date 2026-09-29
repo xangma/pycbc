@@ -774,7 +774,7 @@ with ctx:
 
     tanalyze = list(range(tnum_start, len(bank)))
     if use_batching:
-        n = opt.finalize_events_template_rate or max(batch_size * 8, 512)
+        n = opt.finalize_events_template_rate or (len(tanalyze) if is_jax else max(batch_size * 8, 512))
     else:
         n = opt.finalize_events_template_rate
         n = 1 if n is None else n
