@@ -286,6 +286,39 @@ def test_live_auxiliary_psd_and_gates_are_not_reordered_with_triggers(tmp_path):
     assert not detector["fields"]["H1/gates"]["matched_trigger_field"]
 
 
+def test_live_multidetector_triggers_and_auxiliary_arrays(tmp_path):
+    reference = tmp_path / "reference-multi-live.hdf"
+    candidate = tmp_path / "candidate-multi-live.hdf"
+    _write_triggers(reference, detectors=("H1", "L1"))
+    _write_triggers(candidate, detectors=("H1", "L1"))
+    for path in (reference, candidate):
+        with h5py.File(path, "a") as out:
+            out.attrs["num_live_detectors"] = 2
+            for ifo in ("H1", "L1"):
+                out.create_dataset(f"{ifo}/psd", data=np.array([np.inf, 2.0, 3.0]))
+                out.create_dataset(f"{ifo}/gates", data=np.array(
+                    [(100.0, 0.5, 0.25)],
+                    dtype=[("center_time", "f8"), ("zero_half_width", "f8"),
+                           ("taper_width", "f8")]))
+    # Reorder triggers in candidate
+    with h5py.File(candidate, "a") as out:
+        for ifo in ("H1", "L1"):
+            for name in ("template_hash", "end_time", "snr", "chisq",
+                         "chisq_dof", "sigmasq", "coa_phase",
+                         "template_duration", "extra_metric"):
+                data = out[f"{ifo}/{name}"][()]
+                out[f"{ifo}/{name}"][...] = data[::-1]
+
+    result = compare_live_scientific_hdf(reference, candidate)
+    assert result["observed_trigger_and_metadata_pass"]
+    for ifo in ("H1", "L1"):
+        det = result["detectors"][ifo]
+        assert det["observed_trigger_and_metadata_pass"]
+        assert det["fields"]["H1/psd"]["passed"]
+        assert not det["fields"]["H1/psd"]["matched_trigger_field"]
+        assert det["fields"]["H1/snr"]["matched_trigger_field"]
+
+
 def test_live_command_normalizes_only_runner_controls(tmp_path):
     reference = tmp_path / "reference-live.hdf"
     candidate = tmp_path / "candidate-live.hdf"

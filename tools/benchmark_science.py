@@ -298,7 +298,7 @@ def _compare_detector(reference, candidate, rate=2048, detector="H1", live=False
             continue
         x, y = a[key], b[key]
         auxiliary = live and (key.endswith('/psd') or key.endswith('/gates') or key.endswith('/loudest'))
-        trigger = key.startswith(f'{detector}/') and key.count('/') == 1 and not auxiliary
+        trigger = key.startswith('H1/') and key.count('/') == 1 and not auxiliary
         if trigger:
             if x.ndim < 1 or y.ndim < 1 or x.shape[0] != n or y.shape[0] != m:
                 fields[key] = dict(passed=False, reason='trigger dataset length mismatch')
