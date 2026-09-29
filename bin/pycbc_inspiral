@@ -792,9 +792,18 @@ with ctx:
             data = []
             if is_jax:
                 from pycbc.filter.matchedfilter_jax import process_batch_inspiral_jax
-                if tbatches and hasattr(bank, "prefetch_batch_jax"):
+                prefetch_target = (
+                    tbatches[1]
+                    if (
+                        len(tbatches) > 1
+                        and hasattr(bank, "_template_cache")
+                        and all(i in bank._template_cache for i in tbatches[0])
+                    )
+                    else (tbatches[0] if tbatches else None)
+                )
+                if prefetch_target is not None and hasattr(bank, "prefetch_batch_jax"):
                     bank.prefetch_batch_jax(
-                        tbatches[0],
+                        prefetch_target,
                         power_chisq=power_chisq if power_chisq.do else None,
                         psd=segments[0].psd,
                     )

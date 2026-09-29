@@ -240,6 +240,11 @@ def prefetch_batch_jax(bank, indices, power_chisq=None, psd=None):
     t_indices = tuple(indices)
     if getattr(bank, "_prefetch_indices", None) == t_indices:
         return
+    if (
+        hasattr(bank, "_template_cache")
+        and all(i in bank._template_cache for i in t_indices)
+    ):
+        return
     if not hasattr(bank, "_prefetch_executor"):
         bank._prefetch_executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=1
