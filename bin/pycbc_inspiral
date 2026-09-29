@@ -784,8 +784,14 @@ with ctx:
         if use_batching:
             tbatches = [tchunk[i:i + batch_size] for i in range(0, len(tchunk), batch_size)]
             data = []
-            for bdata in mmap(batch_template_triggers, tbatches):
-                data.extend(bdata)
+            if is_jax:
+                for b_idx, batch_tnums in enumerate(tbatches):
+                    if hasattr(bank, "prefetch_batch_jax") and b_idx + 1 < len(tbatches):
+                        bank.prefetch_batch_jax(tbatches[b_idx + 1])
+                    data.extend(batch_template_triggers(batch_tnums))
+            else:
+                for bdata in mmap(batch_template_triggers, tbatches):
+                    data.extend(bdata)
         else:
             data = list(mmap(template_triggers, tchunk))
 

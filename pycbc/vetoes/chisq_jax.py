@@ -842,21 +842,29 @@ def batch_power_chisq_jax(
     r_dev = jax.device_put(r_buf)
     p_dev = jax.device_put(p_buf)
     if compatible:
+        dev = getattr(corr_dev, "device", None)
+        if callable(dev):
+            dev = dev()
+        platform = getattr(dev, "platform", "cpu")
+        is_cuda = platform in ("cuda", "gpu")
+
         try:
             from .chisq_cpu import point_chisq_code
             have_chisq_cpu = bool(point_chisq_code)
         except ImportError:
             have_chisq_cpu = False
 
-        if have_chisq_cpu:
+        if have_chisq_cpu and not is_cuda:
+            cached_rows = {}
             all_shift_sums_list = []
             for item in points_to_compute:
                 act_pos = item["act_pos"]
                 shifts = item["above_indices"]
                 bins = bins_arr[act_pos]
-                corr_row = np.asarray(corr_dev[act_pos])
+                if act_pos not in cached_rows:
+                    cached_rows[act_pos] = np.asarray(corr_dev[act_pos])
                 shifts_out = _point_chisq_cpu_compatible(
-                    corr_row, shifts, bins, tlen, base_k=kmin
+                    cached_rows[act_pos], shifts, bins, tlen, base_k=kmin
                 )
                 all_shift_sums_list.append(shifts_out)
             all_shift_sums = np.concatenate(all_shift_sums_list) if all_shift_sums_list else np.empty(0, dtype=real_dtype)

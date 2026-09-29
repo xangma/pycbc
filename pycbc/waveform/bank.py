@@ -1001,6 +1001,24 @@ class FilterBank(TemplateBank):
 
         Uses in-memory caching and staged batched decompression when available.
         """
+        if (
+            getattr(self, "_prefetch_indices", None) == tuple(indices)
+            and getattr(self, "_prefetch_future", None) is not None
+        ):
+            _, host_waveforms, batch_waveforms, tmpls = self._prefetch_future.result()
+            self._prefetch_indices = None
+            self._prefetch_future = None
+            self._last_batch_tensor = batch_waveforms
+            self._last_batch_host_tensor = host_waveforms
+            self._last_batch_indices = tuple(indices)
+            if hasattr(self, "_template_cache"):
+                self._template_cache.clear()
+            else:
+                from pycbc.opt import LimitedSizeDict
+                self._template_cache = LimitedSizeDict(size_limit=len(indices) * 2)
+            for idx, fs in tmpls.items():
+                self._template_cache[idx] = fs
+
         if not hasattr(self, "_template_cache"):
             from pycbc.opt import LimitedSizeDict
             b_size = max(len(indices), 64)
@@ -1086,20 +1104,20 @@ class FilterBank(TemplateBank):
                 import gc
                 gc.collect()
 
-    def _decompress_batch_jax(self, indices):
-        """Decompress a host batch once, then transfer it to the JAX device."""
+    def _execute_batch_decompression_jax(self, indices):
+        """Perform host decompression and device transfer for indices, returning the constructed cache data."""
         import types
         import numpy as np
         import jax.numpy as jnp
         from pycbc.waveform.waveform import props, get_waveform_filter_length_in_time
-        from pycbc.waveform.bank import sigma_cached, find_variable_start_frequency
+        from pycbc.waveform.bank import sigma_cached, find_variable_start_frequency, LazyFrequencySeries
         from pycbc.waveform.decompress_jax import (
             stage_batched_inline_interp_jax,
         )
 
         b = len(indices)
         if b == 0:
-            return
+            return tuple(), None, None, {}
 
         logging.info(
             "Loading template batch %d-%d (%d templates) with staged decompression",
@@ -1118,67 +1136,69 @@ class FilterBank(TemplateBank):
 
         flen = self.filter_length
         df = self.delta_f
-        for index in indices:
-            tmplt_hash = self.table.template_hash[index]
-            group = self.filehandler['compressed_waveforms'][str(tmplt_hash)]
-            interpolation = (
-                self.waveform_decompression_method
-                if self.waveform_decompression_method is not None
-                else group.attrs['interpolation']
-            )
-            interpolations.append(interpolation)
-            real_dtype = (
-                np.float32 if self.dtype == np.complex64 else np.float64
-            )
-            amp = np.asarray(group['amplitude'], dtype=real_dtype)
-            phase = np.asarray(group['phase'], dtype=real_dtype)
-            freq = np.asarray(group['sample_points'], dtype=real_dtype)
 
-            approximant = self.approximant(index)
-            f_end = self.end_frequency(index)
-            if f_end is None or f_end >= (flen * df):
-                f_end = (flen - 1) * df
+        bank_lock = getattr(self, "_bank_lock", None)
+        if bank_lock is None:
+            import threading
+            self._bank_lock = threading.Lock()
+            bank_lock = self._bank_lock
 
-            f_low = find_variable_start_frequency(
-                approximant, self.table[index], self.f_lower,
-                self.max_template_length, **self.extra_args
-            )
+        with bank_lock:
+            for index in indices:
+                tmplt_hash = self.table.template_hash[index]
+                group = self.filehandler['compressed_waveforms'][str(tmplt_hash)]
+                interpolation = (
+                    self.waveform_decompression_method
+                    if self.waveform_decompression_method is not None
+                    else group.attrs['interpolation']
+                )
+                interpolations.append(interpolation)
+                real_dtype = (
+                    np.float32 if self.dtype == np.complex64 else np.float64
+                )
+                amp = np.asarray(group['amplitude'], dtype=real_dtype)
+                phase = np.asarray(group['phase'], dtype=real_dtype)
+                freq = np.asarray(group['sample_points'], dtype=real_dtype)
 
-            p = props(self.table[index])
-            p.pop('approximant', None)
-            try:
-                tmpltdur = self.table[index].template_duration
-            except AttributeError:
-                tmpltdur = None
-            if tmpltdur is None or tmpltdur == 0.0:
-                tmpltdur = get_waveform_filter_length_in_time(approximant, **p)
-            self.table[index].template_duration = tmpltdur
+                approximant = self.approximant(index)
+                f_end = self.end_frequency(index)
+                if f_end is None or f_end >= (flen * df):
+                    f_end = (flen - 1) * df
 
-            k = len(freq)
-            counts.append(k)
-            imin = int(np.searchsorted(freq, f_low, side='right')) - 1
-            imins.append(imin)
-            # Match fd_decompress: select the compressed segment after input
-            # precision conversion, while deriving the first output bin from
-            # the FrequencySeries delta_f supplied by the caller.
-            s_idx = int(np.ceil(f_low / df))
-            starts.append(s_idx)
-            # The native interpolator owns the last-bin rounding and zeros
-            # the remainder. Passing the complete output avoids duplicating
-            # subtly different floating-point boundary logic in Python.
-            ends.append(flen)
+                f_low = find_variable_start_frequency(
+                    approximant, self.table[index], self.f_lower,
+                    self.max_template_length, **self.extra_args
+                )
 
-            amps_list.append(amp)
-            phases_list.append(phase)
-            freqs_list.append(freq)
+                p = props(self.table[index])
+                p.pop('approximant', None)
+                try:
+                    tmpltdur = self.table[index].template_duration
+                except AttributeError:
+                    tmpltdur = None
+                if tmpltdur is None or tmpltdur == 0.0:
+                    tmpltdur = get_waveform_filter_length_in_time(approximant, **p)
+                self.table[index].template_duration = tmpltdur
 
-            metadata.append({
-                'approximant': approximant,
-                'f_low': f_low,
-                'f_end': f_end,
-                'tmpltdur': tmpltdur,
-                'index': index
-            })
+                k = len(freq)
+                counts.append(k)
+                imin = int(np.searchsorted(freq, f_low, side='right')) - 1
+                imins.append(imin)
+                s_idx = int(np.ceil(f_low / df))
+                starts.append(s_idx)
+                ends.append(flen)
+
+                amps_list.append(amp)
+                phases_list.append(phase)
+                freqs_list.append(freq)
+
+                metadata.append({
+                    'approximant': approximant,
+                    'f_low': f_low,
+                    'f_end': f_end,
+                    'tmpltdur': tmpltdur,
+                    'index': index
+                })
 
         dtype = jnp.complex64 if self.dtype == np.complex64 else jnp.complex128
         host_waveforms, batch_waveforms = stage_batched_inline_interp_jax(
@@ -1188,13 +1208,7 @@ class FilterBank(TemplateBank):
             df, flen, dtype=dtype
         )
 
-        self._last_batch_tensor = batch_waveforms
-        # Reuse the already-materialized native rows for exact ordered
-        # chi-square bin scans. Keeping them through this batch avoids a large
-        # device-to-host copy and is released with the ordinary batch cache.
-        self._last_batch_host_tensor = host_waveforms
-        self._last_batch_indices = tuple(indices)
-
+        tmpls = {}
         for pos, meta in enumerate(metadata):
             idx = meta['index']
             fs = LazyFrequencySeries(batch_waveforms, pos, df)
@@ -1208,7 +1222,35 @@ class FilterBank(TemplateBank):
             fs.length_in_time = meta['tmpltdur']
             fs.sigmasq = types.MethodType(sigma_cached, fs)
             fs._sigmasq = {}
+            tmpls[idx] = fs
+
+        return tuple(indices), host_waveforms, batch_waveforms, tmpls
+
+    def _decompress_batch_jax(self, indices):
+        """Decompress a host batch once, then transfer it to the JAX device."""
+        t_indices, host_waveforms, batch_waveforms, tmpls = (
+            self._execute_batch_decompression_jax(indices)
+        )
+        self._last_batch_tensor = batch_waveforms
+        self._last_batch_host_tensor = host_waveforms
+        self._last_batch_indices = t_indices
+        for idx, fs in tmpls.items():
             self._template_cache[idx] = fs
+
+    def prefetch_batch_jax(self, indices):
+        """Asynchronously pre-decompress the next template batch in a background thread."""
+        if not indices or not (self.has_compressed_waveforms and self.enable_compressed_waveforms):
+            return
+        t_indices = tuple(indices)
+        if getattr(self, "_prefetch_indices", None) == t_indices:
+            return
+        import concurrent.futures
+        if not hasattr(self, "_prefetch_executor"):
+            self._prefetch_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self._prefetch_indices = t_indices
+        self._prefetch_future = self._prefetch_executor.submit(
+            self._execute_batch_decompression_jax, list(indices)
+        )
 
     def get_decompressed_waveform(self, tempout, index, f_lower=None,
                                   approximant=None, df=None):
