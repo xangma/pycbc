@@ -112,15 +112,44 @@ def _samples_core(frequencies, pi_mass, coeff, coeff_log, f_ref, coa_phase,
     f = jnp.asarray(frequencies, dtype=real_dtype)
     v = jnp.cbrt(pi_mass * f)
     lv = jnp.log(v)
-    powers = jnp.arange(16, dtype=real_dtype)
-    terms = (jnp.asarray(coeff, dtype=real_dtype)
-             + jnp.asarray(coeff_log, dtype=real_dtype) * lv[..., None])
-    phase = jnp.sum(terms * v[..., None] ** powers, axis=-1) / v**5
+    v2 = v * v
+    v3 = v2 * v
+    v4 = v2 * v2
+    v5 = v3 * v2
+    v6 = v3 * v3
+    v7 = v4 * v3
+    c = jnp.asarray(coeff, dtype=real_dtype)
+    cl = jnp.asarray(coeff_log, dtype=real_dtype)
+    phase = (
+        c[..., 0]
+        + c[..., 1] * v
+        + c[..., 2] * v2
+        + c[..., 3] * v3
+        + c[..., 4] * v4
+        + (c[..., 5] + cl[..., 5] * lv) * v5
+        + (c[..., 6] + cl[..., 6] * lv) * v6
+        + c[..., 7] * v7
+    ) / v5
     if has_f_ref:
         vr = jnp.cbrt(pi_mass * f_ref)
-        terms_ref = (jnp.asarray(coeff, dtype=real_dtype)
-                     + jnp.asarray(coeff_log, dtype=real_dtype) * jnp.log(vr))
-        phase = phase - jnp.sum(terms_ref * vr ** powers, axis=-1) / vr**5
+        lvr = jnp.log(vr)
+        vr2 = vr * vr
+        vr3 = vr2 * vr
+        vr4 = vr2 * vr2
+        vr5 = vr3 * vr2
+        vr6 = vr3 * vr3
+        vr7 = vr4 * vr3
+        phase_ref = (
+            c[..., 0]
+            + c[..., 1] * vr
+            + c[..., 2] * vr2
+            + c[..., 3] * vr3
+            + c[..., 4] * vr4
+            + (c[..., 5] + cl[..., 5] * lvr) * vr5
+            + (c[..., 6] + cl[..., 6] * lvr) * vr6
+            + c[..., 7] * vr7
+        ) / vr5
+        phase = phase - phase_ref
     phase = phase - 2.0 * coa_phase
     amp0 = (-4.0 * m1 * m2 / distance * MRSUN_SI * MTSUN_SI * math.sqrt(PI / 12.0))
     amplitude = amp0 * jnp.sqrt(5.0 / (32.0 * eta)) * v ** (-3.5)
