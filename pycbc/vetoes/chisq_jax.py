@@ -800,7 +800,7 @@ def batch_power_chisq_jax(
 
         if n_above == 0:
             chisq_map[act_pos] = (
-                jnp.zeros(n_idx, dtype=real_dtype),
+                np.zeros(n_idx, dtype=real_dtype),
                 np.repeat(dof, n_idx),
             )
             continue
@@ -910,6 +910,6 @@ def batch_power_chisq_jax(
         chisq_out[above_mask] = chisq_vals.astype(real_dtype)
         chisq_dof = np.repeat(dof, n_idx)
 
-        chisq_map[act_pos] = (jnp.asarray(chisq_out), chisq_dof)
+        chisq_map[act_pos] = (chisq_out, chisq_dof)
 
     return chisq_map

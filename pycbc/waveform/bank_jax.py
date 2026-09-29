@@ -213,12 +213,23 @@ def execute_batch_decompression_jax(bank, indices, power_chisq=None, psd=None):
         except Exception as e:
             logging.warning("Pre-caching power chisq bins failed: %s", e)
 
-    return tuple(indices), host_waveforms, batch_waveforms, tmpls
+    cached_sigmasqs = None
+    if psd is not None:
+        try:
+            from pycbc.filter.matchedfilter_jax import batch_sigmasq_jax
+            batch_list = TemplateBatchList([tmpls[idx] for idx in indices])
+            batch_list._batch_tensor = batch_waveforms
+            batch_list._host_batch_tensor = host_waveforms
+            cached_sigmasqs = batch_sigmasq_jax(batch_list, psd)
+        except Exception as e:
+            logging.warning("Pre-computing batch sigmasqs failed: %s", e)
+
+    return tuple(indices), host_waveforms, batch_waveforms, tmpls, cached_sigmasqs
 
 
 def decompress_batch_jax(bank, indices, power_chisq=None, psd=None):
     """Decompress a host batch once, then transfer it to the JAX device."""
-    t_indices, host_waveforms, batch_waveforms, tmpls = (
+    t_indices, host_waveforms, batch_waveforms, tmpls, cached_ssq = (
         execute_batch_decompression_jax(
             bank, indices, power_chisq=power_chisq, psd=psd
         )
@@ -226,6 +237,7 @@ def decompress_batch_jax(bank, indices, power_chisq=None, psd=None):
     bank._last_batch_tensor = batch_waveforms
     bank._last_batch_host_tensor = host_waveforms
     bank._last_batch_indices = t_indices
+    bank._last_batch_sigmasqs = cached_ssq
     for idx, fs in tmpls.items():
         bank._template_cache[idx] = fs
 
@@ -284,6 +296,7 @@ def clear_batch_cache_jax(bank, indices=None, collect=True):
         bank._last_batch_tensor = None
         bank._last_batch_host_tensor = None
         bank._last_batch_indices = None
+        bank._last_batch_sigmasqs = None
         if collect:
             import gc
             gc.collect()
@@ -295,7 +308,7 @@ def get_batch_jax(bank, indices):
         getattr(bank, "_prefetch_indices", None) == tuple(indices)
         and getattr(bank, "_prefetch_future", None) is not None
     ):
-        _, host_waveforms, batch_waveforms, tmpls = (
+        _, host_waveforms, batch_waveforms, tmpls, cached_ssq = (
             bank._prefetch_future.result()
         )
         bank._prefetch_indices = None
@@ -303,6 +316,7 @@ def get_batch_jax(bank, indices):
         bank._last_batch_tensor = batch_waveforms
         bank._last_batch_host_tensor = host_waveforms
         bank._last_batch_indices = tuple(indices)
+        bank._last_batch_sigmasqs = cached_ssq
         if hasattr(bank, "_template_cache"):
             bank._template_cache.clear()
         else:
@@ -333,4 +347,5 @@ def get_batch_jax(bank, indices):
     if getattr(bank, "_last_batch_indices", None) == tuple(indices):
         res._batch_tensor = getattr(bank, "_last_batch_tensor", None)
         res._host_batch_tensor = getattr(bank, "_last_batch_host_tensor", None)
+        res._cached_sigmasqs = getattr(bank, "_last_batch_sigmasqs", None)
     return res

@@ -1345,6 +1345,9 @@ def batched_matched_filter_and_cluster_jax(
     unnorm_thresh = threshold / norms
     thresh_sq = unnorm_thresh ** 2
 
+    sigmasqs_np = np.asarray(sigmasqs, dtype=np.float32)
+    norms_host = (4.0 * delta_f) / np.sqrt(np.maximum(sigmasqs_np, 1e-30))
+
     # Keep correlation, IFFT, magnitude reduction, thresholding, and
     # clustering in one compiled boundary. This prevents a duplicate pass
     # over the full valid SNR matrix and avoids an intermediate launch.
@@ -1444,13 +1447,13 @@ def batched_matched_filter_and_cluster_jax(
     results = []
     if not np.any(host_survivor_mask):
         for i in range(b):
-            results.append(([], norms[i], [], empty_idx, empty_snrv))
+            results.append(([], float(norms_host[i]), [], empty_idx, empty_snrv))
         return results
 
     from pycbc.waveform.bank import LazyFrequencySeries
 
     for i in range(b):
-        norm_i = norms[i]
+        norm_i = float(norms_host[i])
         mask = host_survivor_mask[i]
         if not np.any(mask):
             results.append(([], norm_i, [], empty_idx, empty_snrv))
@@ -1495,12 +1498,18 @@ def _batched_sigmasq_core(tmpls_stack, psd_j, delta_f):
 
 def batch_sigmasq_jax(templates, psd):
     """Compute sigmasq for a batch of FrequencySeries templates against psd on GPU."""
+    cached = getattr(templates, "_cached_sigmasqs", None)
+    if cached is not None:
+        cached_psd_id = getattr(templates, "_cached_sigmasqs_psd_id", None)
+        if cached_psd_id is None or cached_psd_id == id(psd):
+            return cached
+
     from pycbc import scheme
 
     _ensure_x64()
     b = len(templates)
     if b == 0:
-        return jnp.zeros(0, dtype=jnp.float64)
+        return np.zeros(0, dtype=np.float32)
     df = float(templates[0].delta_f)
     flow = float(templates[0].f_lower) if hasattr(templates[0], "f_lower") else 30.0
     kmin = int(flow / df)
@@ -1515,7 +1524,13 @@ def batch_sigmasq_jax(templates, psd):
         tmpls_stack = jnp.stack([to_jax(t, device=target_dev)[kmin:] for t in templates], axis=0)
     psd_j = to_jax(psd, device=target_dev)[kmin:]
     ssq_gpu = _batched_sigmasq_core(tmpls_stack, psd_j, df)
-    return ssq_gpu
+    ssq_np = np.asarray(jax.device_get(ssq_gpu), dtype=np.float32)
+    try:
+        templates._cached_sigmasqs = ssq_np
+        templates._cached_sigmasqs_psd_id = id(psd)
+    except Exception:
+        pass
+    return ssq_np
 
 
 def process_batch_inspiral_jax(
@@ -1576,27 +1591,32 @@ def process_batch_inspiral_jax(
             sigmasq_caches[psd_id] = batch_sigmasq_jax(batch_templates, stilde.psd)
         batch_sigmasqs = sigmasq_caches[psd_id]
 
-        for i, t_num in enumerate(batch_tnums):
-            if inj_filter_rejector is not None and not inj_filter_rejector.template_segment_checker(
-                bank, t_num, stilde
-            ):
+        if inj_filter_rejector is None:
+            active_indices = list(range(b))
+            active_templates = batch_templates
+            active_sigmasqs = batch_sigmasqs
+        else:
+            for i, t_num in enumerate(batch_tnums):
+                if not inj_filter_rejector.template_segment_checker(
+                    bank, t_num, stilde
+                ):
+                    continue
+                active_indices.append(i)
+                active_templates.append(batch_templates[i])
+                active_sigmasqs.append(batch_sigmasqs[i])
+
+            if not active_indices:
                 continue
-            active_indices.append(i)
-            active_templates.append(batch_templates[i])
-            active_sigmasqs.append(batch_sigmasqs[i])
 
-        if not active_indices:
-            continue
-
-        batch_tensor = getattr(batch_templates, "_batch_tensor", None)
-        if batch_tensor is not None:
-            from pycbc.waveform.bank import TemplateBatchList
-            act_list = TemplateBatchList(active_templates)
-            if len(active_indices) == len(batch_templates):
-                act_list._batch_tensor = batch_tensor
-            else:
-                act_list._batch_tensor = batch_tensor[jnp.asarray(active_indices)]
-            active_templates = act_list
+            batch_tensor = getattr(batch_templates, "_batch_tensor", None)
+            if batch_tensor is not None:
+                from pycbc.waveform.bank import TemplateBatchList
+                act_list = TemplateBatchList(active_templates)
+                if len(active_indices) == len(batch_templates):
+                    act_list._batch_tensor = batch_tensor
+                else:
+                    act_list._batch_tensor = batch_tensor[jnp.asarray(active_indices)]
+                active_templates = act_list
 
         if opt and getattr(opt, "update_progress", None):
             from pycbc.workflow import update_progress

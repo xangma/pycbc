@@ -57,11 +57,12 @@ def _host_array(value, dtype):
     return np.ascontiguousarray(value, dtype=dtype)
 
 
-def _decompress_host_row(
+def _decompress_host_row_into(
+    out_row,
     amp, phase, frequencies, imin, start, end, count, interpolation,
     df, out_len, dtype,
 ):
-    """Run one native interpolation into a zero-initialized host row."""
+    """Run one native interpolation directly into an output host row."""
     if interpolation not in _INTERPOLATORS:
         supported = ", ".join(_INTERPOLATORS)
         raise NotImplementedError(
@@ -79,19 +80,30 @@ def _decompress_host_row(
     else:
         raise TypeError(f"Unsupported decompression dtype {complex_dtype}")
 
-    row = np.zeros(int(out_len), dtype=complex_dtype)
     count = min(int(count), len(amp), len(phase), len(frequencies))
     start = max(0, int(start))
     stop = min(int(out_len), int(end))
-    if count < 2 or stop <= start or not len(row):
-        return row
+    if count < 2 or stop <= start or not len(out_row):
+        return
 
     frequencies = _host_array(frequencies, real_dtype)[:count]
     amp = _host_array(amp, real_dtype)[:count]
     phase = _host_array(phase, real_dtype)[:count]
     imin = min(max(0, int(imin)), count - 2)
     helper(
-        row, float(df), stop, start, frequencies, amp, phase, count, imin
+        out_row, float(df), stop, start, frequencies, amp, phase, count, imin
+    )
+
+
+def _decompress_host_row(
+    amp, phase, frequencies, imin, start, end, count, interpolation,
+    df, out_len, dtype,
+):
+    """Run one native interpolation into a zero-initialized host row."""
+    row = np.zeros(int(out_len), dtype=np.dtype(dtype))
+    _decompress_host_row_into(
+        row, amp, phase, frequencies, imin, start, end, count, interpolation,
+        df, out_len, dtype,
     )
     return row
 
@@ -123,7 +135,8 @@ def stage_batched_inline_interp_jax(
 
     host = np.zeros((batch_size, int(out_len)), dtype=np.dtype(dtype))
     for index in range(batch_size):
-        host[index] = _decompress_host_row(
+        _decompress_host_row_into(
+            host[index],
             amps_list[index], phases_list[index], freqs_list[index],
             imins[index], starts[index], ends[index], counts[index],
             interpolations[index], df, out_len, dtype,
