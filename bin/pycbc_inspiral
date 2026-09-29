@@ -738,20 +738,13 @@ with ctx:
                      and getattr(res[2], "_batch_tensor", None) is not None),
                     None,
                 )
-                _warmup_results_for_chisq = []
-                for res in _warmup_results:
-                    snr, norm, corr, idx, snrv = res
-                    if len(idx) == 0:
-                        idx = np.array([0], dtype=np.uint32)
-                        snrv = np.array([10.0 + 0j], dtype=np.complex64)
-                    _warmup_results_for_chisq.append((snr, norm, corr, idx, snrv))
                 batch_power_chisq_jax(
-                    _warmup_corr, _warmup_results_for_chisq, _warmup_batch,
+                    _warmup_corr, _warmup_results, _warmup_batch,
                     _warmup_psd, segments[0].analyze.start,
-                    snr_threshold=None,
+                    snr_threshold=power_chisq.snr_threshold,
                     power_chisq=power_chisq,
                 )
-                del _warmup_corr, _warmup_psd, _warmup_results_for_chisq
+                del _warmup_corr, _warmup_psd
             del _warmup_batch, _warmup_sig, _warmup_results
             # Reuse the prepared first batch in JAX searches. Resumed searches
             # start elsewhere, and other schemes retain their cleanup policy.
