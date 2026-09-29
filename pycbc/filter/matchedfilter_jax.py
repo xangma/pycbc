@@ -184,16 +184,16 @@ def _batched_live_chisq_core(corr_tensor, pts, bins_rel_all, kmin_f, n_time_f):
 
     def _point_chisq(row, pt, bin_rel):
         phases = _time_shift_phase(
-            n_slice, kmin_f, jnp.reshape(pt, (1,)), n_time_f, row.dtype
+            n_slice, kmin_f, jnp.reshape(pt, (1,)), n_time_f, jnp.complex128
         )[:, 0]
-        weighted = row * phases
+        weighted = row.astype(jnp.complex128) * phases
         C = jnp.cumsum(weighted)
         C_padded = jnp.pad(C, (1, 0))
         edges = jnp.clip(bin_rel, 0, n_slice)
         i0 = edges[:-1]
         i1 = edges[1:]
         zb = C_padded[i1] - C_padded[i0]
-        return jnp.sum(zb.real ** 2 + zb.imag ** 2)
+        return (jnp.sum(zb.real ** 2 + zb.imag ** 2)).astype(jnp.float32)
 
     return jax.vmap(_point_chisq)(corr_tensor, pts, bins_rel_all)
 
