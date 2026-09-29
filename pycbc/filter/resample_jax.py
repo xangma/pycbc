@@ -198,39 +198,42 @@ def _butterworth_core(values, frequency, delta_t, attenuation, order, highpass):
     return values
 
 
-@functools.partial(jax.jit, static_argnames=("order", "unroll"))
-def _highpass_lal_serial_core(values, frequency, delta_t, attenuation, order,
-                              unroll=1):
-    """Follow LAL's high-pass section coefficients and sample recurrence.
+@functools.partial(jax.jit, static_argnames=("order",))
+def _highpass_lal_serial_core(values, frequency, delta_t, attenuation, order):
+    """Follow LAL's high-pass section coefficients on the active JAX device.
 
-    Each section and time sample depends on the preceding result. The
-    float64 state follows LAL's IIR filter, while each pass is stored in the
-    input dtype. The compatibility path remains on the selected JAX device.
+    Direct Form II state is [w[n], w[n-1]]. Each sample applies an
+    affine map to the preceding state. Compose those maps in a parallel
+    prefix scan (jax.lax.associative_scan) to execute in parallel on the
+    device without host transfers or serial recurrence.
     """
     wc = jnp.tan(jnp.pi * frequency * delta_t)
     wc *= (1.0 / jnp.sqrt(1.0 - attenuation) - 1.0) ** (0.5 / order)
 
-    def section(samples, b, r):
-        def step(carry, sample):
-            previous, two_back = carry
-            state = sample.astype(jnp.float64) + r[2] * two_back
-            state = state + r[1] * previous
-            output = b[0] * state
-            output = output + b[1] * previous
-            output = output + b[2] * two_back
-            return (state, previous), output
+    def compose(left, right):
+        left_a, left_b = left
+        right_a, right_b = right
+        return (right_a @ left_a,
+                (right_a @ left_b[..., None])[..., 0] + right_b)
 
-        initial = (jnp.float64(0), jnp.float64(0))
-        _, forward = jax.lax.scan(step, initial, samples, unroll=unroll)
-        forward = forward.astype(values.dtype)
-        _, reverse = jax.lax.scan(step, initial, forward[::-1],
-                                  unroll=unroll)
+    def section(samples, b, r):
+        transition = jnp.array([[r[1], r[2]], [1.0, 0.0]], dtype=jnp.float64)
+
+        def apply_pass(x):
+            n = len(x)
+            transitions = jnp.broadcast_to(transition, (n, 2, 2))
+            offsets = jnp.stack((x.astype(jnp.float64),
+                                 jnp.zeros(n, jnp.float64)), axis=-1)
+            _, states = jax.lax.associative_scan(compose, (transitions, offsets))
+            two_back = jnp.concatenate((jnp.zeros(1, jnp.float64), states[:-1, 1]))
+            return (b[0] * states[:, 0] + b[1] * states[:, 1]
+                    + b[2] * two_back).astype(values.dtype)
+
+        forward = apply_pass(samples)
+        reverse = apply_pass(forward[::-1])
         return reverse[::-1].astype(values.dtype)
 
     def pair(i, samples):
-        # LAL builds a conjugate pole pair in the w plane, maps it to z,
-        # then expands the resulting zero-pole-gain section. Keeping that
-        # construction order also preserves its coefficient rounding.
         theta = jnp.pi * (i + 0.5) / order
         real = wc * jnp.cos(theta)
         imag = wc * jnp.sin(theta)
@@ -249,9 +252,9 @@ def _highpass_lal_serial_core(values, frequency, delta_t, attenuation, order,
                        -(pole_real * pole_real + pole_imag * pole_imag)))
         return section(samples, b, r)
 
-    values = jax.lax.fori_loop(0, order // 2, pair, values)
+    for i in range(order // 2):
+        values = pair(i, values)
     if order % 2:
-        # LAL appends the first-order high-pass section for odd orders.
         denom = 1.0 + wc
         gain = 1.0 / denom
         b = jnp.stack((gain, -gain, jnp.float64(0)))
@@ -270,25 +273,12 @@ def butterworth(timeseries, frequency, order=8, attenuation=0.1,
     from pycbc import scheme
     mode = getattr(scheme.mgr.state, 'jax_highpass_mode', 'lal-serial')
     if mode == 'lal-serial':
-        try:
-            from .resample import _highpass_func, _lowpass_func
-            func = _highpass_func if btype == 'highpass' else _lowpass_func
-            lal_data = timeseries.lal()
-            func[timeseries.dtype](lal_data, frequency,
-                                  1 - attenuation, order)
-            values = jnp.asarray(lal_data.data.data)
-            return _series(values, timeseries)
-        except Exception:
-            pass
         if btype == 'highpass':
             if not jax.config.jax_enable_x64:
                 raise RuntimeError("lal-serial high-pass requires JAX 64-bit support")
-            device = getattr(scheme.mgr.state, 'jax_device', None)
-            unroll = (128 if device is not None and
-                      device.platform in ('cuda', 'gpu') else 1)
             values = _highpass_lal_serial_core(jnp.asarray(_raw(timeseries)),
                                                frequency, timeseries.delta_t,
-                                               attenuation, order, unroll=unroll)
+                                               attenuation, order)
         else:
             values = _butterworth_core(jnp.asarray(_raw(timeseries)), frequency,
                                        timeseries.delta_t, attenuation, order,
