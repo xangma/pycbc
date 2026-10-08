@@ -161,8 +161,13 @@ class SamplingTransforms(object):
         float :
             The value of the jacobian.
         """
-        return numpy.log(abs(transforms.compute_jacobian(
-            params, self.sampling_transforms, inverse=True)))
+        from pycbc.types.backend import backend_array
+        jacobian = transforms.compute_jacobian(
+            params, self.sampling_transforms, inverse=True)
+        if backend_array(jacobian, "jax") is not None:
+            import jax.numpy as jnp
+            return jnp.log(jnp.abs(jacobian))
+        return numpy.log(abs(jacobian))
 
     def apply(self, samples, inverse=False):
         """Applies the sampling transforms to the given samples.
