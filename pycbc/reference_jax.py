@@ -155,6 +155,12 @@ def _execute(request):
                         if kwargs.pop("outside", False)
                         else veto.indices_within_times)
             return function(values, kwargs.pop("start"), kwargs.pop("end"))
+        elif operation in (
+                "time_coincidence", "cluster_over_time", "cluster_coincs",
+                "cluster_coincs_multiifo"):
+            from pycbc.events import coinc
+
+            return getattr(coinc, operation)(values, **kwargs)
         elif operation == "quadrature_sum":
             from pycbc.events.stat import QuadratureSumStatistic
 
