@@ -873,6 +873,9 @@ class CoincExpireBuffer(object):
 class LiveCoincTimeslideBackgroundEstimator(object):
     """Rolling buffer background estimation."""
 
+    _coinc_buffer_type = CoincExpireBuffer
+    _singles_buffer_type = MultiRingBuffer
+
     def __init__(self, num_templates, analysis_block, background_statistic,
                  sngl_ranking, stat_files, ifos,
                  ifar_limit=100,
@@ -946,7 +949,7 @@ class LiveCoincTimeslideBackgroundEstimator(object):
 
         self.time_window = self.dets[ifos[0]].light_travel_time_to_detector(
             self.dets[ifos[1]]) + coinc_window_pad
-        self.coincs = CoincExpireBuffer(self.buffer_size, self.ifos)
+        self.coincs = self._coinc_buffer_type(self.buffer_size, self.ifos)
 
         self.singles = {}
 
@@ -1132,9 +1135,8 @@ class LiveCoincTimeslideBackgroundEstimator(object):
 
         # Create a ring buffer for each template ifo combination
         for ifo in self.ifos:
-            self.singles[ifo] = MultiRingBuffer(self.num_templates,
-                                            self.buffer_size,
-                                            self.singles_dtype)
+            self.singles[ifo] = self._singles_buffer_type(
+                self.num_templates, self.buffer_size, self.singles_dtype)
 
     def _add_singles_to_buffer(self, results, ifos):
         """Add single detector triggers to the internal buffer
