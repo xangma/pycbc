@@ -180,6 +180,39 @@ def _execute(request):
             }[operation]
             getattr(manager, method)(**kwargs.pop("method_options"))
             return manager.events.copy()
+        elif operation == "live_selection":
+            from types import SimpleNamespace
+            from pycbc.filter.matchedfilter import LiveBatchMatchedFilter
+            from pycbc.types import Array
+
+            sigmasqs = kwargs.pop("sigmasqs")
+            python_scalars = kwargs.pop("python_sigmasq")
+            templates = []
+            for row, (peak, sigmasq, python_scalar) in enumerate(zip(
+                    values, sigmasqs, python_scalars, strict=True)):
+                sigma = float(sigmasq) if python_scalar else sigmasq
+                templates.append(SimpleNamespace(
+                    id=row, delta_f=spacing,
+                    params=np.zeros((), dtype=[]),
+                    out=Array(np.atleast_1d(peak)),
+                    sigmasq=lambda _psd, sigma=sigma: sigma))
+            control = object.__new__(LiveBatchMatchedFilter)
+            control.block_id = 0
+            control.tgroups = [templates]
+            control.chunk_tsamples = [1]
+            control.mids = [0]
+            spectrum = SimpleNamespace(psd=None)
+            control.data = SimpleNamespace(
+                overwhitened_data=lambda _df: spectrum,
+                trim_padding=0, blocksize=1, sample_rate=1, start_time=0)
+            control.corr = [SimpleNamespace(execute=lambda _data: None)]
+            control.ifts = [SimpleNamespace(execute=lambda: None)]
+            control.snr_threshold = kwargs.pop("snr_threshold")
+            control.snr_abort_threshold = kwargs.pop("snr_abort_threshold", None)
+            result, candidates = control._process_batch()
+            return (result, np.array([candidate[3].id for candidate in candidates],
+                                     dtype=np.int64),
+                    np.array([candidate[1] for candidate in candidates]))
         elif operation == "power_chisq_bins":
             from pycbc.vetoes.chisq import power_chisq_bins
 

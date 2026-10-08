@@ -52,7 +52,7 @@ def correlate(x, y, z):
 class BatchCorrelator(object):
     """ Create a batch correlation engine
     """
-    def __init__(self, xs, zs, size):
+    def __init__(self, xs, zs, size, immutable_templates=False):
         """ Correlate x and y, store in z. Arrays need not be equal length, but
         must be at least size long and of the same dtype. No error checking
         will be performed, so be careful. All dtypes must be complex64.
@@ -65,6 +65,11 @@ class BatchCorrelator(object):
         # keep reference to arrays
         self.xs = xs
         self.zs = zs
+
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import batch_correlator_init_jax
+            batch_correlator_init_jax(self, immutable_templates)
+            return
 
         # Store each pointer as in integer array
         self.x = Array([v.ptr for v in xs], dtype=int)
@@ -1563,6 +1568,13 @@ class LiveBatchMatchedFilter(object):
         self.power_chisq = vetoes.SingleDetPowerChisq(chisq_bins, None)
         self.sg_chisq = sg_chisq
 
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import (
+                live_batch_matched_filter_init_jax,
+            )
+            live_batch_matched_filter_init_jax(self, templates, maxelements)
+            return
+
         durations = numpy.array([1.0 / t.delta_f for t in templates])
 
         lsort = durations.argsort()
@@ -1630,9 +1642,15 @@ class LiveBatchMatchedFilter(object):
         """Set the data reader object to use"""
         self.data = data
         self.block_id = 0
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import set_live_data_jax
+            set_live_data_jax(self, data)
 
     def combine_results(self, results):
         """Combine results from different batches of filtering"""
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import combine_live_results_jax
+            return combine_live_results_jax(results)
         result = {}
         for key in results[0]:
             result[key] = numpy.concatenate([r[key] for r in results])
@@ -1669,6 +1687,9 @@ class LiveBatchMatchedFilter(object):
 
     def _process_vetoes(self, results, veto_info):
         """Calculate signal based vetoes"""
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import process_live_vetoes_jax
+            return process_live_vetoes_jax(self, results, veto_info)
         chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
         dof = numpy.array(numpy.zeros(len(veto_info)), numpy.uint32, ndmin=1)
         sg_chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32,
@@ -1704,6 +1725,9 @@ class LiveBatchMatchedFilter(object):
 
     def _process_batch(self):
         """Process only a single batch group of data"""
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import live_process_batch_jax
+            return live_process_batch_jax(self)
         if self.block_id == len(self.tgroups):
             return None, None
 

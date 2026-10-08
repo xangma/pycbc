@@ -123,6 +123,29 @@ NumPy reductions independently. Combining them with ``fft``, ``ifft``,
 ``correlate`` and ``divide`` restores the original ACF bytes in the notebook
 while exercising the JAX stage composition.
 
+Cached batched normalization
+----------------------------
+
+The batched search cache forms template power in the input's real precision,
+scales it by ``4 * delta_f``, multiplies by a reciprocal PSD in that precision,
+and accumulates in float64. The separate JAX ``weighted_inner`` API instead
+widens operands before multiplication. ``squared_norm``, ``divide`` and
+``inner`` independently select the cached calculation's original arithmetic.
+Hold PSD bytes fixed when isolating these boundaries: an upstream PSD change
+also changes normalization when every arithmetic operation is original.
+
+The notebook's portable single-bin example changes a float32 PSD by two
+representable steps. The reciprocal changes from ``23839.404296875`` to
+``23839.400390625``; the two rounded weighted contributions decrease by
+``0.25`` and ``0.125``. It compares each arithmetic control on fixed inputs
+and isolates PSD propagation without recreating a full waveform or search.
+
+Both Inspiral paths compute ``norm = 4 * delta_f / sqrt(sigma²)`` with host
+``math.sqrt`` and a Python float result. A separate scalar example shows how
+changed binary64 ``sigma²`` inputs change this normalization, while their
+float32 event-column casts move by one representable step. Storage rounding
+is a distinct boundary from normalization and subsequent SNR multiplication.
+
 Magnitude thresholds
 --------------------
 

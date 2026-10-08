@@ -97,6 +97,30 @@ def _compatible_shift_sum(correlations, rows, points, bins, n_time, base_k):
         correlations, rows, points, bins, n_time, base_k)
 
 
+def _chisq_candidate_bucket(count):
+    """Use a small set of shapes for sparse CUDA Live candidate batches."""
+    return max(4, 1 << (max(1, int(count)) - 1).bit_length())
+
+
+def _live_chisq_executable(function, args, static_args, cache, device):
+    """Retain and reuse a shape-only compiled Live executable on its device.
+
+    Calling ``lower().compile()`` alone need not populate JIT's dispatch cache.
+    Keep the compiled callable itself so later calls reuse its loaded handle.
+    Compilation uses abstract shapes without moving scientific data to the host.
+    """
+    shapes = tuple((tuple(arg.shape), np.dtype(arg.dtype).str) for arg in args)
+    key = (function, device, shapes, tuple(sorted(static_args.items())))
+    if key not in cache:
+        sharding = jax.sharding.SingleDeviceSharding(device)
+        abstract = tuple(jax.ShapeDtypeStruct(shape, np.dtype(dtype),
+                                             sharding=sharding)
+                         for shape, dtype in shapes)
+        with jax.default_device(device):
+            cache[key] = function.lower(*abstract, **static_args).compile()
+    return cache[key]
+
+
 def _compatible_phase_state(correlations, rows, points, bins, n_time):
     """Use the reference's real-precision shift conversion and phase seeds."""
     real_dtype = correlations.real.dtype
