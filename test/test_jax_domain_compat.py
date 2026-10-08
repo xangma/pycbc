@@ -6,7 +6,7 @@ import numpy
 
 import pytest
 
-from pycbc import boundaries, conversions
+from pycbc import boundaries, conversions, cosmology
 
 from pycbc.coordinates import base as coordinates
 
@@ -74,6 +74,42 @@ def test_coordinate_roundtrip_preserves_tensor_and_gradient():
         return jnp.sum(x_rec + y_rec + z_rec)
 
     grads = jax.grad(loss, argnums=(0, 1, 2))(*original)
+    assert all(bool(jnp.all(jnp.isfinite(g))) for g in grads)
+
+def test_distance_and_volume_interpolation_match_numpy_with_gradients():
+    distance_converter = cosmology.DistToZ(numpoints=256)
+    distances = numpy.array([1.0, 100.0, 1000.0, 10000.0])
+    expected_redshift = distance_converter(distances)
+    distance_tensor = jnp.array(distances, dtype=jnp.float64)
+
+    actual_redshift = distance_converter(distance_tensor)
+
+    assert isinstance(actual_redshift, (jnp.ndarray, jax.Array))
+    assert actual_redshift.dtype == distance_tensor.dtype
+    numpy.testing.assert_allclose(
+        actual_redshift, expected_redshift, rtol=1e-13, atol=0.0
+    )
+
+    volume_converter = cosmology.ComovingVolInterpolator(
+        "redshift", numpoints=64
+    )
+    volume_converter.setup_interpolant()
+    redshifts = numpy.array([0.05, 0.2, 1.0, 4.0])
+    volumes = volume_converter.cosmology.comoving_volume(redshifts).value
+    expected_volume_result = volume_converter(volumes)
+    volume_tensor = jnp.array(volumes, dtype=jnp.float64)
+    actual_volume_result = volume_converter(volume_tensor)
+
+    assert isinstance(actual_volume_result, (jnp.ndarray, jax.Array))
+    assert actual_volume_result.dtype == volume_tensor.dtype
+    numpy.testing.assert_allclose(
+        actual_volume_result, expected_volume_result, rtol=1e-13, atol=0.0
+    )
+
+    def interp_loss(d, v):
+        return jnp.sum(distance_converter(d)) + jnp.sum(volume_converter(v))
+
+    grads = jax.grad(interp_loss, argnums=(0, 1))(distance_tensor, volume_tensor)
     assert all(bool(jnp.all(jnp.isfinite(g))) for g in grads)
 
 def test_conversions_mass_and_spin_derivatives_match_analytic():
