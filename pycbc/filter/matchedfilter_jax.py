@@ -22,6 +22,10 @@ validation routes perform host work and run outside JAX transformations.
 """
 
 import functools
+
+
+
+
 from types import SimpleNamespace
 import numpy as np
 import jax
@@ -46,7 +50,6 @@ from pycbc.types.array_jax import (
 
 _EMPTY_F32 = np.zeros(0, dtype=np.float32)
 _EMPTY_U32 = np.zeros(0, dtype=np.uint32)
-
 
 def _functional_device(*inputs):
     """Use the active scheme, an existing input device, or JAX's default."""
@@ -173,6 +176,7 @@ def batch_correlator_init_jax(control, immutable_templates=False):
                 control._jax_template_matrix, float(control.xs[0].delta_f))
 
 
+
 @jax.jit
 def _live_generic_norms_core(template_power, psd, kmins, kmaxs):
     """Evaluate all generic live template norms in one compiled reduction."""
@@ -203,107 +207,49 @@ def live_template_norms_jax(
         *templates, psd, template_matrix, template_power
     )
     delta_f = float(templates[0].delta_f)
-    psd_j = getattr(psd, "_jax_psd", None)
-    if psd_j is None:
-        psd_j = _functional_array(psd, device)
-        try:
-            psd._jax_psd = psd_j
-        except AttributeError:
-            pass
-    else:
-        psd_j = _functional_array(psd_j, device)
-    rows = [None] * len(templates)
-    generic_indices = []
-    generic_kmins = []
-    generic_kmaxs = []
-    for index, template in enumerate(templates):
+    psd_j = _functional_array(psd, device)
+    psd._jax_psd = psd_j
+    kmins, kmaxs = [], []
+    for template in templates:
         flow = getattr(template, "min_f_lower", None) or getattr(
-            template, "f_lower", 0.0
-        )
+            template, "f_lower", 0.0)
         fhigh = getattr(template, "end_frequency", None)
-        template_size = (
-            template_matrix.shape[1]
-            if template_matrix is not None
-            else _live_array_metadata(template)[0]
-        )
-        n_pts = (template_size - 1) * 2
+        size = (template_matrix.shape[1] if template_matrix is not None
+                else _live_array_metadata(template)[0])
         if fhigh is None and not hasattr(template, "end_frequency"):
-            # Lightweight array-like templates used by callers/tests do
-            # not carry the FrequencySeries end-frequency metadata.
-            kmin = int(flow / delta_f) if flow else 1
-            kmax = template_size
+            kmin, kmax = (int(flow / delta_f) if flow else 1), size
         else:
-            kmin, kmax = get_cutoff_indices(flow, fhigh, delta_f, n_pts)
+            kmin, kmax = get_cutoff_indices(
+                flow, fhigh, delta_f, (size - 1) * 2)
+        kmins.append(kmin)
+        kmaxs.append(kmax)
 
-        # sigma_cached has a special precomputed norm path for SPAtmplt.
-        # Reuse that vector here, then perform its same endpoint subtraction.
-        from pycbc import waveform
-        if waveform.waveform_norm_exists(getattr(template, "approximant", "")):
-            vector = waveform.get_waveform_filter_norm(
-                template.approximant, psd, len(psd), delta_f, flow)
-            if hasattr(template, "sigma_scale"):
-                scale = template.sigma_scale
-            else:
-                from pycbc import DYN_RANGE_FAC
-                amp_norm = waveform.get_template_amplitude_norm(
-                    template.params, approximant=template.approximant)
-                amp_norm = 1 if amp_norm is None else amp_norm
-                scale = (DYN_RANGE_FAC * amp_norm) ** 2.0
-            rows[index] = scale * (
-                _functional_array(vector, device)[template.end_idx - 1]
-                - _functional_array(vector, device)[
-                    int(float(template.f_lower) / delta_f)])
-            continue
+    if template_power is not None and not _reference_enabled("squared_norm"):
+        power = _functional_array(template_power, device)
+    else:
+        matrix = (jnp.stack([_functional_array(t, device) for t in templates])
+                  if template_matrix is None else
+                  _functional_array(template_matrix, device))
+        power = (jnp.stack([
+            _functional_array(_cpu_reference(row, "squared_norm"), device)
+            * 4.0 * delta_f for row in matrix])
+            if _reference_enabled("squared_norm") else
+            batch_template_power_jax(matrix, delta_f))
+    if _reference_enabled("inner") or _reference_enabled("divide"):
+        from pycbc.psd.estimate_jax import _reciprocal_numpy_compat
+        inverse = (_divide(1.0, psd_j) if _reference_enabled("divide")
+                   else _reciprocal_numpy_compat(psd_j))
+        return jnp.stack([
+            (_functional_array(_cpu_reference(
+                row[kmin:kmax], "inner", inverse[kmin:kmax]), device)
+             if _reference_enabled("inner") else jnp.sum(
+                 row[kmin:kmax] * inverse[kmin:kmax], dtype=jnp.float64))
+            for row, kmin, kmax in zip(power, kmins, kmaxs)])
+    return _live_generic_norms_core(
+        power, psd_j, jnp.asarray(kmins, dtype=jnp.int32),
+        jnp.asarray(kmaxs, dtype=jnp.int32))
 
-        generic_indices.append(index)
-        generic_kmins.append(kmin)
-        generic_kmaxs.append(kmax)
 
-    if generic_indices:
-        native_power = _reference_enabled("squared_norm")
-        if template_power is not None and not native_power:
-            generic_power = _functional_array(template_power, device)[
-                jnp.asarray(generic_indices, dtype=jnp.int32)
-            ]
-        else:
-            if template_matrix is None:
-                generic_matrix = jnp.stack(
-                    [_functional_array(templates[index], device)
-                     for index in generic_indices]
-                )
-            else:
-                generic_matrix = _functional_array(template_matrix, device)[
-                    jnp.asarray(generic_indices, dtype=jnp.int32)
-                ]
-            if native_power:
-                generic_power = jnp.stack([
-                    _functional_array(_cpu_reference(row, "squared_norm"),
-                                      device) * 4.0 * delta_f
-                    for row in generic_matrix])
-            else:
-                generic_power = batch_template_power_jax(
-                    generic_matrix, delta_f)
-        if _reference_enabled("inner") or _reference_enabled("divide"):
-            from pycbc.psd.estimate_jax import _reciprocal_numpy_compat
-            inverse = (_divide(1.0, psd_j) if _reference_enabled("divide")
-                       else _reciprocal_numpy_compat(psd_j))
-            generic_norms = jnp.stack([
-                (_functional_array(_cpu_reference(
-                    power[kmin:kmax], "inner", inverse[kmin:kmax]), device)
-                 if _reference_enabled("inner") else jnp.sum(
-                     power[kmin:kmax] * inverse[kmin:kmax], dtype=jnp.float64))
-                for power, kmin, kmax in zip(
-                    generic_power, generic_kmins, generic_kmaxs)])
-        else:
-            generic_norms = _live_generic_norms_core(
-                generic_power,
-                psd_j,
-                jnp.asarray(generic_kmins, dtype=jnp.int32),
-                jnp.asarray(generic_kmaxs, dtype=jnp.int32),
-            )
-        for row, index in enumerate(generic_indices):
-            rows[index] = generic_norms[row]
-    return jnp.stack(rows)
 
 
 def live_veto_buffer_jax(size, dtype):
@@ -335,6 +281,24 @@ class _LiveVetoCandidate:
         if index == 1:
             return self.norms[self.row]
         return self.metadata[index - 2]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def process_live_vetoes_jax(control, results, veto_info):
@@ -442,6 +406,10 @@ def _live_concat_resident_executable(shapes, groups, device, x64):
         {},
         device,
     )
+
+
+
+
 
 
 def combine_live_results_jax(results):
@@ -629,6 +597,26 @@ def _live_candidate_columns_bucketed(
     return _live_compact_results(columns, count, cache, peaks.device)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def live_process_batch_jax(self):
     """Process only a single batch group of data"""
     from pycbc.filter.matchedfilter import logger
@@ -764,6 +752,34 @@ def live_process_batch_jax(self):
     return result, veto_info
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def live_batch_matched_filter_init_jax(control, templates, maxelements=2**27):
     """Batch original duration groups with unchanged template and PSD grids."""
     from pycbc.fft import IFFT
@@ -848,6 +864,17 @@ def set_live_data_jax(control, data):
         data.required_delta_fs = control.unique_delta_fs
     except AttributeError:
         pass
+
+
+
+
+
+
+
+
+
+
+
 
 
 def _set_output_array(z, val):
@@ -943,6 +970,28 @@ def _batch_correlate_update(templates, y, parent, base, row_stride):
     block = block.reshape(templates.shape[0], row_stride)
     block = block.at[:, :templates.shape[1]].set(products)
     return jax.lax.dynamic_update_slice(parent, block.reshape(-1), (base,))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def batch_correlate_execute(self, y):
@@ -1323,6 +1372,8 @@ def _batch_peak_core(tensor, template_count, segment_start, segment_stop):
     return indices, peaks
 
 
+
+
 def batch_peak_values(output, template_count, template_size, segment):
     """Reduce contiguous output to one peak index and value per template.
 
@@ -1455,26 +1506,17 @@ def batch_matched_filter_bank(
     return (snr * norm[:, None]).astype(snr.dtype), sigmasqs
 
 
-def batch_sigmasq_jax(templates, psd):
-    """Return live-template norms as a host float32 metadata vector."""
-    from pycbc.scheme import current_backend_key
 
-    key = (id(psd), current_backend_key())
-    cached = getattr(templates, "_cached_sigmasqs", None)
-    if (cached is not None
-            and getattr(templates, "_cached_sigmasqs_psd_id", None) == id(psd)
-            and getattr(templates, "_cached_sigmasqs_key", None) == key):
-        return cached
-    values = live_template_norms_jax(
-        templates,
-        psd,
-        template_matrix=getattr(templates, "_batch_tensor", None),
-    )
-    result = np.asarray(jax.device_get(values), dtype=np.float32)
-    try:
-        templates._cached_sigmasqs = result
-        templates._cached_sigmasqs_psd_id = id(psd)
-        templates._cached_sigmasqs_key = key
-    except AttributeError:
-        pass
-    return result
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -18,12 +18,18 @@
 
 import functools
 from types import SimpleNamespace
+
+
+
+
 import numpy as np
 import jax
 import jax.numpy as jnp
 
 from pycbc.types.array_jax import (
     JAXArrayData,
+    _cpu_reference,
+    _divide,
     _ensure_x64,
     _reference_enabled,
     to_jax,
@@ -100,6 +106,10 @@ def _compatible_shift_sum(correlations, rows, points, bins, n_time, base_k):
 def _chisq_candidate_bucket(count):
     """Use a small set of shapes for sparse CUDA Live candidate batches."""
     return max(4, 1 << (max(1, int(count)) - 1).bit_length())
+
+
+
+
 
 
 def _live_chisq_executable(function, args, static_args, cache, device):
@@ -637,10 +647,47 @@ def power_chisq_bins_jax(
     h_arr = to_jax(htilde, device=target_dev)
     psd_arr = to_jax(psd, device=target_dev)
 
+    if _bin_references_selected():
+        return _reference_bin_stages(
+            h_arr, psd_arr, kmin, kmax, num_bins, delta_f)
+
     return _power_chisq_bins_numpy(
         h_arr, psd_arr, int(kmin), int(kmax), int(num_bins), delta_f,
         _use_gpu_ordered_scan(h_arr),
     )
+
+
+_BIN_REFERENCES = ("power_chisq_bins", "squared_norm", "divide", "cumsum")
+
+
+def _bin_references_selected():
+    return any(_reference_enabled(operation) for operation in _BIN_REFERENCES)
+
+
+def _check_bin_reference_cache(psd):
+    """Invalidate cached edges when their numerical route changes."""
+    key = tuple(operation for operation in _BIN_REFERENCES
+                if _reference_enabled(operation))
+    if getattr(psd, "_jax_chisq_reference_key", key) != key:
+        psd._chisq_cached_key = {}
+    psd._jax_chisq_reference_key = key
+
+
+def _reference_bin_stages(template, psd, kmin, kmax, num_bins, delta_f):
+    values = to_jax(template)[kmin:kmax]
+    power = (to_jax(_cpu_reference(values, "squared_norm"))
+             if _reference_enabled("squared_norm") else
+             values.real ** 2 + values.imag ** 2)
+    spectrum = to_jax(psd)[kmin:kmax]
+    power = (_divide(power, spectrum, inplace=True)
+             if _reference_enabled("divide") else
+             _weighted_power_divide(power, spectrum))
+    cumulative = (to_jax(_cpu_reference(power, "cumsum"))
+                  if _reference_enabled("cumsum") else _ordered_cumsum(power))
+    cumulative = cumulative * (4.0 * delta_f)
+    edges = jnp.arange(num_bins, dtype=jnp.float64) * cumulative[-1] / num_bins
+    bins = jnp.searchsorted(cumulative, edges, side="right") + kmin
+    return jnp.concatenate((bins, jnp.asarray([kmax]))).astype(jnp.uint32)
 
 
 @functools.partial(
@@ -815,6 +862,8 @@ def _ordered_cumsum_rows(values, use_gpu_scan):
     return _ordered_cumsum_rows_pallas(values, unroll=16)
 
 
+
+
 def batch_power_chisq_bins_jax(
     templates,
     num_bins,
@@ -831,7 +880,7 @@ def batch_power_chisq_bins_jax(
     from pycbc.filter.matchedfilter import get_cutoff_indices
 
     _ensure_x64()
-    if _reference_enabled("power_chisq_bins"):
+    if _bin_references_selected():
         cutoffs = (
             [low_frequency_cutoff] * len(templates)
             if low_frequency_cutoff is None
@@ -899,6 +948,18 @@ def batch_power_chisq_bins_jax(
         tmpls_tensor, psd_arr, int(kmin), int(kmax), int(num_bins), delta_f,
         _use_gpu_ordered_scan(tmpls_tensor),
     )
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def batch_power_chisq_jax(

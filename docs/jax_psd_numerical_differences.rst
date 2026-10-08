@@ -12,16 +12,14 @@ not guarantee identical finite-precision outputs.
 The :download:`PSD comparison notebook <../examples/jax/jax_psd_numerical_differences.ipynb>` uses fixed deterministic
 inputs. It compares original CPU and default JAX results, and asserts that
 selected native routes reproduce CPU dtype, shape, metadata and output bytes.
-Its window, fixed-spectrum and transform controls isolate particular
-boundaries. Recorded outputs apply to the displayed libraries and device;
-they do not establish complete-search equivalence.
+Its window, fixed-spectrum and transform controls isolate particular boundaries.
 
 The :download:`standalone psd rounding notebook <../examples/jax/jax_psd_rounding.ipynb>` requires only NumPy and JAX.
 It uses small generated inputs to isolate arithmetic and rounding, without
 importing PyCBC or LAL. Use the comparison notebook above to validate the
-actual PyCBC implementations and original routes. Each notebook records
-its own library versions and device; matching arithmetic controls do not
-establish complete-search equivalence.
+actual PyCBC implementations and original routes. See
+:doc:`jax_numerical_differences` for the shared validation rules and limits of
+these fixed-input examples.
 
 Welch estimation
 -----------------
@@ -125,20 +123,100 @@ starts at ``int(low_freq_cutoff / delta_f)`` rather than rounding up to the
 first frequency above the cutoff. The notebook checks this convention at a
 fractional cutoff and reports the model's remaining numerical residual.
 
+.. _jax-live-psd-numerical-differences:
+.. _jax-live-psd-horizon:
+
+Live PSD horizon diagnostic
+---------------------------
+
+Live uses a 1.4 + 1.4 solar-mass, SNR-8 horizon as a PSD diagnostic. The JAX
+calculation follows the original ``spa_distance`` calculation and its
+dynamic-range scaling. This diagnostic is independent of diffGW template
+generation. Default conditioning and the horizon integral run on the selected
+JAX device.
+
+The :download:`horizon comparison notebook <../examples/jax/jax_live_psd_numerical_differences.ipynb>` compares identical
+deterministic float32 and float64 PSD samples. It records library versions,
+measures each selected route and asserts exact original scalar bytes for the
+whole-stage and combined-stage controls. The shared
+:doc:`validation limits <jax_numerical_differences>` apply to these examples.
+
+Grid and rounding boundaries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The original amplitude preconditioner uses
+``f = (index + 1) * delta_f``. Its cutoff index is
+``int(low_frequency_cutoff / delta_f)``. With ``delta_f=1`` and a 20.25 Hz
+cutoff, the first retained PSD index is 20 and its amplitude is evaluated at
+21 Hz. Substituting the zero-based FFT frequency grid changes this diagnostic;
+the notebook holds the PSD fixed to demonstrate the effect. In its recorded
+examples, that substitution increases the horizon by approximately 3.805%.
+
+The amplitude ``f**(-7/6)`` is rounded to float32 before squaring, including
+for a float64 PSD. Squaring first in float64 and rounding only the power can
+produce different float32 values. The notebook isolates this cast boundary;
+later accumulation can absorb a particular power difference.
+At 22 Hz, the notebook obtains powers ``0.000737361377`` and
+``0.000737361435`` from these two rounding policies.
+
+Division promotes float32 powers to float64 when the PSD is float64. With a
+float32 PSD, the quotient and original cumulative sum remain float32.
+Repeated rounded additions can differ from a float64 cumulative sum cast
+once at the end. The notebook changes only this accumulation policy before
+applying the original scaling, and plots its effect on cumulative norms.
+For the recorded float32 PSD, widening this sum changes the horizon by
+approximately ``-4.945e-7`` relatively.
+Wider precision changes the calculation; it is not an original-code route.
+
+The cumulative norm is multiplied by 4 and then ``delta_f`` before storage
+in a float64 vector. The scalar finish preserves multiplication by the
+binary-mass amplitude factor squared, square root, division by 8 and
+dynamic-range multiplication. The upper index uses the original Schwarzschild
+ISCO cutoff; when that cutoff lies beyond the supplied PSD, it uses
+``len(psd) - 2``. Elementary-function implementations and compiler arithmetic
+remain device-dependent boundaries that require measured comparisons.
+
+Select original calculations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each control is optional. An empty selection keeps the on-device default.
+
+=========================  ================================================
+Reference operation        Original calculation selected
+=========================  ================================================
+``psd_horizon``            Complete CPU ``spa_distance`` diagnostic
+``psd_horizon_amplitude``  CPU float32 amplitude preconditioner
+``divide``                 NumPy division of power by the supplied PSD
+``cumsum``                 NumPy cumulative sum in the quotient dtype
+=========================  ================================================
+
+For example, retain the JAX surrounding calculation while replacing the
+three numerical stages::
+
+    from pycbc.scheme import JAXScheme
+    from pycbc.strain.strain_jax import psd_horizon_distance_jax
+
+    with JAXScheme("cpu", reference_operations=(
+            "psd_horizon_amplitude", "divide", "cumsum")):
+        distance = psd_horizon_distance_jax(psd, 20.25)
+
+Select ``psd_horizon`` alone to compare the complete original implementation.
+The shared ``divide`` and ``cumsum`` controls also affect other JAX operations
+executed in the same scheme. See :doc:`jax_numerical_differences` for the
+shared requirements and costs of original controls.
+
 Selecting boundaries
 --------------------
 
 Select ``welch``, ``inverse_spectrum_truncation``, ``interpolate`` or
 ``analytical_psd`` independently with ``reference_operations``; see
-:ref:`jax psd <jax-psd>`. These routes call the original CPU implementation rather than
-approximating its rounding in a new JAX expression. Exact assertions compare
-the same installed CPU calculation and identical input bytes. Native routes
-incur process startup and host transfers, and prevent tracing or
-differentiation through that boundary. Remaining default discrepancies must
-be measured and explained before making a scientific-equivalence claim.
+:doc:`jax_fft`. These routes call the original CPU implementation rather than
+approximating its rounding in a new JAX expression. The shared
+:doc:`validation rules <jax_numerical_differences>` apply to exact comparisons
+and the interpretation of remaining default discrepancies.
 
 To isolate transform effects within JAX PSD arithmetic, select ``fft`` for
 Welch or ``fft`` and ``ifft`` separately for inverse-spectrum truncation.
-The notebook keeps other inputs fixed and reports the resulting residuals;
+The PSD notebook keeps other inputs fixed and reports the resulting residuals;
 using original transforms alone does not replace windowing, power or
 averaging arithmetic with their CPU implementations.
