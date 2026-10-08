@@ -378,11 +378,19 @@ _mode_waveform_fd = {'IMRPhenomXHM': get_imrphenomxh_modes,
 
 def fd_waveform_mode_approximants():
     """Frequency domain approximants that will return separate modes."""
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .diffgw_jax import available_approximants
+        return available_approximants('fd_modes', scheme.mgr.state)
     return sorted(_mode_waveform_fd.keys())
 
 
 def td_waveform_mode_approximants():
     """Time domain approximants that will return separate modes."""
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .diffgw_jax import available_approximants
+        return available_approximants('td_modes', scheme.mgr.state)
     return sorted(_mode_waveform_td.keys())
 
 
@@ -412,6 +420,10 @@ def get_fd_waveform_modes(template=None, **kwargs):
         Dictionary of mode tuples -> fourier transform of the imaginary part of
         the hlm time series, as a :py:class:`pycbc.types.FrequencySeries`.
     """
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .diffgw_jax import generate_modes
+        return generate_modes("get_fd_waveform_modes", template, **kwargs)
     params = props(template, **kwargs)
     required = parameters.fd_required
     check_args(params, required)
@@ -457,6 +469,10 @@ def get_td_waveform_modes(template=None, **kwargs):
         Dictionary of mode tuples -> imaginary part of the hlm, as a
         :py:class:`pycbc.types.TimeSeries`.
     """
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .diffgw_jax import generate_modes
+        return generate_modes("get_td_waveform_modes", template, **kwargs)
     params = props(template, **kwargs)
     required = parameters.td_required
     check_args(params, required)

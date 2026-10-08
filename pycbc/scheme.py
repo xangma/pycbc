@@ -219,7 +219,8 @@ JAX_REFERENCE_OPERATIONS = frozenset({
     'correlate', 'divide', 'autocorrelation', 'autocorrelation_mean',
     'autocorrelation_variance', 'threshold_cluster', 'shift_sum',
     'chisq_accum_bin', 'power_chisq_bins', 'power_chisq_at_points',
-    'sg_basis', 'sgchisq', 'time_shift', 'decompress', 'td_taper', 'fd_taper',
+    'sg_basis', 'sgchisq', 'time_shift', 'waveform', 'decompress', 'td_taper',
+    'fd_taper',
 })
 
 

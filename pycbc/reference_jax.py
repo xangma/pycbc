@@ -48,8 +48,21 @@ def cpu_reference(operation, values=None, spacing=1.0, epoch=None, **kwargs):
         kwargs,
         settings,
     )
+    # Some original LAL generators depend on the native-library load order
+    # established by NumPy and PyCBC. Preserve that boundary rather than
+    # letting ``python -m pycbc...`` always initialize PyCBC first.
+    modules = tuple(sys.modules)
+    # Python reinserts a package after its initializer completes; the scheme
+    # module is initialized before the NumPy-dependent capability probes and
+    # therefore records the initial PyCBC boundary.
+    if modules.index("numpy") < modules.index("pycbc.scheme"):
+        command = [sys.executable, "-c",
+                   "import numpy; import runpy; "
+                   "runpy.run_module('pycbc.reference_jax', run_name='__main__')"]
+    else:
+        command = [sys.executable, "-m", "pycbc.reference_jax"]
     result = subprocess.run(
-        [sys.executable, "-m", "pycbc.reference_jax"],
+        command,
         input=pickle.dumps(request, protocol=pickle.HIGHEST_PROTOCOL),
         env=dict(os.environ, PYCBC_SCHEME="cpu"),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
@@ -238,6 +251,49 @@ def _execute(request):
             from pycbc.waveform.sinegauss import fd_sine_gaussian
 
             result = fd_sine_gaussian(**kwargs)
+        elif operation == "waveform":
+            from pycbc.waveform import waveform
+            from pycbc.types import zeros
+
+            function = kwargs.pop("function")
+            if function not in (
+                    "get_fd_waveform", "get_fd_waveform_sequence",
+                    "get_td_waveform", "get_waveform_filter",
+                    "get_two_pol_waveform_filter", "get_fd_waveform_modes",
+                    "get_td_waveform_modes"):
+                raise ValueError("Unsupported CPU waveform validation function")
+            parameters = kwargs.pop("parameters")
+            if function == "get_waveform_filter":
+                output = zeros(kwargs.pop("length"), dtype=kwargs.pop("dtype"))
+                results = (waveform.get_waveform_filter(output, **parameters),)
+            elif function == "get_two_pol_waveform_filter":
+                length, dtype = kwargs.pop("length"), kwargs.pop("dtype")
+                results = waveform.get_two_pol_waveform_filter(
+                    zeros(length, dtype=dtype), zeros(length, dtype=dtype),
+                    None, **parameters)
+            else:
+                if function.endswith("_modes"):
+                    from pycbc.waveform import waveform_modes as waveform
+                results = getattr(waveform, function)(**parameters)
+
+            def record(result):
+                if isinstance(result, dict):
+                    return {key: record(value) for key, value in result.items()}
+                if isinstance(result, tuple):
+                    return tuple(record(value) for value in result)
+                kind = ("time" if isinstance(result, TimeSeries) else
+                        "frequency" if isinstance(result, FrequencySeries)
+                        else "array")
+                delta = (result.delta_t if kind == "time" else
+                         result.delta_f if kind == "frequency" else None)
+                result_epoch = getattr(result, "_epoch", None)
+                metadata = {name: getattr(result, name) for name in (
+                    "chirp_length", "length_in_time", "time_offset")
+                    if hasattr(result, name)}
+                return (result.numpy(), kind, delta,
+                        None if result_epoch is None else str(result_epoch),
+                        metadata)
+            return record(results)
         elif operation == "decompress":
             from pycbc.waveform.compress import fd_decompress
 
