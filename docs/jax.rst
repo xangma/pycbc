@@ -45,6 +45,16 @@ These guides describe the supported device calculations and their original-imple
    jax_filtering
    jax_gwf
 
+Waveforms and banks
+-------------------
+
+The waveform guide describes supported generation and numerical validation.
+
+.. toctree::
+   :maxdepth: 1
+
+   jax_waveform
+
 Searches
 --------
 

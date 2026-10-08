@@ -62,6 +62,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - Search
      - :doc:`jax_search_numerical_differences`: ranking, tied selection,
        event cuts and coincidence ordering.
+   * - Waveforms
+     - :doc:`jax_waveform`: diffGW convention mapping, phase arithmetic,
+       bank decompression and tapers.
 
 Select names through ``JAXScheme(reference_operations=(...))``. Multiple names compose;
 select every differing upstream calculation for an exact complete comparison.
