@@ -84,6 +84,14 @@ def power_chisq_bins(htilde, num_bins, psd, low_frequency_cutoff=None,
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
+    from pycbc import scheme
+    state = getattr(scheme.mgr, "state", None)
+    if state is not None and hasattr(scheme, "JAXScheme") and isinstance(state, scheme.JAXScheme):
+        from pycbc.vetoes.chisq_jax import power_chisq_bins_jax
+        return power_chisq_bins_jax(
+            htilde, num_bins, psd, low_frequency_cutoff, high_frequency_cutoff
+        )
+
     sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff,
                                high_frequency_cutoff).numpy()
     kmin, kmax = get_cutoff_indices(low_frequency_cutoff,
@@ -133,6 +141,11 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
     chisq: Array
         An array containing only the chisq at the selected points.
     """
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from pycbc.vetoes.chisq_jax import power_chisq_at_points_from_precomputed as jax_points
+        return jax_points(corr, snr, snr_norm, bins, indices)
+
     num_bins = len(bins) - 1
     chisq = shift_sum(corr, indices, bins) # pylint:disable=assignment-from-no-return
     return (chisq * num_bins - (snr.conj() * snr).real) * (snr_norm ** 2.0)
@@ -369,6 +382,10 @@ class SingleDetPowerChisq(object):
             in the given template, equal to 2 * num_bins - 2
         """
         if self.do:
+            from pycbc import scheme
+            jax_active = isinstance(scheme.mgr.state, scheme.JAXScheme)
+            if jax_active:
+                import jax.numpy as jnp
             num_above = len(indices)
             dof = -100
             if self.snr_threshold:
@@ -377,7 +394,9 @@ class SingleDetPowerChisq(object):
                 logging.info('%s above chisq activation threshold' % num_above)
                 above_indices = indices[above]
                 above_snrv = snrv[above]
-                chisq_out = numpy.zeros(len(indices), dtype=numpy.float32)
+                chisq_out = (jnp.zeros(len(indices), dtype=jnp.float32)
+                             if jax_active else
+                             numpy.zeros(len(indices), dtype=numpy.float32))
             else:
                 above_indices = indices
                 above_snrv = snrv
@@ -391,10 +410,15 @@ class SingleDetPowerChisq(object):
 
             if self.snr_threshold:
                 if num_above > 0:
-                    chisq_out[above] = _chisq
+                    if jax_active:
+                        chisq_out = chisq_out.at[jnp.asarray(above)].set(_chisq)
+                    else:
+                        chisq_out[above] = _chisq
             else:
                 if num_above == 0:
-                    chisq_out = numpy.zeros(0, dtype=numpy.float32)
+                    chisq_out = (jnp.zeros(0, dtype=jnp.float32)
+                                 if jax_active else
+                                 numpy.zeros(0, dtype=numpy.float32))
                 else:
                     chisq_out = _chisq
 
