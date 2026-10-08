@@ -208,6 +208,12 @@ class NumpyScheme(CPUScheme):
 
 
 JAX_REFERENCE_OPERATIONS = DOMAIN_REFERENCE_OPERATIONS | frozenset({
+    'inference_inner',
+    'inference_whitening',
+    'inference_marginalization',
+    'inference_interpolant',
+    'inference_sampling',
+
     'gate_data', 'detect_loud_glitches', 'newsnr', 'effsnr',
     'findchirp_cluster',
     'live_selection', 'live_output_selection', 'event_chisq_threshold', 'event_newsnr_threshold',
