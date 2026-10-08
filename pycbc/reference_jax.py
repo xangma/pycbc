@@ -116,6 +116,19 @@ def _execute(request):
             return (result.numpy(), result.delta_t,
                     None if result._epoch is None else str(result._epoch),
                     getattr(result, "corrupted_samples", None))
+        elif operation in ("autocorrelation", "autocorrelation_length"):
+            from pycbc.filter import autocorrelation
+
+            is_series = kwargs.pop("is_series", True)
+            series = (TimeSeries(values, delta_t=spacing, epoch=epoch)
+                      if is_series else values)
+            if operation == "autocorrelation_length":
+                return autocorrelation.calculate_acl(series, **kwargs)
+            result = autocorrelation.calculate_acf(
+                series, delta_t=spacing, **kwargs
+            )
+            return (result.numpy(), result.delta_t,
+                    None if result._epoch is None else str(result._epoch))
         else:
             raise ValueError("Unknown CPU validation operation")
         return (

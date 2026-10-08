@@ -62,6 +62,12 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
         If data is a TimeSeries then acf will be a TimeSeries of the
         one-sided ACF. Else acf is a numpy.array.
     """
+    from pycbc import scheme as _scheme
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        from pycbc.filter.autocorrelation_jax import calculate_acf_jax
+        if isinstance(data, TimeSeries):
+            delta_t = data.delta_t
+        return calculate_acf_jax(data, delta_t, unbiased)
 
     # if given a TimeSeries instance then get numpy.array
     if isinstance(data, TimeSeries):
@@ -158,8 +164,26 @@ def calculate_acl(data, m=5, dtype=int):
     if len(data) < 2:
         return 1
 
+    from pycbc import scheme as _scheme
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        if "autocorrelation" in _scheme.mgr.state.jax_reference_operations:
+            from pycbc.reference_jax import cpu_reference
+            from pycbc.types.array_jax import to_jax
+            return cpu_reference(
+                "autocorrelation_length", to_jax(data),
+                spacing=getattr(data, "delta_t", 1.0),
+                epoch=getattr(data, "_epoch", None), m=m, dtype=dtype,
+                is_series=isinstance(data, TimeSeries))
+
     # calculate ACF that is normalized by the zero-lag value
     acf = calculate_acf(data)
+
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        from pycbc.filter.autocorrelation_jax import calculate_acl_jax
+        acl = calculate_acl_jax(acf, m=m)
+        if acl != numpy.inf and dtype == int:
+            acl = int(numpy.ceil(acl))
+        return acl
 
     cacf = 2 * acf.numpy().cumsum() - 1
     win = m * cacf <= numpy.arange(len(cacf))

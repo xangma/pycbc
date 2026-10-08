@@ -211,7 +211,8 @@ JAX_REFERENCE_OPERATIONS = frozenset({
     'abs_max_loc', 'abs_arg_max', 'squared_norm', 'min', 'max', 'max_loc',
     'fft', 'ifft', 'welch', 'inverse_spectrum_truncation', 'interpolate',
     'analytical_psd', 'highpass', 'lowpass', 'lfilter', 'fir_zero_filter',
-    'resample', 'firwin',
+    'resample', 'firwin', 'correlate', 'divide', 'autocorrelation',
+    'autocorrelation_mean', 'autocorrelation_variance', 'threshold_cluster',
 })
 
 
