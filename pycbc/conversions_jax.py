@@ -196,3 +196,20 @@ def mass_from_knownmass_eta_jax(known_mass, eta, known_is_secondary=False, force
     return jnp.where(zero_eta, 0.0, result)
 
 
+def lambda_from_tov_jax(mass, distance, mass_from_file, lambda_from_file, redshift_func):
+    """Interpolate tidal deformability from TOV data in JAX."""
+    if jnp.issubdtype(mass.dtype, jnp.complexfloating) or jnp.issubdtype(
+        distance.dtype, jnp.complexfloating
+    ):
+        raise TypeError("mass and distance must be real-valued")
+    mass_src = mass / (1.0 + redshift_func(distance))
+    mass_knots = jnp.asarray(mass_from_file, dtype=mass.dtype)
+    lambda_knots = jnp.asarray(lambda_from_file, dtype=mass.dtype)
+    if mass_knots.size == 1:
+        return jnp.full_like(mass_src, lambda_knots[0])
+    flat = mass_src.reshape(-1)
+    res = jnp.interp(
+        flat, mass_knots, lambda_knots, left=lambda_knots[0], right=lambda_knots[-1]
+    )
+    res = jnp.where(jnp.isnan(flat), flat, res)
+    return res.reshape(mass_src.shape)

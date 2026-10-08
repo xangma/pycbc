@@ -930,7 +930,8 @@ def lambda2_from_delta_lambda_tilde_lambda_tilde(
     return lambda2
 
 
-def lambda_from_mass_tov_file(mass, tov_file, distance=0.):
+@_reference("conversions", "lambda_from_mass_tov_file")
+def lambda_from_mass_tov_file(mass, tov_file, distance=0.0):
     """Return the lambda parameter(s) corresponding to the input mass(es)
     interpolating from the mass-Lambda data for a particular EOS read in from
     an ASCII file.
@@ -938,7 +939,16 @@ def lambda_from_mass_tov_file(mass, tov_file, distance=0.):
     data = numpy.loadtxt(tov_file)
     mass_from_file = data[:, 0]
     lambda_from_file = data[:, 1]
-    mass_src = mass/(1.0 + pycbc.cosmology.redshift(distance))
+    from pycbc import cosmology
+
+    jax, values = _jax_values(mass, distance)
+    if jax is not None:
+        from pycbc.conversions_jax import lambda_from_tov_jax
+        return lambda_from_tov_jax(
+            values[0], values[1], mass_from_file, lambda_from_file, cosmology.redshift
+        )
+
+    mass_src = mass / (1.0 + cosmology.redshift(distance))
     lambdav = numpy.interp(mass_src, mass_from_file, lambda_from_file)
     return lambdav
 

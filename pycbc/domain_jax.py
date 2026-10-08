@@ -47,6 +47,7 @@ DOMAIN_REFERENCE_NAMES = {'conversions': ('sec_to_year',
                  'delta_lambda_tilde',
                  'lambda1_from_delta_lambda_tilde_lambda_tilde',
                  'lambda2_from_delta_lambda_tilde_lambda_tilde',
+                 'lambda_from_mass_tov_file',
                  'ensure_obj1_is_primary',
                  'remnant_mass_from_mass1_mass2_spherical_spin_eos',
                  'remnant_mass_from_mass1_mass2_cartesian_spin_eos',
@@ -101,7 +102,13 @@ DOMAIN_REFERENCE_NAMES = {'conversions': ('sec_to_year',
                  'spherical_to_cartesian'),
  'boundaries': ('apply_cyclic',
                 'Bounds.apply_conditions',
-                'Bounds.contains_conditioned')}
+                'Bounds.contains_conditioned'),
+ 'cosmology': ('redshift',
+               'redshift_from_comoving_volume',
+               'distance_from_comoving_volume',
+               'DistToZ.get_redshift',
+               'ComovingVolInterpolator.get_value_from_logv',
+               'ComovingVolInterpolator.get_value')}
 
 DOMAIN_REFERENCE_OPERATIONS = frozenset(DOMAIN_REFERENCE_NAMES) | frozenset(
     f"{category}.{name}"
