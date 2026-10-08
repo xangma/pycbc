@@ -210,6 +210,7 @@ JAX_REFERENCE_OPERATIONS = frozenset({
     "sum", "cumsum", "dot", "inner", "weighted_inner", "multiply_and_add",
     "abs_max_loc", "abs_arg_max", "squared_norm", "min", "max", "max_loc",
     "fft", "ifft",
+    "welch", "inverse_spectrum_truncation", "interpolate", "analytical_psd",
 })
 
 
@@ -252,11 +253,12 @@ class JAXScheme(Scheme):
         Butterworth high-pass implementation. The default, 'lal-serial',
         follows LAL's sample recurrence. 'parallel' uses a parallel scan.
     reference_operations : iterable of str, optional
-        Array operations to validate using their original CPU implementations.
+        Operations to validate using their original CPU implementations.
         Each selected operation transfers its inputs to the CPU; other
         operations continue using JAX. The default selects none. Supported
         names are sum, cumsum, dot, inner, weighted_inner, multiply_and_add,
-        abs_max_loc, abs_arg_max, squared_norm, min, max, max_loc, fft, and ifft.
+        abs_max_loc, abs_arg_max, squared_norm, min, max, max_loc, fft, ifft,
+        welch, inverse_spectrum_truncation, interpolate, and analytical_psd.
         A comma-separated string is also accepted.
     """
 

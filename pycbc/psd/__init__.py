@@ -26,6 +26,28 @@ from pycbc.types import DictOptionAction, MultiDetDictOptionAction
 from pycbc.types import copy_opts_for_single_ifo
 from pycbc.types import required_opts, required_opts_multi_ifo
 from pycbc.types import ensure_one_opt, ensure_one_opt_multi_ifo
+from pycbc import HAVE_JAX as _HAVE_JAX
+
+_JAX_EXPORTS = {
+    "analytical_psd_jax": ("pycbc.psd.analytical_jax", "analytical_psd_jax"),
+    "get_jax_psd_list": ("pycbc.psd.analytical_jax", "get_jax_psd_list"),
+    "welch_jax": ("pycbc.psd.estimate_jax", "welch_jax"),
+    "inverse_spectrum_truncation_jax": (
+        "pycbc.psd.estimate_jax", "inverse_spectrum_truncation_jax",
+    ),
+    "interpolate_jax": ("pycbc.psd.estimate_jax", "interpolate_jax"),
+}
+
+
+def __getattr__(name):
+    """Load optional JAX PSD APIs only when they are requested."""
+    target = _JAX_EXPORTS.get(name)
+    if target is None or not _HAVE_JAX:
+        raise AttributeError(name)
+    import importlib
+    value = getattr(importlib.import_module(target[0]), target[1])
+    globals()[name] = value
+    return value
 
 def from_cli(opt, length, delta_f, low_frequency_cutoff,
              strain=None, dyn_range_factor=1, precision=None):

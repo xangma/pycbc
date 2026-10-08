@@ -8,7 +8,8 @@ hold selected calculations fixed so that the surrounding JAX calculations can
 be validated. They are slower, require concrete inputs and are unavailable to
 automatic differentiation. No numerical tolerance is imposed by a control:
 it executes the original calculation and preserves its result precision.
-Original routes transfer inputs to the CPU and return array results to the active device; these costs are part of the comparison.
+Native routes can transfer data to the CPU and start a worker process before
+returning results to the active device. These costs are part of the comparison.
 
 Use identical input samples, parameters, grids, library versions and precision
 for each comparison. A float32 input already rounded before a calculation
@@ -27,6 +28,7 @@ establish every supported parameter, workload or complete-search decision.
 
    jax_array_numerical_differences
    jax_fft_numerical_differences
+   jax_psd_numerical_differences
 
 Independent calculations
 ------------------------
@@ -46,6 +48,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - FFTs
      - :doc:`jax_fft_numerical_differences`: transform implementation,
        normalization, storage precision and native buffer alignment.
+   * - PSDs
+     - :doc:`jax_psd_numerical_differences`: window precision, Welch averaging,
+       interpolation, truncation and analytical physical constants.
 
 Select names through ``JAXScheme(reference_operations=(...))``. Multiple names compose;
 select every differing upstream calculation for an exact complete comparison.
