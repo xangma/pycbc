@@ -201,6 +201,94 @@ def test_combine_rejects_invalid_numeric_shapes_like_legacy(values):
             combine_live_results_jax([{"column": value} for value in values])
 
 
+@pytest.mark.parametrize("device", _devices())
+@pytest.mark.parametrize("x64", [True, False])
+@pytest.mark.parametrize("template_ids", [[1, 2], [2**63 + 1, 2**63 + 2]])
+@pytest.mark.parametrize("threshold,selected", [
+    (0.0, [0, 1]), (2.0, [0]), (6.0, []),
+])
+@pytest.mark.filterwarnings("ignore:.*not available.*:UserWarning")
+def test_live_batch_keeps_host_metadata_until_combination(
+        device, x64, template_ids, threshold, selected, monkeypatch):
+    """Sparse host metadata needs one publication, not one upload per group.
+
+    Filtering/selection columns remain resident. This tests the real batch
+    assembly boundary with fixed peaks, not numerical filtering qualification.
+    """
+    from pycbc.filter import matchedfilter_jax as module
+
+    with scheme.JAXScheme(device) as active, enable_x64(x64):
+        params = np.array(
+            [(2**53 + 1, "TaylorF2", 4.0),
+             (2**53 + 3, "IMRPhenomD", 4.0)],
+            dtype=[("template_hash", np.int64), ("approximant", object),
+                   ("template_duration", np.float32)])
+        templates = [SimpleNamespace(
+            delta_f=0.25, params=params[i], id=template_ids[i],
+            time_offset=np.float32(i / 8)) for i in range(2)]
+        data = SimpleNamespace(psd=object())
+        matrix = jnp.zeros((2, 257), jnp.complex64)
+        control = SimpleNamespace(
+            block_id=0, tgroups=[templates], chunk_tsamples=[512], mids=[0],
+            data=SimpleNamespace(overwhitened_data=lambda delta_f: data,
+                                 trim_padding=0, blocksize=1, sample_rate=128,
+                                 start_time=100.0),
+            corr=[SimpleNamespace(_jax_template_matrix=matrix,
+                                  execute=lambda stilde: None)],
+            ifts={0: SimpleNamespace(execute=lambda: None)}, out_mem={0: None},
+            cout_mem={0: jnp.zeros(1024, jnp.complex64)},
+            snr_threshold=threshold, snr_abort_threshold=None)
+        peaks = jnp.asarray([3 + 4j, -3 + 4j], jnp.complex64)
+        norms = jnp.asarray([1.0, 0.25], jnp.float64)
+        native = jnp.asarray([4.0, 16.0], jnp.float64)
+        peak_indices = np.array([20, 30], np.uint32)
+        monkeypatch.setattr(module, "_live_cached_template_norms_jax",
+                            lambda *args: (native, norms))
+        monkeypatch.setattr(module, "batch_peak_values",
+                            lambda *args: (jnp.asarray(peak_indices), peaks))
+        try:
+            legacy_ids = jnp.asarray([template_ids[i] for i in selected],
+                                     dtype=jnp.uint64)
+        except OverflowError:
+            # The original Python-int constructor rejects oversized IDs
+            # before any combined-column canonicalization when x64 is off.
+            with pytest.raises(OverflowError):
+                module.live_process_batch_jax(control)
+            return
+        result, candidates = module.live_process_batch_jax(control)
+        for key in ("end_time", "template_id", "template_hash",
+                    "template_duration", "approximant"):
+            assert isinstance(result[key], np.ndarray), key
+        if not selected:
+            assert "time_offset" not in result
+        for key in ("snr", "coa_phase", "sigmasq"):
+            assert isinstance(result[key], jax.Array), key
+            assert result[key].device == active.jax_device
+        if selected:
+            assert isinstance(result["time_offset"], jax.Array)
+            assert result["time_offset"].device == active.jax_device
+        assert [info.metadata[4] for info in candidates] == selected
+        assert [info.metadata[0] for info in candidates] == [
+            int(peak_indices[i]) + 384 for i in selected]
+        legacy_columns = {
+            "end_time": jnp.asarray(
+                100.0 + peak_indices[selected] / 128, dtype=jnp.float64),
+            "template_id": legacy_ids,
+        }
+        if selected:
+            legacy_columns["time_offset"] = jnp.asarray(
+                [templates[i].time_offset for i in selected])
+        for key in params.dtype.names:
+            values = np.array([params[i][key] for i in selected])
+            legacy_columns[key] = (jnp.asarray(values)
+                                   if values.dtype.kind in "biufc" else values)
+        combined = combine_live_results_jax([result])
+        for key, expected in legacy_columns.items():
+            if isinstance(expected, jax.Array):
+                _assert_numeric_exact(combined[key], expected,
+                                      active.jax_device)
+            else:
+                np.testing.assert_array_equal(combined[key], expected)
 
 
 @pytest.mark.parametrize("device", _devices())
@@ -940,3 +1028,192 @@ def test_empty_normalization_preserves_first_key_errors(
                             reject_retained_execution)
         with pytest.raises(type(expected.value)):
             combine_live_results_jax(results)
+
+
+def _finished_partial_metadata_batches(sizes, iteration):
+    """Use the real candidate assembler, including empty metadata dtypes."""
+    params = np.empty(3, dtype=[
+        ("template_hash", np.int64), ("template_duration", np.float32),
+        ("float_bits", np.float32), ("complex_bits", np.complex64),
+        ("approximant", object),
+    ])
+    params["template_hash"] = np.array(
+        [2**53 + 1, -2**53 - 1, 2**62 + 3], np.int64) + iteration
+    params["template_duration"] = [4 + iteration, 8, 4]
+    params["float_bits"] = np.array(
+        [1, 0x80000001, 0x80000000], np.uint32).view(np.float32)
+    params["complex_bits"] = np.array(
+        [1, 0x80000001, 0x80000000, 0, 0x7fc00041, 0], np.uint32
+    ).view(np.complex64)
+    params["approximant"] = ["TaylorF2", "IMRPhenomD", "TaylorF2"]
+    control = SimpleNamespace(data=SimpleNamespace(
+        start_time=100.0 + iteration, sample_rate=128))
+    batches, offset = [], 0
+    for size in sizes:
+        count = max(size, 1)
+        templates = [SimpleNamespace(
+            params=params[(offset + row) % 3], id=11 + iteration + offset + row
+        ) for row in range(count)]
+        peaks = jnp.asarray(np.arange(count) + 3 + iteration + 4j,
+                            jnp.complex64)
+        norms = jnp.ones(count, jnp.float64)
+        prepared = SimpleNamespace(
+            templates=templates, stilde=SimpleNamespace(psd=object()),
+            template_matrix=jnp.zeros((count, 1), jnp.complex64),
+            native_norms=jnp.full(count, 4, jnp.float64), norms=norms,
+            valid_start=0, peak_values=peaks, scaled_peaks=peaks * norms)
+        selection = (np.arange(count, dtype=np.uint32),
+                     np.arange(count) < size, np.zeros(count, bool))
+        result, _ = module._live_finish_batch_jax(control, prepared, selection)
+        batches.append(result)
+        offset += size
+    return batches
+
+
+def _legacy_numeric_result_columns(batches):
+    return {key: jnp.concatenate([jnp.asarray(batch[key]) for batch in batches])
+            for key in batches[0]
+            if all(batch[key].dtype.kind in "biufc" for batch in batches)}
+
+
+@pytest.mark.parametrize("device", _devices())
+@pytest.mark.parametrize("x64", [True, False])
+@pytest.mark.filterwarnings("ignore:.*not available.*:UserWarning")
+def test_partial_empty_finished_metadata_preserves_legacy_bytes(device, x64):
+    """Actual empty groups widen hashes and floating metadata as before."""
+    with scheme.JAXScheme(device) as active, enable_x64(x64):
+        for iteration, sizes in enumerate(((0, 2, 1, 0), (2, 0, 0, 1))):
+            batches = _finished_partial_metadata_batches(sizes, iteration)
+            for key in ("template_hash", "template_duration"):
+                assert batches[sizes.index(0)][key].dtype == np.float64
+            expected = _legacy_numeric_result_columns(batches)
+            actual = combine_live_results_jax(batches)
+            assert list(actual) == list(batches[0])
+            for key, value in expected.items():
+                _assert_numeric_exact(actual[key], value, active.jax_device)
+            np.testing.assert_array_equal(
+                actual["approximant"], np.concatenate(
+                    [batch["approximant"] for batch in batches]))
+
+
+@pytest.mark.skipif("cuda:0" not in _devices(), reason="requires CUDA")
+@pytest.mark.parametrize("x64", [True, False])
+@pytest.mark.filterwarnings("ignore:.*not available.*:UserWarning")
+def test_gpu_partial_empty_metadata_uploads_once_and_reuses_fresh_join(
+        x64, monkeypatch):
+    """Empty metadata contributes dtype without repeating nonempty uploads."""
+    with scheme.JAXScheme("cuda:0") as active, enable_x64(x64):
+        cached = module._live_concat_resident_executable
+        cached.cache_clear()
+        handles = []
+
+        def executable(*args, **kwargs):
+            handle = cached(*args, **kwargs)
+            handles.append(handle)
+            return handle
+
+        try:
+            for iteration, sizes in enumerate(((0, 2, 1, 0), (2, 0, 0, 1))):
+                batches = _finished_partial_metadata_batches(sizes, iteration)
+                expected = _legacy_numeric_result_columns(batches)
+                resident_ids = {id(value) for batch in batches
+                                for value in batch.values()
+                                if isinstance(value, jax.Array)}
+                host_keys = [key for key in expected
+                             if all(type(batch[key]) is np.ndarray
+                                    for batch in batches)]
+                original_asarray, uploads = jnp.asarray, []
+
+                def upload(value, *args, **kwargs):
+                    assert id(value) not in resident_ids, (
+                        "canonical resident input was reconverted")
+                    if type(value) is np.ndarray and value.size:
+                        uploads.append(value)
+                    return original_asarray(value, *args, **kwargs)
+
+                def reject_download(self, *args, **kwargs):
+                    raise AssertionError("result preparation downloaded input")
+
+                with monkeypatch.context() as patch:
+                    patch.setattr(jnp, "asarray", upload)
+                    patch.setattr(module, "_live_concat_resident_executable",
+                                  executable)
+                    patch.setattr(type(batches[0]["snr"]), "__array__",
+                                  reject_download)
+                    actual = combine_live_results_jax(batches)
+                assert len(host_keys) >= 2
+                assert len(uploads) == len(host_keys)
+                assert all(value.shape == (3,) for value in uploads)
+                for key, value in expected.items():
+                    _assert_numeric_exact(actual[key], value, active.jax_device)
+            assert len(handles) == 2
+            assert handles[0] is handles[1]
+            assert cached.cache_info().misses == 1
+            assert cached.cache_info().hits == 1
+        finally:
+            cached.cache_clear()
+
+
+@pytest.mark.parametrize("device", _devices())
+def test_existing_wide_resident_arrays_keep_cross_x64_legacy_conversion(
+        device, monkeypatch):
+    """Existing wide arrays and new host uploads have different contracts."""
+    with scheme.JAXScheme(device) as active:
+        with enable_x64(True):
+            wide = {
+                "integer": jnp.asarray([2**53 + 1, -1], jnp.int64),
+                "float": jnp.asarray([1 + 2**-30, -0.0], jnp.float64),
+                "complex": jnp.asarray([1 + 2**-30 + 1j, -0j], jnp.complex128),
+            }
+        host = {key: np.asarray(value).copy() for key, value in wide.items()}
+        with enable_x64(False):
+            expected = {key: jnp.concatenate(
+                [jnp.asarray(value), jnp.asarray(host[key]),
+                 jnp.asarray(value[:0])]) for key, value in wide.items()}
+            batches = [wide, host,
+                       {key: value[:0] for key, value in wide.items()}]
+            original_asarray, converted = jnp.asarray, []
+
+            def convert(value, *args, **kwargs):
+                converted.append(id(value))
+                return original_asarray(value, *args, **kwargs)
+
+            with monkeypatch.context() as patch:
+                patch.setattr(jnp, "asarray", convert)
+                actual = combine_live_results_jax(batches)
+            assert all(id(value) in converted for value in wide.values())
+            for key, value in expected.items():
+                _assert_numeric_exact(actual[key], value, active.jax_device)
+
+
+@pytest.mark.parametrize("device", _devices())
+@pytest.mark.parametrize("promotion", ["standard", "strict"])
+def test_weak_resident_vectors_keep_native_promotion_fallback(
+        device, promotion, monkeypatch):
+    """A weak float64 vector must not force a strong float32 column wider."""
+    with scheme.JAXScheme(device) as active, enable_x64(True):
+        weak = jnp.broadcast_to(jnp.asarray(2.718281828), (2,))
+        assert weak.weak_type and weak.dtype == jnp.float64
+        strong = jnp.asarray([3.1415925], jnp.float32)
+        batches = [{"first": weak, "second": strong},
+                   {"first": strong, "second": weak}]
+        with jax.numpy_dtype_promotion(promotion):
+            expected = _legacy_numeric_result_columns(batches)
+            original_asarray, converted = jnp.asarray, []
+
+            def convert(value, *args, **kwargs):
+                converted.append(id(value))
+                return original_asarray(value, *args, **kwargs)
+
+            def reject_retained(*args, **kwargs):
+                raise AssertionError("weak promotion used retained execution")
+
+            with monkeypatch.context() as patch:
+                patch.setattr(jnp, "asarray", convert)
+                patch.setattr(module, "_live_concat_resident_executable",
+                              reject_retained)
+                actual = combine_live_results_jax(batches)
+            assert id(weak) in converted
+            for key, value in expected.items():
+                assert value.dtype == jnp.float32
+                _assert_numeric_exact(actual[key], value, active.jax_device)
