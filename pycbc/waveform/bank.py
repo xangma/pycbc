@@ -531,6 +531,13 @@ class TemplateBank(object):
                                 approximant=self.approximant(index),
                                 **self.extra_args)
 
+    def _waveform_parameters(self, index, delta_f=None, approximant=None,
+                             f_lower=None, f_final=None):
+        """Resolve a JAX template request on the bank's original grid."""
+        from .bank_jax import waveform_parameters_jax
+        return waveform_parameters_jax(self, index, delta_f, approximant,
+                                       f_lower, f_final)
+
     def parse_approximant(self, approximant):
         """Parses the given approximant argument, returning the approximant to
         use for each template in self. This is done by calling
@@ -609,18 +616,32 @@ class TemplateBank(object):
         if self.f_lower is None and self.min_f_lower == 0.:
             raise ValueError('Invalid low-frequency cutoff settings')
 
+    @staticmethod
+    def is_diffgw_available():
+        """Return True if the optional diffgw provider is installed."""
+        try:
+            from pycbc.waveform.diffgw import is_available
+            return is_available()
+        except ImportError:
+            return False
+
 
 class LiveFilterBank(TemplateBank):
     def __init__(self, filename, sample_rate, minimum_buffer,
-                       approximant=None, increment=8, parameters=None,
-                       low_frequency_cutoff=None,
-                       **kwds):
+                 approximant=None, increment=8, parameters=None,
+                 low_frequency_cutoff=None,
+                 enable_diffgw=None,
+                 diffgw_compile=None,
+                 **kwds):
 
         self.increment = increment
         self.filename = filename
         self.sample_rate = sample_rate
         self.minimum_buffer = minimum_buffer
         self.f_lower = low_frequency_cutoff
+        self.diffgw_compile = diffgw_compile
+        self.enable_diffgw = bool(enable_diffgw) if enable_diffgw is not None else None
+        self.waveform_provider_name = 'diffgw'
 
         super(LiveFilterBank, self).__init__(filename, approximant=approximant,
                 parameters=parameters, **kwds)
@@ -670,6 +691,26 @@ class LiveFilterBank(TemplateBank):
         """
         return self.param_lookup[param_tuple]
 
+    def can_use_diffgw(self):
+        from pycbc.waveform.diffgw import can_use
+        return can_use(self)
+
+    def diffgw_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.diffgw import diagnostics
+        return diagnostics(self, indices, device)
+
+    def _iter_diffgw(self, batch_size=128):
+        from .live_bank_jax import iter_live_waveforms_jax
+        yield from iter_live_waveforms_jax(self, batch_size)
+
+    def __iter__(self):
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            yield from self._iter_diffgw()
+        else:
+            for index in range(len(self)):
+                yield self[index]
+
     def __getitem__(self, index):
         if isinstance(index, slice):
             return self.getslice(index)
@@ -715,6 +756,10 @@ class LiveFilterBank(TemplateBank):
         htilde: FrequencySeries
             Template waveform in the frequency domain.
         """
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from .bank_jax import get_template_jax
+            return get_template_jax(self, index, delta_f=delta_f)
         approximant = self.approximant(index)
         f_end = self.end_frequency(index)
         flow = self.table[index].f_lower
@@ -788,6 +833,8 @@ class FilterBank(TemplateBank):
                  enable_compressed_waveforms=True,
                  low_frequency_cutoff=None,
                  waveform_decompression_method=None,
+                 enable_diffgw=None,
+                 diffgw_compile=None,
                  **kwds):
         self.out = out
         self.dtype = dtype
@@ -800,10 +847,84 @@ class FilterBank(TemplateBank):
         self.max_template_length = max_template_length
         self.enable_compressed_waveforms = enable_compressed_waveforms
         self.waveform_decompression_method = waveform_decompression_method
+        self.diffgw_compile = diffgw_compile
+        self.enable_diffgw = bool(enable_diffgw) if enable_diffgw is not None else None
+        self.waveform_provider_name = 'diffgw'
 
         super(FilterBank, self).__init__(filename, approximant=approximant,
             parameters=parameters, **kwds)
         self.ensure_standard_filter_columns(low_frequency_cutoff=low_frequency_cutoff)
+
+    def can_use_diffgw(self):
+        from pycbc.waveform.diffgw import can_use
+        return can_use(self)
+
+    def diffgw_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.diffgw import diagnostics
+        return diagnostics(self, indices, device)
+
+    def get_batch_tensor(self, batch_tnums, device="cpu", dtype=None):
+        """Return template samples and metadata views in the requested order.
+
+        JAX generation uses diffGW by default. Unsupported requests raise;
+        the waveform reference selector enables original CPU synthesis.
+        Storage defaults to the bank dtype.
+        """
+        from pycbc import scheme
+        state = scheme.mgr.state
+        if getattr(scheme, "JAXScheme", None) is not None and isinstance(state, scheme.JAXScheme) and device == "cpu":
+            device = "jax"
+        from pycbc.waveform.diffgw import generate_batch
+        return generate_batch(self, batch_tnums, device, dtype)
+
+    def wrap_batch_tensor(self, indices, data, metadata):
+        """Create fresh metadata views from cached sample-free records."""
+        from pycbc.waveform.diffgw import wrap_batch
+        return wrap_batch(self, indices, data, metadata)
+
+    def waveform_batch_key(self, indices):
+        """Return the resolved provider and parameter identity for a batch."""
+        from pycbc.waveform.diffgw import batch_key
+        return batch_key(self, indices)
+
+    def get_batch(self, indices):
+        """Return a list of templates for the given indices.
+
+        Uses in-memory caching and staged batched decompression when available.
+        """
+        from pycbc import scheme
+        state = scheme.mgr.state
+        if getattr(scheme, "JAXScheme", None) is not None and isinstance(state, scheme.JAXScheme):
+            from pycbc.waveform.bank_jax import get_batch_jax
+            return get_batch_jax(self, indices)
+
+        return [self[index] for index in indices]
+
+    def clear_batch_cache(self, indices=None, collect=True):
+        """Evict decompressed templates from cache to release GPU VRAM."""
+        from pycbc.waveform.bank_jax import clear_batch_cache_jax
+        return clear_batch_cache_jax(self, indices=indices, collect=collect)
+
+    def _execute_batch_decompression_jax(self, indices, power_chisq=None, psd=None):
+        """Perform host decompression and device transfer for indices, returning the constructed cache data."""
+        from pycbc.waveform.bank_jax import execute_batch_decompression_jax
+        return execute_batch_decompression_jax(
+            self, indices, power_chisq=power_chisq, psd=psd
+        )
+
+    def _decompress_batch_jax(self, indices, power_chisq=None, psd=None):
+        """Decompress a host batch once, then transfer it to the JAX device."""
+        from pycbc.waveform.bank_jax import decompress_batch_jax
+        return decompress_batch_jax(
+            self, indices, power_chisq=power_chisq, psd=psd
+        )
+
+    def prefetch_batch_jax(self, indices, power_chisq=None, psd=None):
+        """Asynchronously pre-decompress the next template batch in a background thread."""
+        from pycbc.waveform.bank_jax import prefetch_batch_jax
+        return prefetch_batch_jax(
+            self, indices, power_chisq=power_chisq, psd=psd
+        )
 
     def get_decompressed_waveform(self, tempout, index, f_lower=None,
                                   approximant=None, df=None):
@@ -901,6 +1022,10 @@ class FilterBank(TemplateBank):
         return htilde
 
     def __getitem__(self, index):
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from .bank_jax import get_template_jax
+            return get_template_jax(self, index)
         # Make new memory for templates if we aren't given output memory
         if self.out is None:
             tempout = zeros(self.filter_length, dtype=self.dtype)
