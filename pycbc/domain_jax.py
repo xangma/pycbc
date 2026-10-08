@@ -9,6 +9,12 @@ validation deliberately uses writable host copies and is not differentiable.
 from functools import wraps
 
 DOMAIN_REFERENCE_NAMES = {
+    "detector": (
+        "single_arm_frequency_response", "Detector.antenna_pattern",
+        "Detector.gmst_estimate", "Detector.time_delay_from_location",
+        "Detector.effective_distance", "Detector.effective_distance_scale",
+        "Detector.arrival_time",
+    ),
     "priors": tuple(
         f"{family}.{operation}"
         for family in (
