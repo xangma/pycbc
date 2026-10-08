@@ -14,7 +14,7 @@ import numpy
 
 import pytest
 
-from pycbc import boundaries, conversions, scheme
+from pycbc import boundaries, conversions, cosmology, scheme
 
 from pycbc.coordinates import base as coordinates
 
@@ -80,6 +80,19 @@ def test_reference_switch_is_independent(monkeypatch):
     with scheme.JAXScheme(DEVICE, reference_operations=['conversions.mass2_from_mchirp_mass1']):
         with pytest.raises(AssertionError, match='original root solver'):
             conversions.mass2_from_mchirp_mass1(jnp.array([16.]), jnp.array([30.]))
+
+def test_cosmology_reference_preserves_original_interpolator():
+    converter = cosmology.DistToZ(numpoints=32)
+    distances = numpy.array([10., 100., 1000., 10000.])
+    expected = converter(distances)
+    with scheme.JAXScheme(DEVICE, reference_operations=['cosmology.DistToZ.get_redshift']):
+        _exact(converter(jnp.asarray(distances)), expected)
+    volume_converter = cosmology.ComovingVolInterpolator('redshift', numpoints=32)
+    volume_converter.setup_interpolant()
+    volumes = volume_converter.cosmology.comoving_volume(numpy.array([.01, .5, 2.])).value
+    expected = volume_converter(volumes)
+    with scheme.JAXScheme(DEVICE, reference_operations=['cosmology']):
+        _exact(volume_converter(jnp.asarray(volumes)), expected)
 
 def test_qnm_reference_retains_installed_original_contract():
     mass, spin = numpy.array([30., 60.]), numpy.array([.1, .2])
