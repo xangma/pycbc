@@ -70,6 +70,9 @@ library and application suite.
    jax_inspiral
    jax_live
    jax_live_psd_numerical_differences
+   jax_domain
+   jax_domain_numerical_differences
+   jax_priors
    searches
    inference
    apps

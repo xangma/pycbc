@@ -71,6 +71,18 @@ _EXPRESSION_NODES = (
     ast.USub,
 )
 
+_CONSTRAINT_NODES = _EXPRESSION_NODES + (
+    ast.Compare,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.BitAnd,
+    ast.BitOr,
+    ast.Invert,
+)
 
 _EXPRESSION_CONVERSIONS = {
     "det_tc",

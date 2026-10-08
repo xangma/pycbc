@@ -16,9 +16,10 @@
 are uniform.
 """
 import logging
+
 import numpy
 
-from pycbc.distributions import uniform
+from pycbc.distributions import bounded, uniform
 
 logger = logging.getLogger('pycbc.distributions.uniform_log')
 
@@ -45,15 +46,26 @@ class UniformLog10(uniform.Uniform):
 
     def _cdfinv_param(self, param, value):
         """Return the cdfinv for a single given parameter """
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating) and not jnp.issubdtype(reference.dtype, jnp.complexfloating):
+                value = bounded._jax_as_array(value, reference)
+            lower_bound = jnp.asarray(numpy.log10(self._bounds[param][0]), dtype=value.dtype)
+            upper_bound = jnp.asarray(numpy.log10(self._bounds[param][1]), dtype=value.dtype)
+            return 10.0 ** ((upper_bound - lower_bound) * value + lower_bound)
         lower_bound = numpy.log10(self._bounds[param][0])
         upper_bound = numpy.log10(self._bounds[param][1])
-        return 10. ** ((upper_bound - lower_bound) * value + lower_bound)
+        return 10.0 ** ((upper_bound - lower_bound) * value + lower_bound)
 
     def _pdf(self, **kwargs):
         """Returns the pdf at the given values. The keyword arguments must
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
+        jax, reference = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            return jax.numpy.exp(self._logpdf(**kwargs))
         if kwargs in self:
             vals = numpy.array([numpy.log(10) * self._norm * kwargs[param]
                                 for param in kwargs.keys()])
@@ -66,6 +78,20 @@ class UniformLog10(uniform.Uniform):
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
+        jax, reference = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            contained = self.__contains__(kwargs)
+            import jax.numpy as jnp
+            one = bounded._jax_as_array(1.0, reference)
+            logpdf = bounded._jax_as_array(0.0, reference)
+            scale = numpy.log(10) * self._norm
+            for param in kwargs:
+                value = kwargs[param]
+                if not isinstance(value, jax.Array):
+                    value = bounded._jax_as_array(value, reference)
+                safe_value = jnp.where(contained, value, one)
+                logpdf = logpdf - jnp.log(scale * safe_value)
+            return bounded._jax_where(kwargs, contained, logpdf, -numpy.inf)
         if kwargs in self:
             return numpy.log(self._pdf(**kwargs))
         else:

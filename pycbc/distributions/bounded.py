@@ -22,8 +22,133 @@ import numpy
 
 from pycbc import boundaries
 from pycbc import VARARGS_DELIM
+from pycbc.domain_jax import REFERENCE_UNSELECTED
 
 logger = logging.getLogger('pycbc.distributions.bounded')
+
+
+def _jax_module_and_reference(values):
+    """Return JAX and the first raw array in ``values``, if present."""
+    for value in values:
+        jax = boundaries._jax_module_for(value)
+        if jax is not None:
+            return jax, value
+    return None, None
+
+
+def _jax_device(reference):
+    """Use the first raw parameter array's placement."""
+    return getattr(reference, "sharding", None)
+
+
+def _jax_params(params):
+    """Place mixed parameters together while retaining array precision."""
+    jax, reference = _jax_module_and_reference(params.values())
+    if jax is None:
+        return params
+    import jax.numpy as jnp
+
+    device = _jax_device(reference)
+    return {
+        name: jax.device_put(jnp.asarray(value), device)
+        for name, value in params.items()
+    }
+
+
+def _jax_cache_key(reference):
+    """Do not retain tracers or reuse constants from a different device."""
+    jax, _ = _jax_module_and_reference((reference,))
+    if isinstance(reference, jax.core.Tracer):
+        return None
+    return reference.dtype, str(_jax_device(reference))
+
+
+def _jax_as_array(value, reference):
+    """Create a scalar with a parameter's dtype and selected placement."""
+    import jax
+    import jax.numpy as jnp
+
+    dtype = reference.dtype
+    if not jnp.issubdtype(dtype, jnp.inexact):
+        dtype = jnp.float64
+    return jax.device_put(
+        jnp.asarray(value, dtype=dtype), _jax_device(reference)
+    )
+
+
+def _jax_where(params, condition, value, outside):
+    """Apply a bounded-distribution mask without leaving the device."""
+    jax, reference = _jax_module_and_reference(params.values())
+    if jax is None:
+        return None
+    import jax.numpy as jnp
+
+    if not isinstance(value, jax.Array):
+        value = _jax_as_array(value, reference)
+    else:
+        value = jax.device_put(value, _jax_device(reference))
+    outside = _jax_as_array(outside, value)
+    return jnp.where(condition, value, outside)
+
+
+def _scalar_replay(function, params, boolean=False):
+    """Map an original scalar API over a new broadcast JAX batch."""
+    array_names = [
+        name
+        for name, value in params.items()
+        if isinstance(value, numpy.ndarray)
+    ]
+    if not array_names:
+        return function(**params)
+    arrays = numpy.broadcast_arrays(*(params[name] for name in array_names))
+    shape = arrays[0].shape
+    outputs = []
+    for index in numpy.ndindex(shape):
+        row = params.copy()
+        row.update(
+            (name, value[index]) for name, value in zip(array_names, arrays)
+        )
+        outputs.append(function(**row))
+    if outputs and isinstance(outputs[0], dict):
+        return {
+            name: numpy.asarray([row[name] for row in outputs]).reshape(shape)
+            for name in outputs[0]
+        }
+    dtype = bool if boolean else None
+    return numpy.asarray(outputs, dtype=dtype).reshape(shape)
+
+
+def _flat_replay(function, params):
+    """Use the original vector API on a flattened broadcast grid."""
+    names = list(params)
+    arrays = numpy.broadcast_arrays(*(params[name] for name in names))
+    shape = arrays[0].shape
+    flat = dict(zip(names, (array.reshape(-1) for array in arrays)))
+    return numpy.asarray(function(flat)).reshape(shape)
+
+
+def _prior_native(owner, name, function, *args, scalar=False, **kwargs):
+    """Honor both an inherited API control and a concrete-family control."""
+    from pycbc.domain_jax import native_result, REFERENCE_UNSELECTED
+
+    if name.startswith("BoundedDist."):
+        kwargs = {
+            param: value
+            for param, value in kwargs.items()
+            if param in owner.params
+        }
+    if scalar:
+        original = function
+        function = lambda **params: _scalar_replay(
+            original, params, boolean=name.endswith("contains")
+        )
+    names = (name, type(owner).__name__ + "." + name.rsplit(".", 1)[-1])
+    for operation in dict.fromkeys(names):
+        result = native_result("priors", operation, function, *args, **kwargs)
+        if result is not REFERENCE_UNSELECTED:
+            return result
+    return REFERENCE_UNSELECTED
+
 
 #
 #   Distributions for priors
@@ -239,6 +364,26 @@ class BoundedDist(object):
         return self._bounds
 
     def __contains__(self, params):
+        jax, _ = _jax_module_and_reference(
+            params[p] for p in self._params if p in params
+        ) if isinstance(params, dict) else (None, None)
+        if jax is not None:
+            result = _prior_native(
+                self, "BoundedDist.contains",
+                lambda **row: self.__contains__(row), scalar=True, **params
+            )
+            if result is not REFERENCE_UNSELECTED:
+                return result
+            params = _jax_params({p: v for p, v in params.items()
+                                  if p in self._bounds})
+            try:
+                result = None
+                for param in self._params:
+                    contained = self._bounds[param].contains_conditioned(params[param])
+                    result = contained if result is None else result & contained
+                return True if result is None else result
+            except KeyError:
+                raise ValueError("must provide all parameters [%s]" % ', '.join(self._params))
         try:
             return all(self._bounds[p].contains_conditioned(params[p])
                        for p in self._params)
@@ -266,6 +411,7 @@ class BoundedDist(object):
         dict
             A dictionary of the parameter names and the conditioned values.
         """
+        kwargs = _jax_params({p: v for p, v in kwargs.items() if p in self._bounds})
         return dict([[p, self._bounds[p].apply_conditions(val)]
                      for p,val in kwargs.items() if p in self._bounds])
 
@@ -275,6 +421,11 @@ class BoundedDist(object):
         ignored. Any boundary conditions are applied to the values before the
         pdf is evaluated.
         """
+        result = _prior_native(self, "BoundedDist.pdf", self.pdf,
+                               scalar=True, **kwargs)
+        if result is not REFERENCE_UNSELECTED:
+            return result
+        kwargs = _jax_params({p: v for p, v in kwargs.items() if p in self._bounds})
         return self._pdf(**self.apply_boundary_conditions(**kwargs))
 
     def _pdf(self, **kwargs):
@@ -290,6 +441,11 @@ class BoundedDist(object):
         Unrecognized arguments are ignored. Any boundary conditions are
         applied to the values before the pdf is evaluated.
         """
+        result = _prior_native(self, "BoundedDist.logpdf", self.logpdf,
+                               scalar=True, **kwargs)
+        if result is not REFERENCE_UNSELECTED:
+            return result
+        kwargs = _jax_params({p: v for p, v in kwargs.items() if p in self._bounds})
         return self._logpdf(**self.apply_boundary_conditions(**kwargs))
 
     def _logpdf(self, **kwargs):
@@ -309,6 +465,11 @@ class BoundedDist(object):
         """Return the inverse cdf to map the unit interval to parameter bounds.
         You must provide a keyword for every parameter.
         """
+        result = _prior_native(self, "BoundedDist.cdfinv", self.cdfinv,
+                               scalar=False, **kwds)
+        if result is not REFERENCE_UNSELECTED:
+            return result
+        kwds = _jax_params(kwds)
         updated = {}
         for param in self.params:
             updated[param] = self._cdfinv_param(param, kwds[param])

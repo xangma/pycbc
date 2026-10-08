@@ -17,6 +17,7 @@
 import logging
 import numpy
 
+from pycbc import boundaries
 from pycbc.io.record import FieldArray
 
 logger = logging.getLogger('pycbc.distributions.joint')
@@ -164,6 +165,17 @@ class JointDistribution(object):
         return params
 
     @staticmethod
+    def _backend_module_and_reference(params):
+        """Return (backend, module, reference) for JAX, if present."""
+        if not isinstance(params, dict):
+            return None, None, None
+        for value in params.values():
+            jax = boundaries._jax_module_for(value)
+            if jax is not None:
+                return "jax", jax, value
+        return None, None, None
+
+    @staticmethod
     def _return_atomic(params):
         """Determines if an array or atomic value should be returned given a
         set of input params.
@@ -236,6 +248,34 @@ class JointDistribution(object):
             of the parameters are arrays, will return an array of booleans.
             Otherwise, a boolean.
         """
+        from . import bounded
+        result = bounded._prior_native(self, "JointDistribution.within_constraints", lambda values: bounded._flat_replay(self.within_constraints, values), params)
+        if result is not bounded.REFERENCE_UNSELECTED:
+            return result
+        backend, mod, reference = self._backend_module_and_reference(params)
+        if backend == "jax":
+            from .bounded import _jax_params
+            params = _jax_params(params)
+            import jax.numpy as jnp
+            result = jnp.ones((), dtype=bool)
+            for constraint in self._constraints:
+                try:
+                    constraint_result = constraint(params)
+                except (TypeError, ValueError) as exc:
+                    raise TypeError(
+                        "array-valued joint distributions require "
+                        "constraints that evaluate raw JAX arrays"
+                    ) from exc
+                if not isinstance(constraint_result, mod.Array):
+                    if not numpy.isscalar(constraint_result):
+                        raise TypeError(
+                            "a constraint returned host array data for "
+                            "array-valued parameters"
+                        )
+                    constraint_result = jnp.asarray(constraint_result, dtype=bool)
+                result = jnp.logical_and(result, constraint_result.astype(bool))
+            return result
+
         params = self._ensure_fieldarray(params)
         return_atomic = self._return_atomic(params)
         # convert params to a field array if it isn't one
@@ -263,7 +303,30 @@ class JointDistribution(object):
             of the parameters are arrays, will return an array of booleans.
             Otherwise, a boolean.
         """
+        from . import bounded
+        result = bounded._prior_native(self, "JointDistribution.contains", lambda values: bounded._flat_replay(self.contains, values), params)
+        if result is not bounded.REFERENCE_UNSELECTED:
+            return result
         params = self.apply_boundary_conditions(**params)
+        backend, mod, reference = self._backend_module_and_reference(params)
+        if backend == "jax":
+            from .bounded import _jax_params
+            params = _jax_params(params)
+            import jax.numpy as jnp
+            result = jnp.ones((), dtype=bool)
+            for dist in self.distributions:
+                data = {name: params[name] for name in dist.params}
+                contained = dist.__contains__(data)
+                if not isinstance(contained, mod.Array):
+                    if not numpy.isscalar(contained):
+                        raise TypeError(
+                            "a component distribution returned host array "
+                            "data for array-valued parameters"
+                        )
+                    contained = jnp.asarray(contained, dtype=bool)
+                result = jnp.logical_and(result, contained.astype(bool))
+            return jnp.logical_and(result, self.within_constraints(params))
+
         result = True
         for dist in self.distributions:
             param_names = dist.params
@@ -281,6 +344,41 @@ class JointDistribution(object):
     def __call__(self, **params):
         """Evaluate joint distribution for parameters.
         """
+        from . import bounded
+        result = bounded._prior_native(self, "JointDistribution.logpdf", self.__call__, scalar=True, **params)
+        if result is not bounded.REFERENCE_UNSELECTED:
+            return result
+        backend, mod, reference = self._backend_module_and_reference(params)
+        if backend == "jax":
+            from .bounded import _jax_params
+            params = _jax_params(params)
+            import jax.numpy as jnp
+            isin = self.within_constraints(params) if self._constraints else None
+            dtype = (
+                reference.dtype
+                if jnp.issubdtype(reference.dtype, jnp.floating)
+                else jnp.float64
+            )
+            logp = jnp.zeros((), dtype=dtype)
+            for distribution in self.distributions:
+                value = distribution(**params)
+                if isinstance(value, numpy.ndarray):
+                    raise TypeError(
+                        "a component distribution returned a NumPy array "
+                        "for array-valued parameters"
+                    )
+                if not isinstance(value, mod.Array):
+                    value = jnp.asarray(value, dtype=dtype)
+                logp = logp + value
+            logp = logp - self._logpdf_scale
+            if isin is not None:
+                logp = jnp.where(
+                    isin,
+                    logp,
+                    -jnp.inf,
+                )
+            return logp
+
         return_atomic = self._return_atomic(params)
         # check if statisfies constraints
         if len(self._constraints) != 0:
