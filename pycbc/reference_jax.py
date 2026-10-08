@@ -367,6 +367,87 @@ def _execute(request):
             if np.ndim(kwargs["hh"]) == 0:
                 kwargs["hh"] = kwargs["hh"][()]
             return marginalize_likelihood(values, **kwargs)
+        elif operation == "relbin_reference_data":
+            data = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            frequencies = np.arange(len(values)) * spacing
+            tshift = np.exp(-2.0j * np.pi * frequencies * kwargs.pop("time_shift"))
+            return np.asarray(data * np.conjugate(tshift))
+        elif operation == "relbin_summary":
+            from types import SimpleNamespace
+            from pycbc.inference.models.relbin import Relative
+
+            psd = kwargs.pop("psd")
+            freqs = kwargs.pop("freqs")
+            state = SimpleNamespace(psds={"D": psd}, df={"D": spacing}, f={"D": freqs})
+            return Relative.summary_product(
+                state, values, kwargs.pop("h2"), kwargs.pop("bins"), "D"
+            )
+        elif operation in ("relbin_likelihood", "relbin_snr"):
+            from pycbc.inference.models import relbin_cpu
+
+            name = kwargs.pop("function")
+            if not (
+                name.startswith("likelihood_parts") or name.startswith("snr_predictor")
+            ):
+                raise ValueError("Unsupported native relative-binning function")
+            kernel = getattr(relbin_cpu, name)
+            # The native Cython contract has contiguous double buffers.
+            kwargs = {
+                key: (
+                    np.array(
+                        value,
+                        dtype=np.complex128 if np.iscomplexobj(value) else np.float64,
+                        copy=True,
+                        order="C",
+                    )
+                    if np.ndim(value)
+                    else value
+                )
+                for key, value in kwargs.items()
+            }
+            if name == "likelihood_parts" and any(
+                np.ndim(kwargs[k]) for k in ("fp", "fc", "dtc")
+            ):
+                arrays = np.broadcast_arrays(*(kwargs[k] for k in ("fp", "fc", "dtc")))
+                shape = arrays[0].shape
+                if not np.ndim(kwargs["fp"]) and not np.ndim(kwargs["fc"]):
+                    name = "likelihood_parts_vectort"
+                    kwargs["dtc"] = np.array(arrays[2].reshape(-1), copy=True)
+                elif not np.ndim(kwargs["dtc"]):
+                    name = "likelihood_parts_vectorp"
+                    kwargs.update(
+                        (key, np.array(v.reshape(-1), copy=True))
+                        for key, v in zip(("fp", "fc"), arrays[:2])
+                    )
+                else:
+                    name = "likelihood_parts_vector"
+                    kwargs.update(
+                        (key, np.array(v.reshape(-1), copy=True))
+                        for key, v in zip(("fp", "fc", "dtc"), arrays)
+                    )
+                result = getattr(relbin_cpu, name)(**kwargs)
+                return tuple(v.reshape(shape) for v in result)
+            scalar_parameters = {
+                "likelihood_parts": ("fp", "fc", "dtc"),
+                "likelihood_parts_det": ("dtc",),
+                "likelihood_parts_multi": ("fp", "fc", "dtc", "fp2", "fc2", "dtc2"),
+                "likelihood_parts_det_multi": ("dtc", "dtc2"),
+            }.get(name, ())
+            if scalar_parameters and any(np.ndim(kwargs[key]) for key in scalar_parameters):
+                samples = np.broadcast_arrays(*(kwargs[key] for key in scalar_parameters))
+                shape = samples[0].shape
+                rows = []
+                for index in np.ndindex(shape):
+                    current = dict(kwargs)
+                    current.update(
+                        (key, values[index])
+                        for key, values in zip(scalar_parameters, samples)
+                    )
+                    rows.append(kernel(**current))
+                if isinstance(rows[0], tuple):
+                    return tuple(np.asarray(v).reshape(shape) for v in zip(*rows))
+                return np.asarray(rows).reshape(shape)
+            return kernel(**kwargs)
         elif operation == "psd_horizon":
             import pycbc
             from pycbc.waveform.spa_tmplt import spa_distance
