@@ -12,7 +12,9 @@ waveform synthesis is an explicit validation option. Compressed waveforms keep t
 """
 
 import importlib.util
+from functools import lru_cache
 import math
+import operator
 import types
 
 import numpy as np
@@ -27,6 +29,11 @@ _BOOKKEEPING = {'template_hash', 'template_duration', 'duration', 'return_hc', '
 _PHYSICAL = {'mass1', 'mass2', 'spin1z', 'spin2z', 'coa_phase', 'inclination',
              'distance'}
 _GEOMETRY = {'approximant', 'f_lower', 'f_final', 'delta_f', 'delta_t'}
+_METADATA = ('f_lower', 'min_f_lower', 'end_idx', 'chirp_length',
+             'length_in_time', 'approximant', 'end_frequency', 'time_offset',
+             'id', 'waveform_provider', 'waveform_provider_reason')
+_IDENTITY = "diffgw-pycbc-jax-v1"
+
 _ORDERS = {'phase_order': (-1, 7), 'spin_order': (-1, 7),
            'amplitude_order': (-1, 0), 'tidal_order': (-1,)}
 
@@ -48,6 +55,17 @@ def available_approximants(domain, requested_scheme):
     if domain in ('fd', 'filter') and importlib.util.find_spec('diffgw') is not None:
         return list(_SUPPORTED_APPROXIMANTS)
     return []
+
+
+def _indices(bank, indices):
+    indices = list(range(len(bank))) if indices is None else list(indices)
+    result = []
+    for index in indices:
+        index = operator.index(index)
+        if not 0 <= index < len(bank):
+            raise IndexError('template bank index out of range')
+        result.append(index)
+    return result
 
 
 def _is_provider_enabled(bank):
@@ -100,6 +118,233 @@ def _reason(bank, params, device):
         elif value != default_args[key]:
             return f'non-default {key} requires reference generation'
     return None
+
+
+def diagnostics(bank, indices=None, device='cpu'):
+    """Return dispatch decisions without synthesizing waveform samples."""
+    results = []
+    for index in _indices(bank, indices):
+        params, _ = bank._waveform_parameters(index)
+        reason = _reason(bank, params, str(device))
+        provider_name = getattr(bank, 'waveform_provider_name', 'diffgw')
+        results.append({'index': index,
+                        'provider': ('reference' if _reference_enabled('waveform')
+                                     else 'unsupported' if reason else provider_name),
+                        'reason': reason or f"{params.get('approximant')} runtime allowlist",
+                        'generation_dtype': None if reason else 'float64'})
+    return results
+
+
+def can_use(bank):
+    """Whether any row can use the explicitly requested native provider."""
+    if not _is_provider_enabled(bank):
+        return False
+    for index in range(len(bank)):
+        params, _ = bank._waveform_parameters(index)
+        if _reason(bank, params, 'cpu') is None:
+            return True
+    return False
+
+
+def template_metadata(templates):
+    """Extract sample-free records for a session's owned tensor cache."""
+    return [dict({name: getattr(t, name) for name in _METADATA
+                  if hasattr(t, name)}, delta_f=t.delta_f, epoch=t.epoch)
+            for t in templates]
+
+
+def wrap_batch(bank, indices, data, metadata):
+    """Reconstruct independent metadata views of a cloned session tensor."""
+    from pycbc.waveform.bank import sigma_cached
+    indices = _indices(bank, indices)
+    if len(indices) != len(metadata) or data.shape[0] != len(indices):
+        raise ValueError('batch indices, metadata and tensor rows must agree')
+    templates = []
+    for index, row, record in zip(indices, data, metadata):
+        series = _series_view(row, record['delta_f'], record['epoch'])
+        for name in _METADATA:
+            if name in record:
+                setattr(series, name, record[name])
+        if 'chirp_length' in record:
+            bank.table[index].template_duration = record['chirp_length']
+        series.params = bank.table[index]
+        series.sigmasq = types.MethodType(sigma_cached, series)
+        series._sigmasq = {}
+        templates.append(series)
+    return templates
+
+
+@lru_cache(maxsize=1)
+def provider_identity():
+    """Get the provider-owned source digest once per process."""
+    if importlib.util.find_spec('diffgw') is not None:
+        try:
+            import diffgw
+            if hasattr(diffgw, 'provenance') and hasattr(diffgw.provenance, 'taylorf2_source_identity'):
+                return diffgw.provenance.taylorf2_source_identity()
+            if hasattr(diffgw, 'jax') and hasattr(diffgw.jax, 'provenance'):
+                return diffgw.jax.provenance.taylorf2_source_identity()
+        except Exception:
+            pass
+    return None
+
+
+def batch_key(bank, indices):
+    """Hashable identity of complete effective waveform inputs and provider."""
+    def freeze(value):
+        if isinstance(value, np.ndarray):
+            return (str(value.dtype), value.shape, value.tobytes())
+        if isinstance(value, dict):
+            return tuple(sorted((key, freeze(v)) for key, v in value.items()))
+        if isinstance(value, (list, tuple)):
+            return tuple(freeze(v) for v in value)
+        if isinstance(value, np.generic):
+            return value.item()
+        return value
+
+    rows = []
+    for index in _indices(bank, indices):
+        params, length = bank._waveform_parameters(index)
+        # Scalar generation writes this cache field after the request is made.
+        if not (getattr(bank, 'enable_compressed_waveforms', False)
+                and getattr(bank, 'has_compressed_waveforms', False)):
+            params.pop('template_duration', None)
+        rows.append((index, length, freeze(params)))
+    from pycbc.scheme import current_backend_key
+    enabled = getattr(bank, 'enable_diffgw', None)
+    return (_IDENTITY, provider_identity(), current_backend_key(), enabled,
+            getattr(bank, 'enable_compressed_waveforms', False),
+            getattr(bank, 'has_compressed_waveforms', False),
+            getattr(bank, 'waveform_decompression_method', None), tuple(rows))
+
+
+def _series_view(row, delta_f, epoch=0):
+    from pycbc import scheme
+    state = scheme.mgr.state
+    if getattr(scheme, 'JAXScheme', None) is not None and isinstance(state, scheme.JAXScheme):
+        from pycbc.types.array_jax import JAXArrayData
+        if not isinstance(row, JAXArrayData):
+            row = JAXArrayData(row)
+        return FrequencySeries(row, delta_f=delta_f, epoch=epoch, copy=False)
+    if hasattr(row, 'numpy'):
+        arr = row.numpy()
+    else:
+        arr = np.asarray(row)
+    return FrequencySeries(arr, delta_f=delta_f, epoch=epoch, copy=False)
+
+
+def _metadata(bank, index, params, row):
+    from pycbc.waveform import get_waveform_filter_length_in_time
+    from pycbc.waveform.bank import sigma_cached
+    series = _series_view(row, params['delta_f'], -1.0 / params['delta_f'])
+    duration = get_waveform_filter_length_in_time(**params)
+    bank.table[index].template_duration = duration
+    series.f_lower = params['f_lower']
+    series.min_f_lower = bank.min_f_lower
+    series.end_frequency = params['f_final']
+    series.end_idx = int(params['f_final'] / params['delta_f'])
+    series.params = bank.table[index]
+    series.chirp_length = duration
+    series.length_in_time = duration
+    series.approximant = params['approximant']
+    series.sigmasq = types.MethodType(sigma_cached, series)
+    series._sigmasq = {}
+    if hasattr(bank, 'id_from_param'):
+        p = series.params
+        series.id = bank.id_from_param((p.mass1, p.mass2, p.spin1z, p.spin2z))
+    return series
+
+
+def generate_batch(bank, indices, device='jax', dtype=None, delta_f=None):
+    """Generate a common-grid batch on the active JAX device, in input order."""
+    import jax
+    import jax.numpy as jnp
+    from pycbc import scheme
+    from pycbc.types.array_jax import _ensure_x64
+    _ensure_x64()
+    if not isinstance(scheme.mgr.state, scheme.JAXScheme):
+        raise TypeError('JAX waveform batches require JAXScheme')
+    target = scheme.mgr.state.jax_device
+    indices = _indices(bank, indices)
+    dtype = np.dtype(getattr(bank, 'dtype', np.complex64) if dtype is None else dtype)
+    if dtype not in (np.dtype('complex64'), np.dtype('complex128')):
+        raise TypeError('waveform storage dtype must be complex64 or complex128')
+    requests = [bank._waveform_parameters(i, delta_f) for i in indices]
+    if not requests:
+        return jax.device_put(np.empty((0, bank.filter_length), dtype=dtype), target), []
+    flen = requests[0][1]
+    if any(length != flen or p['delta_f'] != requests[0][0]['delta_f']
+           for p, length in requests):
+        raise ValueError('a waveform tensor batch requires a common grid')
+    if (getattr(bank, 'has_compressed_waveforms', False)
+            and getattr(bank, 'enable_compressed_waveforms', False)):
+        from .bank_jax import get_batch_jax
+        templates = get_batch_jax(bank, indices)
+        return jnp.stack([to_jax(t) for t in templates]).astype(dtype), templates
+    if _reference_enabled('waveform'):
+        templates = []
+        for index, (params, length) in zip(indices, requests):
+            output = Array(JAXArrayData(jax.device_put(
+                np.zeros(length, dtype=dtype), target)), copy=False)
+            template = generate_filter(output, **params)
+            _attach_bank_metadata(bank, index, params, template)
+            templates.append(template)
+        return jnp.stack([to_jax(t) for t in templates]), templates
+    for params, _ in requests:
+        reason = _reason(bank, params, str(device))
+        if reason:
+            raise ValueError('JAX waveform generation does not support request: ' + reason)
+    output = jax.device_put(np.zeros((len(indices), flen), dtype=dtype), target)
+    groups = {}
+    for pos, (params, _) in enumerate(requests):
+        groups.setdefault(params['approximant'], []).append(pos)
+    import diffgw
+    bins = jnp.arange(flen)
+    for app, positions in groups.items():
+        parameters = [requests[i][0] for i in positions]
+        freqs = bins.astype(jnp.float64) * parameters[0]['delta_f']
+        kwargs = {name: jnp.asarray([p[name] for p in parameters], dtype=jnp.float64)
+                  for name in _PHYSICAL - {'coa_phase'}}
+        kwargs['phic'] = jnp.asarray([
+            p['coa_phase'] + (np.pi / 2 if app == 'TaylorF2' else 0)
+            for p in parameters], dtype=jnp.float64)
+        if app == 'TaylorF2':
+            kwargs['f_isco_cutoff'] = False
+        else:
+            kwargs['f_lower'] = min(p['f_lower'] for p in parameters)
+            kwargs['f_ref'] = jnp.asarray(
+                [p['f_lower'] for p in parameters], dtype=jnp.float64)
+        hp, _ = diffgw.get_fd_waveform(
+            app, backend='jax', sample_frequencies=freqs, dtype=jnp.float64,
+            **kwargs)
+        if hp.ndim == 1:
+            hp = hp[None, :]
+        lows = jnp.asarray([math.ceil(p['f_lower'] / p['delta_f']) for p in parameters])
+        highs = jnp.asarray([int(p['f_final'] / p['delta_f']) for p in parameters])
+        hp = jnp.where((bins[None, :] >= lows[:, None]) &
+                       (bins[None, :] <= highs[:, None]), hp, 0)
+        output = output.at[jnp.asarray(positions)].set(hp.astype(dtype))
+    templates = [_metadata(bank, index, params, output[pos])
+                 for pos, (index, (params, _)) in enumerate(zip(indices, requests))]
+    for template in templates:
+        template.waveform_provider = 'diffgw'
+    return output, templates
+
+
+def _attach_bank_metadata(bank, index, params, series):
+    from pycbc.waveform.bank import sigma_cached
+    series.f_lower = params['f_lower']
+    series.min_f_lower = bank.min_f_lower
+    series.end_frequency = params['f_final']
+    series.end_idx = int(params['f_final'] / params['delta_f'])
+    series.params = bank.table[index]
+    series.approximant = params['approximant']
+    bank.table[index].template_duration = series.chirp_length
+    series.sigmasq = types.MethodType(sigma_cached, series)
+    series._sigmasq = {}
+    if hasattr(bank, 'id_from_param'):
+        p = series.params
+        series.id = bank.id_from_param((p.mass1, p.mass2, p.spin1z, p.spin2z))
 
 
 def _original_waveform(function, parameters, **kwargs):
