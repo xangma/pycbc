@@ -73,21 +73,23 @@ from pycbc.types import Array
 
 
 def _check_scheme_all(option, opt_str, scheme, parser):
-    if scheme=='cuda' and not pycbc.HAVE_CUDA:
+    if scheme == 'cuda' and not pycbc.HAVE_CUDA:
         raise optparse.OptionValueError("CUDA not found")
+    if scheme == 'jax' and not getattr(pycbc, "HAVE_JAX", False):
+        raise optparse.OptionValueError("JAX not found")
 
-    setattr (parser.values, option.dest, scheme)
+    setattr(parser.values, option.dest, scheme)
 
 
 def parse_args_all_schemes(feature_str):
     _parser = OptionParser()
-    _parser.add_option('--scheme','-s', action='callback', type = 'choice',
-                       choices = ('cpu','cuda'),
-                       default = 'cpu', dest = 'scheme', callback = _check_scheme_all,
-                       help = 'specifies processing scheme, can be cpu [default], cuda')
-    _parser.add_option('--device-num','-d', action='store', type = 'int',
-                       dest = 'devicenum', default=0,
-                       help = 'specifies a GPU device to use for CUDA, 0 by default')
+    _parser.add_option('--scheme', '-s', action='callback', type='choice',
+                       choices=('cpu', 'cuda', 'jax'),
+                       default='cpu', dest='scheme', callback=_check_scheme_all,
+                       help='specifies processing scheme, can be cpu [default], cuda, jax')
+    _parser.add_option('--device-num', '-d', action='store', type='int',
+                       dest='devicenum', default=0,
+                       help='specifies a GPU device to use for CUDA, 0 by default')
     (_opt_list, _args) = _parser.parse_args()
 
     # Changing the optvalues to a dict makes them easier to read
@@ -99,13 +101,16 @@ def parse_args_all_schemes(feature_str):
         _context = CPUScheme()
     if _scheme == 'cuda':
         _context = CUDAScheme(device_num=_options['devicenum'])
+    if _scheme == 'jax':
+        from pycbc.scheme import JAXScheme
+        _context = JAXScheme()
 
-    _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA'}
+    _scheme_dict = {'cpu': 'CPU', 'cuda': 'CUDA', 'jax': 'JAX'}
 
     print(72*'=')
-    print("Running {0} unit tests for {1}:".format(_scheme_dict[_scheme],feature_str))
+    print("Running {0} unit tests for {1}:".format(_scheme_dict[_scheme], feature_str))
 
-    return [_scheme,_context]
+    return [_scheme, _context]
 
 def _check_scheme_cpu(option, opt_str, scheme, parser):
     if scheme=='cuda':

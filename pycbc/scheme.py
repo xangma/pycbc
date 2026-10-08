@@ -207,10 +207,11 @@ class NumpyScheme(CPUScheme):
 
 
 JAX_REFERENCE_OPERATIONS = frozenset({
-    "sum", "cumsum", "dot", "inner", "weighted_inner", "multiply_and_add",
-    "abs_max_loc", "abs_arg_max", "squared_norm", "min", "max", "max_loc",
-    "fft", "ifft",
-    "welch", "inverse_spectrum_truncation", "interpolate", "analytical_psd",
+    'sum', 'cumsum', 'dot', 'inner', 'weighted_inner', 'multiply_and_add',
+    'abs_max_loc', 'abs_arg_max', 'squared_norm', 'min', 'max', 'max_loc',
+    'fft', 'ifft', 'welch', 'inverse_spectrum_truncation', 'interpolate',
+    'analytical_psd', 'highpass', 'lowpass', 'lfilter', 'fir_zero_filter',
+    'resample', 'firwin',
 })
 
 
@@ -249,21 +250,19 @@ class JAXScheme(Scheme):
     chisq_mode : {'cpu-compatible', 'direct-phase'}, optional
         Point chi-square calculation. The default follows the native CPU
         recurrence; direct-phase evaluates each Fourier phase independently.
-    highpass_mode : {'parallel', 'lal-serial'}, optional
-        Butterworth high-pass implementation. The default, 'lal-serial',
-        follows LAL's sample recurrence. 'parallel' uses a parallel scan.
+    highpass_mode : {'lal-coefficients', 'closed-form'}, optional
+        On-device Butterworth high-pass coefficients. Both modes use an
+        associative scan; the default follows LAL's coefficient calculation.
     reference_operations : iterable of str, optional
         Operations to validate using their original CPU implementations.
         Each selected operation transfers its inputs to the CPU; other
         operations continue using JAX. The default selects none. Supported
-        names are sum, cumsum, dot, inner, weighted_inner, multiply_and_add,
-        abs_max_loc, abs_arg_max, squared_norm, min, max, max_loc, fft, ifft,
-        welch, inverse_spectrum_truncation, interpolate, and analytical_psd.
-        A comma-separated string is also accepted.
+        names are listed in ``JAX_REFERENCE_OPERATIONS`` and the command-line
+        help. A comma-separated string is also accepted.
     """
 
     def __init__(self, device=None, num_threads=None, chisq_mode="cpu-compatible",
-                 highpass_mode="lal-serial", reference_operations=()):
+                 highpass_mode="lal-coefficients", reference_operations=()):
         self.jax_reference_operations = _validate_jax_reference_operations(
             reference_operations)
         if chisq_mode not in ("cpu-compatible", "direct-phase"):
@@ -271,9 +270,9 @@ class JAXScheme(Scheme):
                 "chisq_mode must be 'cpu-compatible' or 'direct-phase', "
                 f"got {chisq_mode!r}"
             )
-        if highpass_mode not in ("parallel", "lal-serial"):
+        if highpass_mode not in ("lal-coefficients", "closed-form"):
             raise ValueError(
-                "highpass_mode must be 'parallel' or 'lal-serial', "
+                "highpass_mode must be 'lal-coefficients' or 'closed-form', "
                 f"got {highpass_mode!r}"
             )
         if not getattr(pycbc, "HAVE_JAX", False):
@@ -520,15 +519,16 @@ def insert_processing_option_group(parser):
     )
     processing_group.add_argument(
         "--jax-highpass-mode",
-        choices=("parallel", "lal-serial"),
+        choices=("closed-form", "lal-coefficients"),
         default=None,
-        help="JAX Butterworth high-pass mode (defaults to lal-serial).",
+        help="On-device Butterworth coefficient calculation (defaults to "
+             "closed-form on GPU, lal-coefficients on CPU).",
     )
     processing_group.add_argument(
         "--jax-reference-operations",
         default=None,
         metavar="NAME[,NAME...]",
-        help="Validate selected JAX array operations with the original CPU "
+        help="Validate selected JAX operations with the original CPU "
              "implementations (slower). Comma-separated names: "
              + ', '.join(sorted(JAX_REFERENCE_OPERATIONS))
              + ". The default keeps every operation on JAX.",
@@ -593,7 +593,7 @@ def from_cli(opt):
         else:
             dev = "cpu"
         gpu_device = dev.split(':', 1)[0] in ("cuda", "gpu")
-        default_highpass = "parallel" if gpu_device else "lal-serial"
+        default_highpass = "closed-form" if gpu_device else "lal-coefficients"
         ctx = JAXScheme(
             device=dev,
             chisq_mode=getattr(opt, "jax_chisq_mode", None) or "cpu-compatible",
