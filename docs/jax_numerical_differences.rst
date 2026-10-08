@@ -53,6 +53,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - PSDs
      - :doc:`jax_psd_numerical_differences`: window precision, Welch averaging,
        interpolation, truncation and analytical physical constants.
+   * - Live PSD diagnostic
+     - :ref:`jax-live-psd-horizon`: frequency-grid, amplitude-rounding and
+       cumulative-sum conventions of the horizon calculation.
    * - Conditioning
      - :ref:`jax-conditioning-numerical-differences`: filter coefficients,
        recurrence, resampling, gating and whitening operation order.

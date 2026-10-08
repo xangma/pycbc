@@ -1814,7 +1814,11 @@ class StrainBuffer(pycbc.frame.DataBuffer):
         s = e - (self.psd_samples + 1) * seg_len // 2
         psd = pycbc.psd.welch(self.strain[s:e], seg_len=seg_len, seg_stride=seg_len//2)
 
-        psd.dist = spa_distance(psd, 1.4, 1.4, self.low_frequency_cutoff) * pycbc.DYN_RANGE_FAC
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.strain.strain_jax import psd_horizon_distance_jax
+            psd.dist = psd_horizon_distance_jax(psd, self.low_frequency_cutoff)
+        else:
+            psd.dist = spa_distance(psd, 1.4, 1.4, self.low_frequency_cutoff) * pycbc.DYN_RANGE_FAC
 
         # If the new psd is similar to the old one, don't replace it
         if self.psd and self.psd_recalculate_difference:

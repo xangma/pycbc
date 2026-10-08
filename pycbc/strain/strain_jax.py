@@ -38,7 +38,7 @@ from pycbc.psd.estimate_jax import (
 )
 from pycbc.strain.strain import next_power_of_2
 from pycbc.types.array_jax import (
-    JAXArrayData, _ensure_x64, _reference_enabled, to_jax,
+    JAXArrayData, _cpu_reference, _divide, _ensure_x64, _reference_enabled, to_jax,
 )
 
 
@@ -787,6 +787,76 @@ def _overwhiten_fused_core(
                 (w2[start:end] * window[idx1:idx2]).astype(w2.dtype))
     # 4. Final Forward FFT
     return jnp.fft.rfft(w2) * delta_t
+
+
+@functools.partial(jax.jit, static_argnames=("kend",))
+def _psd_horizon_distance_core(cumulative_norm, amplitude_squared, *, kend):
+    """Finish the BNS horizon on device with the legacy rounding boundaries."""
+    barrier = jax.lax.optimization_barrier
+    power = barrier(cumulative_norm[kend] * amplitude_squared)
+    distance = barrier(jnp.sqrt(power))
+    distance = barrier(distance / 8.0)
+    distance = barrier(distance * pycbc.DYN_RANGE_FAC)
+    return distance, power < 0.0
+
+
+def psd_horizon_payload_jax(psd, lower_frequency_cutoff):
+    """Enqueue the Live BNS horizon and domain status without collecting."""
+    from pycbc.waveform.spa_tmplt import spa_amplitude_factor, spa_tmplt_end
+    from pycbc.vetoes.chisq_jax import (
+        _ordered_cumsum_rows, _use_gpu_ordered_scan, _weighted_power_divide,
+    )
+
+    _ensure_x64()
+    kend = int(spa_tmplt_end(mass1=1.4, mass2=1.4) / psd.delta_f)
+    if kend >= len(psd):
+        kend = len(psd) - 2
+    values = to_jax(psd)
+    if _reference_enabled("psd_horizon"):
+        from pycbc.reference_jax import cpu_reference
+
+        distance = cpu_reference(
+            "psd_horizon", psd, spacing=psd.delta_f,
+            epoch=getattr(psd, "_epoch", None),
+            lower_frequency_cutoff=lower_frequency_cutoff)
+        return to_jax(distance, device=values.device), to_jax(
+            False, device=values.device)
+    if _reference_enabled("psd_horizon_amplitude"):
+        from pycbc.reference_jax import cpu_reference
+
+        amp = to_jax(cpu_reference(
+            "psd_horizon_amplitude", None, spacing=psd.delta_f,
+            length=len(psd)), device=values.device)
+    else:
+        # The original preconditioner starts at delta_f, then rounds to
+        # float32 before squaring even for a double-precision PSD.
+        frequencies = jnp.arange(
+            1, len(psd) + 1, dtype=jnp.float64, device=values.device) * psd.delta_f
+        amp = (frequencies ** (-7. / 6.)).astype(jnp.float32)
+    kmin = int(lower_frequency_cutoff / psd.delta_f)
+    power = amp[kmin:] ** 2
+    spectrum = values[kmin:]
+    weighted = (_divide(power, spectrum) if _reference_enabled("divide")
+                else (_weighted_power_divide(power, spectrum)
+                      if spectrum.dtype == jnp.float32 else power / spectrum))
+    cumulative = (to_jax(_cpu_reference(weighted, "cumsum"), device=values.device)
+                  if _reference_enabled("cumsum") else _ordered_cumsum_rows(
+                      weighted[None, :], _use_gpu_ordered_scan(weighted))[0])
+    scaled = cumulative * 4.0
+    scaled = scaled * psd.delta_f
+    norm = jnp.zeros(len(psd), dtype=jnp.float64, device=values.device)
+    norm = norm.at[kmin:].set(scaled.astype(jnp.float64))
+    amplitude_squared = spa_amplitude_factor(mass1=1.4, mass2=1.4) ** 2.0
+    return _psd_horizon_distance_core(norm, amplitude_squared, kend=kend)
+
+
+def psd_horizon_distance_jax(psd, lower_frequency_cutoff):
+    """Collect the completed horizon at the PSD scientific control boundary."""
+    distance, negative_power = jax.device_get(
+        psd_horizon_payload_jax(psd, lower_frequency_cutoff))
+    if negative_power:
+        raise ValueError("math domain error")
+    return float(distance)
 
 
 def _ensure_psd_for_delta_f(buffer, delta_f):

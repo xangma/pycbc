@@ -339,6 +339,9 @@ class SingleDetPowerChisq(object):
         return eval(arg, {"__builtins__":None}, safe_dict)
 
     def cached_chisq_bins(self, template, psd):
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.vetoes.chisq_jax import _check_bin_reference_cache
+            _check_bin_reference_cache(psd)
         from pycbc.opt import LimitedSizeDict
 
         key = id(psd)

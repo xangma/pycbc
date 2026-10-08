@@ -14,7 +14,6 @@ import jax.numpy as jnp
 from pycbc import scheme
 from pycbc.filter.matchedfilter_jax import (
     batch_peak_values,
-    batch_sigmasq_jax,
     live_template_norms_jax,
 )
 from pycbc.fft.jaxfft import fft, ifft, IFFT
@@ -110,8 +109,8 @@ def test_live_template_norms_is_jax_reduction():
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
-def test_batch_sigmasq_returns_host_metadata_vector(device):
-    """Normalization transfers once for host candidate metadata consumers."""
+def test_batch_normalization_preserves_device_float64(device):
+    """Scientific normalization retains float64 precision on the device."""
     if device == "cuda" and not any(
         dev.platform in ("cuda", "gpu") for dev in jax.devices()
     ):
@@ -135,9 +134,10 @@ def test_batch_sigmasq_returns_host_metadata_vector(device):
     )
     psd = jnp.ones(4, dtype=jnp.float32)
     with scheme.JAXScheme(device=device):
-        result = batch_sigmasq_jax(templates, psd)
-    assert isinstance(result, np.ndarray)
-    assert result.dtype == np.float32
+        result = live_template_norms_jax(
+            templates, psd, template_matrix=templates._batch_tensor)
+    assert isinstance(result, jax.Array)
+    assert result.dtype == np.float64
     assert result.shape == (2,)
     expected = jnp.sum(
         jnp.abs(templates._batch_tensor[:, 2:]) ** 2, axis=1
@@ -146,7 +146,7 @@ def test_batch_sigmasq_returns_host_metadata_vector(device):
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
-def test_live_norm_controls_preserve_native_support_and_cache_modes(device):
+def test_live_norm_controls_preserve_native_support(device):
     if device == "cuda" and not any(
         d.platform == "gpu" for d in jax.devices()
     ):
@@ -181,13 +181,10 @@ def test_live_norm_controls_preserve_native_support_and_cache_modes(device):
     candidate = templates()
     spectrum = FrequencySeries(psd_values, delta_f=0.5)
     with scheme.JAXScheme(device):
-        default = batch_sigmasq_jax(candidate, spectrum)
+        default = live_template_norms_jax(candidate, spectrum)
+        assert default.dtype == np.float64
     operations = ("squared_norm", "divide", "inner")
     with scheme.JAXScheme(device, reference_operations=operations) as ctx:
         result = live_template_norms_jax(candidate, spectrum)
         assert result.devices() == {ctx.jax_device}
         assert np.asarray(result).tobytes() == expected.tobytes()
-        metadata = batch_sigmasq_jax(candidate, spectrum)
-        assert metadata is not default
-        assert metadata.tobytes() == expected.astype(np.float32).tobytes()
-        assert batch_sigmasq_jax(candidate, spectrum) is metadata
