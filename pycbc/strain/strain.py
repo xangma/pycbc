@@ -100,6 +100,15 @@ def detect_loud_glitches(strain, psd_duration=4., psd_stride=2.,
         Save intermediate time series for debugging.
     """
 
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .strain_jax import detect_loud_glitches_jax
+        return detect_loud_glitches_jax(
+            strain, psd_duration=psd_duration, psd_stride=psd_stride,
+            psd_avg_method=psd_avg_method, low_freq_cutoff=low_freq_cutoff,
+            threshold=threshold, cluster_window=cluster_window,
+            corrupt_time=corrupt_time, high_freq_cutoff=high_freq_cutoff,
+            output_intermediates=output_intermediates)
+
     if high_freq_cutoff:
         strain = resample_to_delta_t(strain, 0.5 / high_freq_cutoff,
                                      method='ldas')
@@ -1017,6 +1026,10 @@ def gate_data(data, gate_params):
     data: TimeSeries
         The gated time series.
     """
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from pycbc.strain.strain_jax import gate_data_jax
+        return gate_data_jax(data, gate_params)
+
     def inverted_tukey(M, n_pad):
         midlen = M - 2*n_pad
         if midlen < 0:
@@ -1432,6 +1445,10 @@ def execute_cached_fft(invec_data, normalize_by_rate=True, ifft=False,
         of memory in the cache, for instance if calling this from different
         codes.
     """
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from pycbc.strain.strain_jax import execute_fft_jax
+        return execute_fft_jax(invec_data, normalize_by_rate, ifft)
+
     from pycbc.types import real_same_precision_as
     if ifft:
         npoints_time = (len(invec_data) - 1) * 2
@@ -1767,6 +1784,8 @@ class StrainBuffer(pycbc.frame.DataBuffer):
         it is next required """
         self.psd = None
         self.psds = {}
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            self.segments = {}
 
     def recalculate_psd(self):
         """ Recalculate the psd
@@ -1793,11 +1812,15 @@ class StrainBuffer(pycbc.frame.DataBuffer):
                             self.detector, self.psd.dist, psd.dist)
                 self.psd = psd
                 self.psds = {}
+                if isinstance(scheme.mgr.state, scheme.JAXScheme):
+                    self.segments = {}
                 return False
 
         # If the new estimate replaces the current one, invalide the ineterpolate PSDs
         self.psd = psd
         self.psds = {}
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            self.segments = {}
         logger.info("Recalculating %s PSD, %s", self.detector, psd.dist)
         return True
 
@@ -1986,37 +2009,56 @@ class StrainBuffer(pycbc.frame.DataBuffer):
         # only condition with the needed raw data so we can continuously add
         # to the existing result
 
-        # Precondition
-        sample_step = int(blocksize * self.sample_rate)
-        csize = sample_step + self.corruption * 2
-        start = len(self.raw_buffer) - csize * self.factor
-        strain = self.raw_buffer[start:]
+        fuse_jax_conditioning = False
+        if (isinstance(scheme.mgr.state, scheme.JAXScheme)
+                and not self.taper_immediate_strain):
+            from .strain_jax import (
+                can_fuse_strain_buffer_jax,
+                condition_strain_buffer_jax,
+            )
+            fuse_jax_conditioning = can_fuse_strain_buffer_jax(
+                self, blocksize)
 
-        strain =  pycbc.filter.highpass_fir(strain, self.highpass_frequency,
-                                       self.highpass_samples,
-                                       beta=self.beta)
-        strain = (strain * self.dyn_range_fac).astype(numpy.float32)
+        if fuse_jax_conditioning:
+            condition_strain_buffer_jax(self, blocksize)
+        else:
+            # Precondition
+            sample_step = int(blocksize * self.sample_rate)
+            csize = sample_step + self.corruption * 2
+            start = len(self.raw_buffer) - csize * self.factor
+            strain = self.raw_buffer[start:]
 
-        strain = pycbc.filter.resample_to_delta_t(strain,
-                                           1.0/self.sample_rate, method='ldas')
+            strain = pycbc.filter.highpass_fir(
+                strain, self.highpass_frequency, self.highpass_samples,
+                beta=self.beta)
+            strain = (strain * self.dyn_range_fac).astype(numpy.float32)
 
-        # remove corruption at beginning
-        strain = strain[self.corruption:]
+            strain = pycbc.filter.resample_to_delta_t(
+                strain, 1.0/self.sample_rate, method='ldas')
 
-        # taper beginning if needed
-        if self.taper_immediate_strain:
-            logger.info("Tapering start of %s strain block", self.detector)
-            strain = gate_data(
-                    strain, [(strain.start_time, 0., self.autogating_taper)])
-            self.taper_immediate_strain = False
+            # remove corruption at beginning
+            strain = strain[self.corruption:]
 
-        # Stitch into continuous stream
-        self.strain.roll(-sample_step)
-        self.strain[len(self.strain) - csize + self.corruption:] = strain[:]
-        self.strain.start_time += blocksize
+            # taper beginning if needed
+            if self.taper_immediate_strain:
+                logger.info("Tapering start of %s strain block", self.detector)
+                strain = gate_data(
+                        strain, [(strain.start_time, 0.,
+                                  self.autogating_taper)])
+                self.taper_immediate_strain = False
+
+            # Stitch into continuous stream
+            self.strain.roll(-sample_step)
+            self.strain[len(self.strain) - csize + self.corruption:] = strain[:]
+            self.strain.start_time += blocksize
 
         # apply gating if needed
-        if self.autogating_threshold is not None:
+        jax_autogated = False
+        if (self.autogating_threshold is not None
+                and isinstance(scheme.mgr.state, scheme.JAXScheme)):
+            from .strain_jax import autogate_strain_buffer_jax
+            jax_autogated = autogate_strain_buffer_jax(self)
+        if self.autogating_threshold is not None and not jax_autogated:
             autogating_duration_length = self.autogating_duration * self.sample_rate
             autogating_start_sample = int(len(self.strain) - autogating_duration_length)
             glitch_times = detect_loud_glitches(
