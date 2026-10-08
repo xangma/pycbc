@@ -300,7 +300,7 @@ class MarginalizedTime(DistMarg, BaseGaussianNoise):
                 flen = tlen // 2 + 1
             else:
                 flen = len(self._whitened_data[det])
-            
+
             hp.resize(flen)
             hc.resize(flen)
             self._whitened_data[det].resize(flen)
@@ -328,7 +328,7 @@ class MarginalizedTime(DistMarg, BaseGaussianNoise):
 
         self.draw_ifos(snr_estimate, log=False, **self.kwargs)
         self.snr_draw(snrs=snr_estimate)
-        
+
         refframe = params.get('tc_ref_frame', 'geocentric')
         ra = params['ra']
         dec = params['dec']

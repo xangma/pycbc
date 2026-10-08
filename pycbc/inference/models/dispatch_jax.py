@@ -2,7 +2,7 @@
 from importlib import import_module
 
 def implementation(cls):
-    families = {'gaussian_noise': ('gaussian_noise_jax', ('BaseGaussianNoise', 'GaussianNoise')), 'marginalized_gaussian_noise': ('marginalized_gaussian_noise_jax', ('MarginalizedPhaseGaussianNoise', 'MarginalizedTime', 'MarginalizedPolarization'))}
+    families = {'gaussian_noise': ('gaussian_noise_jax', ('BaseGaussianNoise', 'GaussianNoise')), 'marginalized_gaussian_noise': ('marginalized_gaussian_noise_jax', ('MarginalizedPhaseGaussianNoise', 'MarginalizedTime', 'MarginalizedPolarization', 'MarginalizedHMPolPhase'))}
     for native_name, (backend_name, names) in families.items():
         if cls.__module__ != f'{__package__}.{native_name}' or cls.__name__ not in names:
             continue
