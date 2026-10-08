@@ -232,8 +232,46 @@ def _jax_time_delay(
     return jnp.sum(displacement * ehat, axis=0) / C_SI
 
 
+def _jax_antenna_pattern_and_time_delay(
+    detector_location,
+    response,
+    right_ascension,
+    declination,
+    polarization,
+    gmst_start,
+    phase_offsets,
+):
+    x, y, ehat = _polarization_basis(
+        right_ascension, declination, polarization, gmst_start, phase_offsets
+    )
+    fplus, fcross = _response_contraction(response, x, y, phase_offsets)
+    location = -_place(detector_location, phase_offsets, phase_offsets.dtype)
+    location = location.reshape((3,) + (1,) * (ehat.ndim - 1))
+    return fplus, fcross, jnp.sum(location * ehat, axis=0) / C_SI
 
 
+def _jax_network_antenna_pattern_and_time_delay(
+    detector_locations,
+    responses,
+    right_ascension,
+    declination,
+    polarization,
+    gmst_start,
+    phase_offsets,
+):
+    """Evaluate tensor responses and delays for a detector network in JAX."""
+    x, y, ehat = _polarization_basis(
+        right_ascension, declination, polarization, gmst_start, phase_offsets
+    )
+    dtype = phase_offsets.dtype
+    responses_tensor = _place(responses, phase_offsets, dtype)
+    fplus, fcross = jax.vmap(
+        lambda response: _response_contraction(response, x, y, phase_offsets)
+    )(responses_tensor)
+
+    locations_tensor = _place(detector_locations, phase_offsets, dtype)
+    delay = -jnp.einsum("dj,j...->d...", locations_tensor, ehat) / C_SI
+    return fplus, fcross, delay
 
 
 def _input_spec(values, angular_values=()):
@@ -398,6 +436,35 @@ def antenna_pattern(
     )
 
 
+def antenna_pattern_and_time_delay(
+    detector, right_ascension, declination, polarization, t_gps
+):
+    if any(
+        _selected(name)
+        for name in (
+            "Detector.antenna_pattern",
+            "Detector.time_delay_from_location",
+            "Detector.gmst_estimate",
+        )
+    ):
+        return (
+            *detector.antenna_pattern(
+                right_ascension, declination, polarization, t_gps
+            ),
+            detector.time_delay_from_earth_center(right_ascension, declination, t_gps),
+        )
+    angular_inputs = (right_ascension, declination, polarization)
+    dtype = _input_spec(angular_inputs + (t_gps,), angular_inputs)
+    angles, _, gmst_start, phase_offsets = _sky_grid(
+        detector,
+        angular_inputs,
+        t_gps,
+        dtype,
+        reference=_reference_input(angular_inputs + (t_gps,)),
+    )
+    return _jax_antenna_pattern_and_time_delay(
+        detector.location, detector.response, *angles, gmst_start, phase_offsets
+    )
 
 
 def time_delay_from_location(
@@ -423,6 +490,67 @@ def time_delay_from_location(
     )
 
 
+def network_antenna_pattern_and_time_delay(
+    network, right_ascension, declination, polarization, t_gps
+):
+    """Fuse only detectors with the same built-in methods and clock policy."""
+    from pycbc.detector.ground import Detector
+
+    methods = (
+        "antenna_pattern",
+        "time_delay_from_earth_center",
+        "time_delay_from_location",
+        "gmst_estimate",
+        "antenna_pattern_and_time_delay",
+    )
+    first = network.detectors[0]
+    for detector in network.detectors:
+        if detector.reference_time is not None and detector.gmst_reference is None:
+            detector.set_gmst_reference()
+    qualified = all(
+        detector.reference_time == first.reference_time
+        and detector.gmst_reference == first.gmst_reference
+        and detector.sday == first.sday
+        and all(
+            getattr(getattr(detector, name), "__func__", None)
+            is getattr(Detector, name)
+            for name in methods
+        )
+        for detector in network.detectors
+    )
+    if not qualified or any(
+        _selected(name)
+        for name in (
+            "Detector.antenna_pattern",
+            "Detector.time_delay_from_location",
+            "Detector.gmst_estimate",
+        )
+    ):
+        rows = [
+            detector.antenna_pattern_and_time_delay(
+                right_ascension, declination, polarization, t_gps
+            )
+            for detector in network.detectors
+        ]
+        reference = _reference_input(
+            (right_ascension, declination, polarization, t_gps)
+        )
+        return tuple(
+            jnp.stack([_place(row[i], reference) for row in rows])
+            for i in range(3)
+        )
+    angular_inputs = (right_ascension, declination, polarization)
+    dtype = _input_spec(angular_inputs + (t_gps,), angular_inputs)
+    angles, _, gmst_start, phase_offsets = _sky_grid(
+        first,
+        angular_inputs,
+        t_gps,
+        dtype,
+        reference=_reference_input(angular_inputs + (t_gps,)),
+    )
+    return _jax_network_antenna_pattern_and_time_delay(
+        network.locations, network.responses, *angles, gmst_start, phase_offsets
+    )
 
 
 def effective_distance(detector, distance, ra, dec, pol, time, inclination):
@@ -474,7 +602,9 @@ def effective_distance(detector, distance, ra, dec, pol, time, inclination):
 
 __all__ = [
     "antenna_pattern",
+    "antenna_pattern_and_time_delay",
     "effective_distance",
+    "network_antenna_pattern_and_time_delay",
     "single_arm_frequency_response",
     "time_delay_from_location",
 ]

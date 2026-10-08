@@ -32,6 +32,7 @@ establish every supported parameter, workload or complete-search decision.
    jax_filtering_numerical_differences
    jax_search_numerical_differences
    jax_domain_numerical_differences
+   jax_detector_numerical_differences
 
 Independent calculations
 ------------------------
@@ -72,6 +73,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - Domains and priors
      - :doc:`jax_domain_numerical_differences` and :doc:`jax_domain`: conversion
        grouping, interpolation, roots, transform expressions and densities.
+   * - Detectors
+     - :doc:`jax_detector_numerical_differences`: sidereal-angle arithmetic,
+       response contractions, finite-arm cancellation and input-time precision.
 
 Select names through ``JAXScheme(reference_operations=(...))`` or the
 application option ``--jax-reference-operations``. Multiple names compose;

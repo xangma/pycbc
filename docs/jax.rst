@@ -73,6 +73,7 @@ Models and parameters
    :maxdepth: 1
 
    jax_domain
+   jax_detector
 
 Validation and performance
 --------------------------
