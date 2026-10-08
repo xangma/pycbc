@@ -535,3 +535,377 @@ def test_live_process_data_native_components_restore_actual_veto_results():
         for got, want in zip(sg_norms, expected_sg_norms):
             assert type(got) is type(want) is float
             assert got == want
+
+
+@pytest.fixture(params=["cpu", "cuda:0"])
+def jax_device(request):
+    if request.param == "cuda:0":
+        try:
+            available = jax.devices("gpu")
+        except RuntimeError:
+            available = []
+        if not available:
+            pytest.skip("CUDA JAX device unavailable")
+    return request.param
+
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_live_full_construction_preserves_dtype_tail_bits_and_snapshots(
+        jax_device, dtype):
+    ("Full-row construction retains scatter rounding "
+     "and untouched tail bits.")
+    batch, size, stride = 3, 9, 16
+    rng = np.random.default_rng(7261)
+    bank = (rng.normal(size=(batch, size))
+            + 1j * rng.normal(size=(batch, size))).astype(dtype)
+    strain = (rng.normal(size=size)
+              + 1j * rng.normal(size=size)).astype(dtype)
+    initial = (rng.normal(size=batch * stride)
+               + 1j * rng.normal(size=batch * stride)).astype(np.complex64)
+    # Assignment must preserve even NaN payloads and signed zeros in row tails.
+    initial.view(np.uint32)[2 * (stride - 2):2 * stride] = (
+        0x80000000, 0, 0x7fc01234, 0x80000000)
+    with scheme.JAXScheme(jax_device):
+        templates, y, parent = (jnp.asarray(value)
+                                for value in (bank, strain, initial))
+        before = np.asarray(parent).view(np.uint32).copy()
+        constructed = backend._live_construct_correlate_jax(
+            templates, y, parent, stride)
+        reference = backend._batch_correlate_update(
+            templates, y, parent, 0, stride)
+        assert constructed.dtype == parent.dtype
+        np.testing.assert_array_equal(np.asarray(constructed).view(np.uint32),
+                                      np.asarray(reference).view(np.uint32))
+        np.testing.assert_array_equal(
+            np.asarray(parent).view(np.uint32), before)
+        actual_rows = np.asarray(constructed).reshape(batch, stride)
+        expected_tails = initial.reshape(batch, stride)[:, size:]
+        np.testing.assert_array_equal(actual_rows[:, size:].view(np.uint32),
+                                      expected_tails.view(np.uint32))
+
+
+@pytest.mark.parametrize("reference_operations", [(), ("correlate",)])
+def test_owned_full_cuda_workspace_uses_construction_and_keeps_aliases(
+        jax_device, monkeypatch, reference_operations):
+    """Full CUDA roots construct; original correlation keeps writable aliases."""
+    batch, size, stride = 2, 7, 10
+    with scheme.JAXScheme(jax_device,
+                          reference_operations=reference_operations):
+        bank = [Array(np.arange(size, dtype=np.complex64) + 1j * (i + 1))
+                for i in range(batch)]
+        parent = Array(np.full(batch * stride, 9 + 4j, np.complex64))
+        views = [parent[i * stride:(i + 1) * stride] for i in range(batch)]
+        correlator = BatchCorrelator(
+            bank, views, size, immutable_templates=True)
+        backend._bind_live_correlate_workspace_jax(correlator, parent)
+        original_construct = backend._live_construct_correlate_jax
+        original_native = backend._cpu_correlate
+        calls, native_calls = [], []
+
+        def construct(*args):
+            calls.append(True)
+            return original_construct(*args)
+
+        def native(*args):
+            native_calls.append(True)
+            return original_native(*args)
+
+        monkeypatch.setattr(
+            backend, "_live_construct_correlate_jax", construct)
+        monkeypatch.setattr(backend, "_cpu_correlate", native)
+        alias = Array(parent, copy=False)
+        initial = np.asarray(parent).copy() + np.complex64(1 - 2j)
+        parent._data.set_array(jnp.asarray(initial))
+        retained = parent._data.array
+        correlator.execute(Array(np.arange(size, dtype=np.complex64) + 2j))
+        np.testing.assert_array_equal(np.asarray(retained), initial)
+        np.testing.assert_array_equal(np.asarray(alias), np.asarray(parent))
+        np.testing.assert_array_equal(
+            np.asarray(parent).reshape(batch, stride)[:, size:],
+            initial.reshape(batch, stride)[:, size:])
+        expected_construct = int(jax_device != "cpu"
+                                 and not reference_operations)
+        assert len(calls) == expected_construct
+        assert len(native_calls) == (batch if reference_operations else 0)
+
+
+def _workspace(*, immutable=True, nested=False):
+    """Small bank with nonzero prefix, row tails, and root suffix."""
+    batch, size, stride, base, tail = 3, 5, 8, 2, 4
+    outer = 4 if nested else 0
+    rng = np.random.default_rng(5102)
+    bank = (rng.normal(size=(batch, size)) +
+            1j * rng.normal(size=(batch, size))).astype(np.complex64)
+    y_data = (rng.normal(size=size + 2) +
+              1j * rng.normal(size=size + 2)).astype(np.complex64)
+    length = base + batch * stride + tail
+    root = Array((np.arange(length + 2 * outer) * (0.2 + 0.3j)
+                  + 2 - 1j).astype(np.complex64))
+    owner = root[outer:outer + length] if nested else Array(root, copy=False)
+    zs = [owner[base + row * stride:base + (row + 1) * stride]
+          for row in range(batch)]
+    correlator = BatchCorrelator(
+        [Array(row) for row in bank], zs, size,
+        immutable_templates=immutable,
+    )
+    return SimpleNamespace(
+        correlator=correlator, root=root, owner=owner, bank=bank,
+        y=Array(y_data), y_data=y_data, size=size, stride=stride,
+        starts=[outer + base + row * stride for row in range(batch)],
+    )
+
+
+def _assert_writes(root, before, writes):
+    """NumPy assignment oracle also checks every untouched sample exactly."""
+    expected = before.copy()
+    touched = np.zeros(before.size, dtype=bool)
+    for start, values in writes:
+        expected[start:start + len(values)] = values
+        touched[start:start + len(values)] = True
+    actual = np.asarray(root)
+    np.testing.assert_allclose(actual, expected, rtol=2e-6, atol=2e-6)
+    np.testing.assert_array_equal(actual[~touched], before[~touched])
+    return expected
+
+
+def test_owned_workspace_reuses_geometry_with_current_buffers(
+        jax_device, monkeypatch):
+    """Warm execution reuses geometry, never the previous block's values."""
+    with scheme.JAXScheme(jax_device):
+        ws = _workspace()
+        correlator = ws.correlator
+        backend._bind_live_correlate_workspace_jax(correlator, ws.owner)
+        workspace = correlator._jax_live_workspace
+        assert isinstance(correlator.zs, tuple)
+        assert correlator.zs is workspace.outputs
+        alias = Array(ws.root, copy=False)
+
+        def unexpected_scan(*args):
+            raise AssertionError("owned warm path rescanned output geometry")
+
+        monkeypatch.setattr(backend, "_batch_correlate_geometry_jax",
+                            unexpected_scan)
+        for scale in (np.complex64(1), np.complex64(0.25 - 0.75j)):
+            before = (np.asarray(ws.root) + np.complex64(3 - 2j))
+            ws.root._data.set_array(jnp.asarray(before))
+            current_y = ws.y_data * scale
+            ws.y._data.set_array(jnp.asarray(current_y))
+            correlator.batch_correlate_execute(ws.y)
+            products = np.conj(ws.bank) * current_y[None, :ws.size]
+            expected = _assert_writes(
+                ws.root, before, zip(ws.starts, products),
+            )
+            np.testing.assert_array_equal(np.asarray(alias),
+                                          np.asarray(ws.root))
+            for z, start in zip(correlator.zs, ws.starts):
+                np.testing.assert_allclose(
+                    np.asarray(z), expected[start:start + ws.stride],
+                    rtol=2e-6, atol=2e-6,
+                )
+            assert correlator._jax_live_workspace is workspace
+
+
+@pytest.mark.parametrize("change", [
+    "reorder", "replace_outputs", "size", "xs", "matrix", "owner",
+    "root_shape", "root_dtype", "root_parent",
+])
+def test_owned_workspace_invalidates_changed_geometry(
+        jax_device, monkeypatch, change):
+    """Invalidated ownership must execute the current generic contract."""
+    with scheme.JAXScheme(jax_device):
+        ws = _workspace()
+        correlator = ws.correlator
+        backend._bind_live_correlate_workspace_jax(correlator, ws.owner)
+        correlator.batch_correlate_execute(ws.y)
+        previous_root = None
+        bank = ws.bank
+        if change == "reorder":
+            correlator.zs = tuple(reversed(correlator.zs))
+            ws.starts.reverse()
+        elif change == "replace_outputs":
+            previous_root = (ws.root, np.asarray(ws.root).copy())
+            ws.root = Array(np.full(len(ws.root), 8 + 7j, np.complex64))
+            correlator.zs = tuple(
+                ws.root[start:start + ws.stride] for start in ws.starts
+            )
+        elif change == "size":
+            correlator.size -= 2
+        elif change == "xs":
+            correlator.xs = list(correlator.xs)
+        elif change == "matrix":
+            bank = bank * np.complex64(0.5 + 0.25j)
+            correlator._jax_template_matrix = jnp.asarray(bank)
+        elif change == "owner":
+            ws.owner._data = Array(
+                np.full(len(ws.root), 4 + 9j, np.complex64)
+            )._data
+        elif change == "root_shape":
+            ws.root._data.array = jnp.concatenate([
+                ws.root._data.array, jnp.full(3, 9 - 5j, dtype=jnp.complex64),
+            ])
+        elif change == "root_dtype":
+            ws.root._data.array = ws.root._data.array.astype(jnp.complex128)
+            ws.root._data.dtype = np.dtype(np.complex128)
+        elif change == "root_parent":
+            inner = np.asarray(ws.root)
+            outer = Array(np.concatenate([
+                np.full(4, 6 - 5j, np.complex64), inner,
+                np.full(4, -3 + 2j, np.complex64),
+            ]))
+            parent = ws.root._data
+            parent.parent = outer._data
+            parent.slice_info = slice(4, 4 + len(inner))
+            parent.array = None
+            ws.root = outer
+            ws.starts = [start + 4 for start in ws.starts]
+
+        scans = []
+        original = backend._batch_correlate_geometry_jax
+
+        def record_scan(outputs, size):
+            scans.append((outputs, size))
+            return original(outputs, size)
+
+        monkeypatch.setattr(backend, "_batch_correlate_geometry_jax",
+                            record_scan)
+        before = np.asarray(ws.root).copy()
+        owner_before = np.asarray(ws.owner).copy()
+        correlator.batch_correlate_execute(ws.y)
+        products = (np.conj(bank[:, :correlator.size])
+                    * ws.y_data[None, :correlator.size])
+        _assert_writes(ws.root, before, zip(ws.starts, products))
+        assert correlator._jax_live_workspace is None
+        assert len(scans) == 1
+        if previous_root is not None:
+            np.testing.assert_array_equal(np.asarray(previous_root[0]),
+                                          previous_root[1])
+        if change == "owner":
+            np.testing.assert_array_equal(np.asarray(ws.owner), owner_before)
+
+
+@pytest.mark.parametrize("unsupported", [
+    "mutable_templates", "nested_owner", "wrong_owner", "unrelated_outputs",
+    "matrix_shape",
+])
+def test_private_workspace_binding_rejects_unowned_layouts(
+        jax_device, unsupported):
+    """Unsupported binding leaves ordinary correlation available."""
+    with scheme.JAXScheme(jax_device):
+        ws = _workspace(immutable=unsupported != "mutable_templates",
+                        nested=unsupported == "nested_owner")
+        correlator = ws.correlator
+        owner = ws.owner
+        if unsupported == "wrong_owner":
+            owner = Array(np.asarray(ws.owner))
+        elif unsupported == "unrelated_outputs":
+            correlator.zs = [Array(np.full(ws.stride, 5 + 2j, np.complex64))
+                             for _ in ws.bank]
+        elif unsupported == "matrix_shape":
+            correlator.size = 3
+            # The binding requires the complete fixed matrix geometry.
+        outputs = correlator.zs
+        backend._bind_live_correlate_workspace_jax(correlator, owner)
+        assert getattr(correlator, "_jax_live_workspace", None) is None
+        assert correlator.zs is outputs
+        before = np.asarray(ws.root).copy()
+        correlator.batch_correlate_execute(ws.y)
+        products = (np.conj(ws.bank[:, :correlator.size])
+                    * ws.y_data[None, :correlator.size])
+        if unsupported == "unrelated_outputs":
+            np.testing.assert_array_equal(np.asarray(ws.root), before)
+            for z, product in zip(outputs, products):
+                np.testing.assert_allclose(np.asarray(z)[:ws.size], product,
+                                           rtol=2e-6, atol=2e-6)
+                np.testing.assert_array_equal(np.asarray(z)[ws.size:], 5 + 2j)
+        else:
+            _assert_writes(ws.root, before, zip(ws.starts, products))
+
+
+def test_failed_rebind_clears_previous_owned_workspace(jax_device):
+    """Rejected ownership cannot retain a previously qualified workspace."""
+    with scheme.JAXScheme(jax_device):
+        ws = _workspace()
+        correlator = ws.correlator
+        backend._bind_live_correlate_workspace_jax(correlator, ws.owner)
+        assert correlator._jax_live_workspace is not None
+        outputs = correlator.zs
+        wrong_owner = Array(np.asarray(ws.owner))
+        wrong_before = np.asarray(wrong_owner).copy()
+        backend._bind_live_correlate_workspace_jax(correlator, wrong_owner)
+        assert correlator._jax_live_workspace is None
+        assert correlator.zs is outputs
+        before = np.asarray(ws.root).copy()
+        correlator.batch_correlate_execute(ws.y)
+        products = np.conj(ws.bank) * ws.y_data[None, :ws.size]
+        _assert_writes(ws.root, before, zip(ws.starts, products))
+        np.testing.assert_array_equal(np.asarray(wrong_owner), wrong_before)
+
+
+@pytest.mark.parametrize("immutable", [False, True])
+@pytest.mark.parametrize("change", [
+    "reorder", "replace_row", "row_data", "row_parent", "row_slice",
+])
+def test_generic_correlator_observes_output_mutations(
+        jax_device, immutable, change):
+    """Frozen template values do not freeze generic mutable output geometry."""
+    with scheme.JAXScheme(jax_device):
+        ws = _workspace(immutable=immutable)
+        correlator = ws.correlator
+        correlator.batch_correlate_execute(ws.y)
+        other = Array(np.full(len(ws.root), 6 + 9j, np.complex64))
+        destinations = [(ws.root, start) for start in ws.starts]
+        if change == "reorder":
+            correlator.zs.reverse()
+            destinations.reverse()
+        elif change in ("replace_row", "row_data"):
+            replacement = other[3:3 + ws.stride]
+            if change == "replace_row":
+                correlator.zs[1] = replacement
+            else:
+                correlator.zs[1]._data = replacement._data
+            destinations[1] = (other, 3)
+        elif change == "row_parent":
+            correlator.zs[1]._data.parent = other._data
+            destinations[1] = (other, ws.starts[1])
+        elif change == "row_slice":
+            start = ws.starts[2]
+            correlator.zs[1]._data.slice_info = slice(start, start + ws.stride)
+            destinations[1] = (ws.root, start)
+
+        before = np.asarray(ws.root).copy()
+        other_before = np.asarray(other).copy()
+        current_y = ws.y_data * np.complex64(0.25 - 0.5j)
+        ws.y._data.set_array(jnp.asarray(current_y))
+        correlator.batch_correlate_execute(ws.y)
+        products = np.conj(ws.bank) * current_y[None, :ws.size]
+        for root, baseline in ((ws.root, before), (other, other_before)):
+            writes = [(start, row) for (destination, start), row
+                      in zip(destinations, products) if destination is root]
+            expected = _assert_writes(root, baseline, writes)
+            for z, (destination, start) in zip(correlator.zs, destinations):
+                if destination is root:
+                    np.testing.assert_allclose(
+                        np.asarray(z), expected[start:start + ws.stride],
+                        rtol=2e-6, atol=2e-6,
+                    )
+        assert getattr(correlator, "_jax_live_workspace", None) is None
+
+
+@pytest.mark.parametrize("nested", [False, True])
+def test_generic_mutable_template_output_aliases_use_current_values(
+        jax_device, nested):
+    """Inputs aliasing outputs must be consumed before any row is published."""
+    with scheme.JAXScheme(jax_device):
+        ws = _workspace(immutable=False, nested=nested)
+        correlator = ws.correlator
+        correlator.xs = list(reversed(correlator.zs))
+        for scale in (np.complex64(1), np.complex64(-0.3 + 0.2j)):
+            before = np.asarray(ws.root).copy()
+            current_y = ws.y_data * scale
+            ws.y._data.set_array(jnp.asarray(current_y))
+            inputs = np.stack([np.asarray(x)[:ws.size]
+                               for x in correlator.xs])
+            products = np.conj(inputs) * current_y[None, :ws.size]
+            correlator.batch_correlate_execute(ws.y)
+            _assert_writes(ws.root, before, zip(ws.starts, products))
+            assert getattr(correlator, "_jax_live_workspace", None) is None
