@@ -183,6 +183,26 @@ def timeslide_durations(start1, start2, end1, end2, timeslide_offsets):
     return numpy.array(durations)
 
 
+def _coinc_backend(*values):
+    """Select the coincidence backend for inputs or the active scheme.
+
+    A live worker may receive NumPy trigger buffers even though the selected
+    processing scheme is JAX.  The backend owns that host-to-device boundary;
+    selecting it here ensures that no coincidence or clustering stage quietly
+    falls back to the native CPU implementation.
+    """
+    from pycbc import scheme
+    from pycbc.types.backend import is_backend
+
+    if any(is_backend(value, "jax") for value in values) or isinstance(
+        scheme.mgr.state, scheme.JAXScheme
+    ):
+        from . import coinc_jax
+
+        return coinc_jax
+    return None
+
+
 def time_coincidence(t1, t2, window, slide_step=0):
     """ Find coincidences by time window
 
@@ -207,6 +227,10 @@ def time_coincidence(t1, t2, window, slide_step=0):
     slide : numpy.ndarray
         Array of slide ids
     """
+    backend = _coinc_backend(t1, t2)
+    if backend is not None:
+        return backend.time_coincidence(t1, t2, window, slide_step)
+
     if slide_step:
         length1 = len(t1)
         length2 = len(t2)
@@ -379,6 +403,12 @@ def cluster_coincs(stat, time1, time2, timeslide_id, slide, window, **kwargs):
     cindex: numpy.ndarray
         The set of indices corresponding to the surviving coincidences.
     """
+    backend = _coinc_backend(stat, time1, time2, timeslide_id)
+    if backend is not None:
+        return backend.cluster_coincs(
+            stat, time1, time2, timeslide_id, slide, window, **kwargs
+        )
+
     if len(time1) == 0 or len(time2) == 0:
         logger.info('No coinc triggers in one, or both, ifos.')
         return numpy.array([])
@@ -424,6 +454,12 @@ def cluster_coincs_multiifo(stat, time_coincs, timeslide_id, slide, window,
     cindex: numpy.ndarray
         The set of indices corresponding to the surviving coincidences
     """
+    backend = _coinc_backend(stat, *time_coincs, timeslide_id)
+    if backend is not None:
+        return backend.cluster_coincs_multiifo(
+            stat, time_coincs, timeslide_id, slide, window, **kwargs
+        )
+
     time_coinc_zip = list(zip(*time_coincs))
     if len(time_coinc_zip) == 0:
         logger.info('No coincident triggers.')
@@ -504,6 +540,11 @@ def cluster_over_time(stat, time, window, method='python',
     cindex: numpy.ndarray
         The set of indices corresponding to the surviving coincidences.
     """
+    backend = _coinc_backend(stat, time)
+    if backend is not None:
+        return backend.cluster_over_time(
+            stat, time, window, method=method, argmax=argmax
+        )
 
     indices = []
     time_sorting = time.argsort()

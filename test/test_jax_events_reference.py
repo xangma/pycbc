@@ -14,6 +14,7 @@ from pycbc import scheme
 from pycbc.events import cuts, ranking, veto
 from pycbc.events.eventmgr import EventManager, findchirp_cluster_over_window
 from pycbc.events.eventmgr_jax import JAXEventManager
+from pycbc.events import coinc
 from pycbc.events.stat import QuadratureSumStatistic
 
 
@@ -156,6 +157,42 @@ def test_original_event_selection_controls(method, selector, options):
         for name in expected.dtype.names:
             exact(device.events[name], expected[name])
             assert device.events[name].device == scheme.mgr.state.jax_device
+
+
+@pytest.mark.parametrize('operation', ['time_coincidence', 'cluster_over_time',
+                                      'cluster_coincs', 'cluster_coincs_multiifo'])
+def test_original_coincidence_controls_preserve_tie_order(operation):
+    times = np.tile(np.array([10., 11., 12.]), 12)
+    stat = np.ones(times.size)
+    if operation == 'time_coincidence':
+        args = (times, np.array([10.]), .1)
+    elif operation == 'cluster_over_time':
+        args = (stat, times, .1)
+    elif operation == 'cluster_coincs':
+        args = (stat, times, times, np.zeros(times.size, np.int32), 0., .1)
+    else:
+        args = (stat, (times, times), np.zeros(times.size, np.int32), 0., .1)
+    function = getattr(coinc, operation)
+    with scheme.CPUScheme():
+        expected = function(*args)
+    with scheme.JAXScheme('cpu', reference_operations=[operation]):
+        actual = function(*args)
+        if operation == 'time_coincidence':
+            for got, want in zip(actual, expected):
+                exact(got, want)
+        else:
+            exact(actual, expected)
+
+
+def test_original_coincidence_geometry_at_gps_rounding_boundary():
+    base = 1e9
+    first = np.array([base, base + .25])
+    second = np.array([base + np.spacing(base), base + .25])
+    args = (np.array([1., 2.]), first, second, np.zeros(2, np.int32), 0., .25)
+    with scheme.CPUScheme():
+        expected = coinc.cluster_coincs(*args)
+    with scheme.JAXScheme('cpu', reference_operations=['cluster_coincs']):
+        exact(coinc.cluster_coincs(*args), expected)
 
 
 def test_original_quadrature_sum_control():
