@@ -279,12 +279,12 @@ class TDomainCBCGenerator(BaseCBCGenerator):
         if 'taper' in self.current_params:
             location = self.current_params['taper']
             hp = hp.taper_timeseries(location=location,
-                                     tapermethod=self.current_params.get('taper_method', 'lal'), 
+                                     tapermethod=self.current_params.get('taper_method', 'lal'),
                                      taper_window=self.current_params.get('taper_window'))
             hc = hc.taper_timeseries(location=location,
-                                     tapermethod=self.current_params.get('taper_method', 'lal'), 
+                                     tapermethod=self.current_params.get('taper_method', 'lal'),
                                      taper_window=self.current_params.get('taper_window'))
- 
+
         return hp, hc
 
 
@@ -310,11 +310,11 @@ class TDomainCBCModesGenerator(BaseCBCGenerator):
             location = self.current_params['taper']
             for mode in res:
                 ulm, vlm = res[mode]
-                ulm = ulm.taper_timeseries(location=location, 
-                                           tapermethod=self.current_params.get('taper_method', 'lal'), 
+                ulm = ulm.taper_timeseries(location=location,
+                                           tapermethod=self.current_params.get('taper_method', 'lal'),
                                            taper_window=self.current_params.get('taper_window'))
-                vlm = vlm.taper_timeseries(location=location, 
-                                           tapermethod=self.current_params.get('taper_method', 'lal'), 
+                vlm = vlm.taper_timeseries(location=location,
+                                           tapermethod=self.current_params.get('taper_method', 'lal'),
                                            taper_window=self.current_params.get('taper_window'))
                 res[mode] = (ulm, vlm)
         return res
@@ -504,6 +504,15 @@ class BaseFDomainDetFrameGenerator(metaclass=ABCMeta):
     """Set: Should be overriden by children classes with a set of parameters
         that set the binary's location.
     """
+
+    def __new__(cls, *args, **kwargs):
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from .generator_jax import implementation
+            target = implementation(cls)
+            if target is not None:
+                return object.__new__(target)
+        return object.__new__(cls)
 
     def __init__(self, rFrameGeneratorClass, epoch, detectors=None,
                  variable_args=(), recalib=None, gates=None, **frozen_params):
@@ -967,10 +976,10 @@ class FDomainDetFrameTwoPolNoRespGenerator(BaseFDomainDetFrameGenerator):
 
 class FDomainDetFrameTwoPhaseGenerator(BaseFDomainDetFrameGenerator):
     r"""Generates frequency-domain waveform in a specific frame.
-    
+
     This class assumes that the radiation-frame waveform can be decomposed in
     terms of a phase phi such that
-        
+
         h = h_c * cos(phi) + h_s * sin(phi),
 
     where h_c and h_s are the waveform evaluated at phi = 0 and phi = pi/2
@@ -1386,6 +1395,10 @@ class FDomainDirectDetFrameGenerator(BaseCBCGenerator):
 
 def get_td_generator(approximant, modes=False):
     """Returns the time-domain generator for the given approximant."""
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .generator_jax import get_td_generator as selected
+        return selected(approximant, modes=modes)
     if approximant in waveform.td_approximants():
         if modes:
             return TDomainCBCModesGenerator
@@ -1399,11 +1412,15 @@ def get_td_generator(approximant, modes=False):
     if approximant in supernovae.supernovae_td_approximants:
         return TDomainSupernovaeGenerator
 
-    raise ValueError(f"No time-domain generator found for " 
+    raise ValueError(f"No time-domain generator found for "
                       "approximant: {approximant}")
 
 def get_fd_generator(approximant, modes=False):
     """Returns the frequency-domain generator for the given approximant."""
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .generator_jax import get_fd_generator as selected
+        return selected(approximant, modes=modes)
     if approximant in waveform.fd_approximants():
         if modes:
             return FDomainCBCModesGenerator
