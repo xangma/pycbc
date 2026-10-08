@@ -62,6 +62,7 @@ library and application suite.
    jax_arrays
    jax_fft
    jax_psd
+   jax_filtering
    searches
    inference
    apps

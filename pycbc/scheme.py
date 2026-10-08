@@ -207,14 +207,14 @@ class NumpyScheme(CPUScheme):
 
 
 JAX_REFERENCE_OPERATIONS = frozenset({
-    'sum', 'cumsum', 'dot', 'inner', 'weighted_inner', 'multiply_and_add',
-    'abs_max_loc', 'abs_arg_max', 'squared_norm', 'min', 'max', 'max_loc',
-    'fft', 'ifft', 'welch', 'inverse_spectrum_truncation', 'interpolate',
-    'analytical_psd', 'highpass', 'lowpass', 'lfilter', 'fir_zero_filter',
-    'resample', 'firwin', 'correlate', 'divide', 'autocorrelation',
-    'autocorrelation_mean', 'autocorrelation_variance', 'threshold_cluster',
-    'shift_sum', 'chisq_accum_bin', 'power_chisq_bins',
-    'power_chisq_at_points',
+    "sum", "cumsum", "dot", "inner", "weighted_inner", "multiply_and_add",
+    "abs_max_loc", "abs_arg_max", "squared_norm", "min", "max", "max_loc",
+    "fft", "ifft",
+    "welch", "inverse_spectrum_truncation", "interpolate", "analytical_psd",
+    "highpass", "lowpass", "lfilter", "fir_zero_filter", "resample", "firwin",
+    "correlate", "divide", "autocorrelation", "autocorrelation_mean",
+    "autocorrelation_variance", "threshold_cluster", "shift_sum", "chisq_accum_bin",
+    "power_chisq_bins", "power_chisq_at_points", "sg_basis", "sgchisq", "time_shift",
 })
 
 
