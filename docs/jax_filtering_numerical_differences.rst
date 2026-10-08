@@ -1,25 +1,49 @@
 .. _jax-filtering-numerical-differences:
 
-JAX filtering numerical differences
-===================================
+JAX conditioning and filtering numerical differences
+====================================================
 
 Conditioning, correlation, normalization and vetoes combine operations whose
 floating-point ordering depends on the implementation. The
 :download:`filtering comparison notebook <../examples/jax/jax_filtering_numerical_differences.ipynb>` fixes input bytes,
 precision, grids and calculation options before comparing original CPU and
 default JAX results. Its controlled examples distinguish changed mathematical
-choices from ordinary rounding. Recorded outputs apply to their displayed
-libraries and device.
+choices from ordinary rounding.
 
 The :download:`standalone filtering rounding notebook <../examples/jax/jax_filtering_rounding.ipynb>` requires only NumPy and JAX.
 It uses small generated inputs to isolate arithmetic and rounding, without
 importing PyCBC or LAL. Use the comparison notebook above to validate the
-actual PyCBC implementations and original routes. Each notebook records
-its own library versions and device; matching arithmetic controls do not
-establish complete-search equivalence.
+actual PyCBC implementations and original routes. See
+:doc:`jax_numerical_differences` for the shared validation rules and limits of
+these fixed-input examples.
+
+.. _jax-strain-numerical-differences:
+.. _jax-conditioning-numerical-differences:
+
+Conditioning and whitening
+--------------------------
+
+The :download:`strain comparison notebook <../examples/jax/jax_strain_numerical_differences.ipynb>` generates a temporary
+GWF, advances the public strain buffer, and compares conditioning, Welch PSD,
+both truncated PSD grids and the whitened spectrum. It fixes sample bytes,
+precision, spacing, epochs and options. The temporary frame is removed after
+execution; no downloaded data is needed.
+
+Default JAX runs conditioning on the selected device. Different results can
+come from FIR coefficient construction, transform ordering, PSD arithmetic,
+complex division and Tukey cosine values. The
+:ref:`IIR <jax-iir-numerical-differences>` and
+:ref:`FIR <jax-fir-numerical-differences>` sections below, together with the
+:doc:`FFT <jax_fft_numerical_differences>`,
+:doc:`PSD <jax_psd_numerical_differences>` and
+:doc:`array <jax_array_numerical_differences>` examples, isolate those boundaries.
+Single-precision live input retains single-precision PSD storage and Welch
+calculation; x64 availability does not silently widen its transforms.
+
+.. _jax-iir-numerical-differences:
 
 Butterworth state updates
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 An IIR section advances its state as ``state[n] = A * state[n-1] + offset[n]``.
 LAL visits samples in order. JAX composes these affine maps in a parallel
@@ -29,21 +53,23 @@ rounding, even with identical coefficients and zero initial state.
 
 Coefficient construction adds trigonometric functions, pole transforms and
 gain normalization. Algebraically equivalent coefficient expressions can
-round differently before samples enter the recurrence. The notebook holds a
-simple recurrence fixed to demonstrate the grouping boundary, separately
+round differently before samples enter the recurrence. The filtering notebook
+holds a simple recurrence fixed to demonstrate the grouping boundary, separately
 from complete highpass/lowpass comparisons. For additive updates
 ``[1e16, 1, -1e16, 1]``, sequential and parallel scans end at ``1`` and ``0``.
 Its 256-sample float64 highpass comparison differs by at most ``2.42e-13``;
 float32 highpass agrees in that particular example.
 
+.. _jax-fir-numerical-differences:
+
 FIR design and application
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Kaiser-windowed sinc design combines elementary functions with a coefficient
 normalization sum. JAX uses a fixed compensated pair tree for that sum;
 compensation retains rounding residuals, but does not make different
-elementary-function implementations identical. The notebook compares actual
-coefficients and a cancellation example with known lost terms.
+elementary-function implementations identical. The filtering notebook compares
+actual coefficients and a cancellation example with known lost terms.
 
 Short causal filtering and long circular FFT filtering follow the original
 API's separate conventions. Fixing one coefficient array removes design
@@ -55,6 +81,55 @@ Kaiser coefficients differ by at most ``5.55e-17``. With identical coefficients
 and original forward/inverse transforms, circular filtering still differs by
 ``4.44e-16``: that control leaves JAX spectral multiplication and scaling in
 place, and does not apportion the remaining error between them.
+
+.. _jax-whitening-numerical-differences:
+
+Whitening operation order
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The original padded path scales its forward transform by ``delta_t``, divides
+by the PSD, and scales an unnormalized inverse by ``delta_f``. The fused JAX
+path cancels those normalization factors algebraically before the inverse.
+Finite-precision arithmetic rounds the original intermediate scale and
+division separately, so this cancellation can change the result even when the
+real-arithmetic expressions agree.
+
+The strain notebook isolates that cause without an FFT. For float32 value
+``0.86845714``, scale ``0.2`` and denominator ``1.142317``, scaling before
+division gives ``0.15205187``; dividing before scaling gives ``0.15205185`` on
+the displayed NumPy installation. Full whitening can additionally differ
+because of the transform and division implementations.
+
+Selecting ``fft``, ``ifft``, ``divide`` and ``gate_data`` uses the original
+staged order with the original kernels. Adding ``firwin``, ``fir_zero_filter``,
+``resample``, ``welch``, ``interpolate`` and
+``inverse_spectrum_truncation`` restores all preceding stages in the notebook's
+public GWF-to-spectrum example. Every intermediate dtype and byte, plus series
+metadata, must match its original CPU reference exactly.
+
+On the notebook's displayed CPU/FFTW installation, the default conditioned
+strain and final whitened spectrum have relative L2 differences of about
+``2.38e-7`` and ``4.91e-7``. The selected original stages match every byte.
+Those observations describe this input and installation, not a universal
+error bound.
+
+.. _jax-gating-numerical-differences:
+
+Gating and decisions
+~~~~~~~~~~~~~~~~~~~~
+
+Tukey gating evaluates a cosine taper and multiplies the data in place.
+Elementary-function and multiplication rounding can change taper samples.
+The strain notebook holds gate times and widths fixed, compares original/default
+values, and verifies that gating a slice updates its parent. Its float64 gate
+example has ten differing samples, at most ``2.22e-16`` apart, on the displayed
+CPU libraries; the original gate control matches every byte.
+
+Glitch detection estimates a PSD, whitens data, applies a strict magnitude
+threshold and clusters surviving peaks. A small upstream difference can move
+a threshold decision. Equal peak counts do not establish equal whitening
+values. ``detect_loud_glitches`` restores the complete original calculation;
+``findchirp_cluster`` restores clustering alone. Both controls remain opt-in.
 
 Matched filtering and autocorrelation
 -------------------------------------
@@ -72,7 +147,7 @@ control and the limits of attributing an opaque FFT library's internal
 operations. See :doc:`jax_array_numerical_differences` for independent product
 precision and reduction controls.
 
-The notebook fixes the norm and replaces correlation and the inverse
+The filtering notebook fixes the norm and replaces correlation and the inverse
 transform independently. Selecting both still leaves 16 correlation samples
 different because PSD division remains JAX. Adding ``divide`` restores those
 bytes for the fixture. Its complete frequency-input comparison selects
@@ -246,14 +321,8 @@ fixture, and ``sgchisq`` separately restores the entire original calculation.
 Validation controls
 -------------------
 
-See :doc:`jax_filtering` for the operation names. Controls are opt-in and
-retain JAX execution at other boundaries. Whole-stage routes execute original
-CPU/LAL code with the original inputs and selected CPU FFT backend; they copy
-results back to the active device. Host transfers and process startup cost
-time, and native controls cannot run inside JAX tracing or differentiation.
-
-The notebook asserts dtype, shape, bytes and applicable series metadata.
-Its measured values apply to the displayed CPU libraries and device, not all
-configurations or a complete search. Default numerical mismatches remain
-failed equality comparisons even when a higher-precision calculation is
-closer to an independent mathematical oracle.
+See :doc:`jax_filtering` for the operation names and
+:doc:`jax_numerical_differences` for shared comparison requirements. The
+filtering and strain notebooks assert dtype, shape, bytes and applicable
+series metadata against the installed original calculation. Select the
+preceding stages as well when validating a composed calculation.

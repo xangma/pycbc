@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import copy
 from types import SimpleNamespace
 
 import numpy as np
@@ -15,7 +16,7 @@ from pycbc import scheme
 from pycbc.events import cuts, ranking, veto
 from pycbc.events.eventmgr import EventManager, findchirp_cluster_over_window
 from pycbc.events.eventmgr_jax import JAXEventManager
-from pycbc.events import coinc
+from pycbc.events import coinc, coinc_jax
 from pycbc.events.stat import QuadratureSumStatistic
 
 
@@ -256,3 +257,34 @@ def test_original_quadrature_sum_control():
         exact(statistic.rank_stat_coinc(*args), expected)
 
 
+def test_quadrature_default_uses_original_square_and_sqrt_operations():
+    first = np.random.default_rng(42).normal(size=100).astype(np.float32)
+    second = np.random.default_rng(43).normal(size=100).astype(np.float32)
+    statistic = object.__new__(QuadratureSumStatistic)
+    inputs = [['H1', first], ['L1', second]]
+    with scheme.CPUScheme():
+        expected = statistic.rank_stat_coinc(inputs, None, None, None)
+    with scheme.JAXScheme('cpu'):
+        actual = statistic.rank_stat_coinc(inputs, None, None, None)
+        exact(actual, expected)
+        exact(coinc_jax._resident_live_quadrature(
+            jnp.asarray(first), jnp.asarray(second)), expected)
+
+
+@pytest.mark.parametrize('ifars, stats', [
+    ((0., 0.), (0., 0.)), ((-1., -2.), (1., 2.)),
+    ((np.nan, 2.), (0., 0.)), ((2., 2.), (1., np.nan)),
+    ((2., 2.), (np.nan, 1.)), ((2., 2.), (1., 2.)),
+])
+def test_best_coincidence_keeps_original_ordered_comparisons(ifars, stats):
+    values = [{'coinc_possible': True, 'foreground/ifar': ifar,
+               'foreground/stat': np.array([stat]), 'foreground/type': str(index)}
+              for index, (ifar, stat) in enumerate(zip(ifars, stats))]
+    estimator = coinc.LiveCoincTimeslideBackgroundEstimator
+    with scheme.CPUScheme():
+        expected = estimator.pick_best_coinc(copy.deepcopy(values))
+    with scheme.JAXScheme('cpu'):
+        actual = coinc_jax.JAXLiveCoincTimeslideBackgroundEstimator.pick_best_coinc(
+            copy.deepcopy(values))
+        assert actual['foreground/type'] == expected['foreground/type']
+        exact(actual['foreground/ifar'], expected['foreground/ifar'])

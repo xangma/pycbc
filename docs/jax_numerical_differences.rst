@@ -30,6 +30,7 @@ establish every supported parameter, workload or complete-search decision.
    jax_fft_numerical_differences
    jax_psd_numerical_differences
    jax_filtering_numerical_differences
+   jax_search_numerical_differences
 
 Independent calculations
 ------------------------
@@ -53,11 +54,14 @@ links an executed notebook with fixed inputs and exact original-route checks.
      - :doc:`jax_psd_numerical_differences`: window precision, Welch averaging,
        interpolation, truncation and analytical physical constants.
    * - Conditioning
-     - :doc:`jax_filtering_numerical_differences`: Butterworth state updates,
-       FIR design and resampling.
+     - :ref:`jax-conditioning-numerical-differences`: filter coefficients,
+       recurrence, resampling, gating and whitening operation order.
    * - Filtering and vetoes
      - :doc:`jax_filtering_numerical_differences`: accumulation, template
        normalization, interpolation and chi-square construction.
+   * - Search
+     - :doc:`jax_search_numerical_differences`: ranking, tied selection,
+       event cuts and coincidence ordering.
 
 Select names through ``JAXScheme(reference_operations=(...))``. Multiple names compose;
 select every differing upstream calculation for an exact complete comparison.

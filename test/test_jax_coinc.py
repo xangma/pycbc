@@ -18,6 +18,7 @@
 
 import numpy as np
 import pytest
+import copy
 
 jax = pytest.importorskip("jax")
 import jax.numpy as jnp
@@ -28,7 +29,7 @@ except ImportError:
 
 import pycbc
 from pycbc import scheme
-from pycbc.events import coinc
+from pycbc.events import coinc, coinc_jax
 from pycbc.types import Array
 from pycbc.types.array_jax import JAXArrayData, is_jax_array
 
@@ -1000,6 +1001,635 @@ def test_jax_singles_grouped_dtype_promotion_matches_scalar_append(device, x64):
             assert got.tobytes() == want.tobytes()
 
 
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_jax_singles_helper_preserves_metadata_and_device_numeric(device):
+    from pycbc.events.coinc_jax import add_singles_to_buffer_jax, JAXMultiRingBuffer
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+
+    class Statistic:
+        single_dtype = np.dtype("float32")
+
+        @staticmethod
+        def single(trigs):
+            assert is_jax_array(trigs["snr"])
+            assert isinstance(trigs["approximant"], np.ndarray)
+            return jnp.abs(trigs["snr"])
+
+    class Estimator:
+        stat_calculator = Statistic()
+        singles = {}
+
+        def set_singles_buffer(self, results):
+            self.singles = {"H1": JAXMultiRingBuffer(2, 1)}
+
+    estimator = Estimator()
+    class Logger:
+        @staticmethod
+        def info(*args):
+            pass
+
+    results = {"H1": {"snr": np.array([3.]), "chisq": np.array([1.]),
+                       "chisq_dof": np.array([2.]),
+                       "template_id": np.array([0], dtype=np.int32),
+                       "approximant": np.array(["TaylorF2"]),
+                       "end_time": np.array([1.])}}
+    with scheme.JAXScheme(device):
+        add_singles_to_buffer_jax(estimator, results, ["H1"], Logger())
+        stored = estimator.singles["H1"].data(0)
+    assert is_jax_array(stored["stat"])
+    assert np.asarray(stored["approximant"]).tolist() == ["TaylorF2"]
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("sngl_ranking", ["snr", "newsnr"])
+def test_live_estimator_jax_empty_foreground_and_expiration_parity(
+        monkeypatch, device, sngl_ranking):
+    from pycbc.events.coinc import LiveCoincTimeslideBackgroundEstimator
+
+    def triggers(time, snr, template=0):
+        snr = np.atleast_1d(np.asarray(snr, dtype=np.float32))
+        return {"snr": snr,
+                "chisq": np.full(len(snr), 2., dtype=np.float32),
+                "chisq_dof": np.full(len(snr), 2., dtype=np.float32),
+                "template_id": np.broadcast_to(
+                    np.asarray(template, dtype=np.int32), snr.shape).copy(),
+                "end_time": np.atleast_1d(np.asarray(time, dtype=np.float64)),
+                "mass1": np.full(len(snr), 10., dtype=np.float64),
+                "mass2": np.full(len(snr), 10., dtype=np.float64),
+                "approximant": np.array(["TaylorF2"] * len(snr))}
+
+    kwargs = dict(ifar_limit=1, timeslide_interval=.1,
+                  return_background=True)
+    cpu = LiveCoincTimeslideBackgroundEstimator(
+        2, 10, "single_ranking_only", sngl_ranking, [], ["H1", "L1"], **kwargs)
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    with scheme.JAXScheme(device):
+        jax_estimator = coinc_jax.JAXLiveCoincTimeslideBackgroundEstimator(
+            2, 10, "single_ranking_only", sngl_ranking, [], ["H1", "L1"], **kwargs)
+    rank_calls = []
+    rank = jax_estimator.stat_calculator.rank_stat_coinc
+
+    def rank_nonempty(singles, slides, *args, **kwargs):
+        assert len(slides) > 0
+        assert all(len(stat) == len(slides) for _, stat in singles)
+        rank_calls.append(len(slides))
+        return rank(singles, slides, *args, **kwargs)
+
+    monkeypatch.setattr(jax_estimator.stat_calculator, "rank_stat_coinc",
+                        rank_nonempty)
+    for estimator in (cpu, jax_estimator):
+        estimator.buffer_size = 2
+        estimator.coincs.expiration = 2
+    empty = {ifo: {key: value[:0] for key, value in
+                   triggers(100., 5.).items()} for ifo in ("H1", "L1")}
+    blocks = [empty,
+              {"H1": triggers(100., 5.), "L1": triggers(100.001, 6., 1)},
+              {"H1": triggers(101., 7.), "L1": triggers(101.001, 8.)},
+              {"H1": triggers(102., 5.), "L1": triggers(102.101, 6.)},
+              {"H1": triggers([103., 103.003, 103.1], [7., 7., 5.], [0, 0, 1]),
+               "L1": triggers([103.001, 103.004, 103.201], [8., 8., 6.],
+                              [0, 0, 1])},
+              empty, {"H1": triggers(110., 5.), "L1": False},
+              empty, empty, empty]
+    saw_foreground = saw_background = False
+    for block in blocks:
+        expected = cpu.add_singles(copy.deepcopy(block))
+        original_keys = {
+            ifo: set(data) for ifo, data in block.items() if data
+        }
+        with scheme.JAXScheme(device):
+            actual = jax_estimator.add_singles(block)
+        assert {ifo: set(data) for ifo, data in block.items() if data} == \
+            original_keys
+        assert actual.keys() == expected.keys()
+        for key in expected:
+            want, got = np.asarray(expected[key]), np.asarray(actual[key])
+            assert got.shape == want.shape, key
+            if want.dtype.kind in "biufc":
+                np.testing.assert_allclose(got, want, rtol=1e-6, atol=1e-7,
+                                           err_msg=key)
+            else:
+                np.testing.assert_array_equal(got, want, err_msg=key)
+        saw_foreground |= "foreground/stat" in actual
+        saw_background |= actual["background/count"] > 0
+        # Compare retained statistics and row association after both detectors
+        # update, including duplicate templates and clustered ranking ties.
+        np.testing.assert_allclose(np.asarray(jax_estimator.coincs.data),
+                                   cpu.coincs.data, rtol=1e-6, atol=1e-7)
+        with scheme.JAXScheme(device):
+            for ifo in cpu.singles:
+                assert jax_estimator.singles[ifo].time == cpu.singles[ifo].time
+                for template in range(2):
+                    expected_rows = cpu.singles[ifo].data(template)
+                    actual_rows = jax_estimator.singles[ifo].data(template)
+                    if not actual_rows:
+                        assert len(expected_rows) == 0
+                        continue
+                    for key in expected_rows.dtype.names:
+                        value = np.asarray(actual_rows[key])
+                        if value.dtype.kind in "biufc":
+                            np.testing.assert_allclose(
+                                value, expected_rows[key], rtol=1e-6, atol=1e-7)
+                        else:
+                            np.testing.assert_array_equal(value,
+                                                          expected_rows[key])
+                    np.testing.assert_array_equal(
+                        np.asarray(jax_estimator.singles[ifo].expire_vector(template)),
+                        cpu.singles[ifo].expire_vector(template))
+    assert saw_foreground and saw_background
+    assert rank_calls
+    assert actual["background/count"] == 0
+    assert type(cpu.singles["H1"]).__name__ == "MultiRingBuffer"
+    assert type(jax_estimator.singles["H1"]).__name__ == "JAXMultiRingBuffer"
+    with scheme.JAXScheme(device):
+        for ifo in ("H1", "L1"):
+            stored = jax_estimator.singles[ifo].data(0)
+            assert stored["snr"].size == 0
+            assert is_jax_array(stored["snr"])
+            assert all(d.platform == ("gpu" if device == "cuda" else "cpu")
+                       for d in stored["snr"].devices())
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_find_coincs_empty_shift_skips_scientific_scalar_reads(monkeypatch,
+                                                            device):
+    """Empty/expired templates use host IDs without indexing scientific rows."""
+    from types import SimpleNamespace
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+
+    class NoScalarIndex(np.ndarray):
+        def __getitem__(self, key):
+            raise AssertionError("empty coincidence indexed a trigger scalar")
+
+    def reject_numeric_work(*args, **kwargs):
+        raise AssertionError("empty shifted template performed numeric matching")
+
+    monkeypatch.setattr(coinc, "time_coincidence", reject_numeric_work)
+    with scheme.JAXScheme(device):
+        singles = {ifo: coinc_jax.JAXMultiRingBuffer(2, 0)
+                   for ifo in ("H1", "L1")}
+        for ring in singles.values():
+            # Ring 0 retains expired columns; ring 1 has never been populated.
+            ring.add([0], {"end_time": jnp.array([100.]),
+                           "stat": jnp.array([7.], dtype=jnp.float64)})
+        estimator = SimpleNamespace(
+            ifos=["H1", "L1"], singles=singles, trig_stat_memory=None,
+            stat_calculator=SimpleNamespace(rank_stat_coinc=reject_numeric_work),
+            time_window=.01, timeslide_interval=.1,
+            coincs=coinc_jax.JAXCoincExpireBuffer(2, ["H1", "L1"],
+                                                initial_size=2),
+            background_time=0., return_background=True)
+        results = {}
+        for ifo, dtype in (("H1", np.float32), ("L1", np.float64)):
+            results[ifo] = {
+                "template_id": np.array([0, 1], dtype=np.int32).view(NoScalarIndex),
+                "end_time": np.array([101., 102.]).view(NoScalarIndex),
+                "stat": np.array([7., 8.], dtype=dtype).view(NoScalarIndex),
+                "mass1": np.array([10., 10.]), "mass2": np.array([10., 10.])}
+        count, output = coinc_jax.find_coincs_jax(estimator, results,
+                                                 ["H1", "L1"])
+        assert count == output["background/count"] == 0
+        assert output["background/stat"].shape == (0,)
+        assert estimator.coincs.time == {"H1": 1, "L1": 1}
+        assert estimator.trig_stat_memory.dtype == jnp.float32
+        np.testing.assert_array_equal(np.asarray(estimator.trig_stat_memory), [0.])
+        assert all(ring.valid_ends == [0, 0] for ring in singles.values())
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("wrapped", [False, True])
+def test_find_coincs_empty_match_defers_scientific_scalars(monkeypatch, device,
+                                                        wrapped):
+    """A populated ring with no match reads only the incoming one-row slice."""
+    from types import SimpleNamespace
+    from pycbc import conversions
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+
+    class NoScalarIndex(np.ndarray):
+        def __getitem__(self, key):
+            if isinstance(key, (int, np.integer)):
+                raise AssertionError("empty match indexed a scientific scalar")
+            return super().__getitem__(key)
+
+    def reject_rank(*args, **kwargs):
+        raise AssertionError("empty coincidence performed ranking")
+
+    monkeypatch.setattr(conversions, "mchirp_from_mass1_mass2",
+                        lambda mass1, mass2: np.zeros(len(mass1)).view(
+                            NoScalarIndex))
+    with scheme.JAXScheme(device):
+        singles = {ifo: coinc_jax.JAXMultiRingBuffer(1, 3)
+                   for ifo in ("H1", "L1")}
+        for ring in singles.values():
+            ring.add([0], {"end_time": jnp.array([100.]),
+                           "stat": jnp.array([7.], dtype=jnp.float64)})
+        background = coinc_jax.JAXCoincExpireBuffer(
+            3, ["H1", "L1"], initial_size=2)
+        background.add([5.], {"H1": [0], "L1": [0]}, [])
+        estimator = SimpleNamespace(
+            ifos=["H1", "L1"], singles=singles, trig_stat_memory=None,
+            stat_calculator=SimpleNamespace(rank_stat_coinc=reject_rank),
+            time_window=.01, timeslide_interval=1., coincs=background,
+            background_time=6., return_background=True)
+        results = {}
+        for ifo, dtype in (("H1", np.float32), ("L1", np.float64)):
+            results[ifo] = {
+                "template_id": np.array([0, 0], dtype=np.int32),
+                "end_time": np.array([103.5, 105.5],
+                                     dtype=np.float64 if wrapped else dtype).view(
+                    NoScalarIndex),
+                "stat": np.array([7., 8.], dtype=dtype).view(NoScalarIndex),
+                "mass1": np.array([10., 10.]), "mass2": np.array([10., 10.])}
+            if wrapped:
+                results[ifo]["end_time"] = Array(results[ifo]["end_time"])
+        if wrapped:
+            def reject_host_copy(*args, **kwargs):
+                raise AssertionError("wrapped time slice copied to the host")
+
+            original_getitem = Array.__getitem__
+
+            def reject_scalar(value, key):
+                if isinstance(key, (int, np.integer)):
+                    raise AssertionError("empty match indexed a time scalar")
+                return original_getitem(value, key)
+
+            monkeypatch.setattr(Array, "numpy", reject_host_copy)
+            monkeypatch.setattr(Array, "__array__", reject_host_copy)
+            monkeypatch.setattr(Array, "__getitem__", reject_scalar)
+        count, output = coinc_jax.find_coincs_jax(estimator, results,
+                                                 ["H1", "L1"])
+        assert count == 0
+        assert output.keys() == {"background/count", "background/time",
+                                 "background/stat"}
+        assert output["background/count"] == 1
+        np.testing.assert_array_equal(np.asarray(output["background/time"]), [6.])
+        np.testing.assert_array_equal(np.asarray(output["background/stat"]), [5.])
+        assert background.time == {"H1": 1, "L1": 1}
+        assert estimator.trig_stat_memory.dtype == jnp.float32
+        np.testing.assert_array_equal(np.asarray(estimator.trig_stat_memory), [0.])
+        for ring in singles.values():
+            assert ring.time == 1 and ring.valid_ends == [1]
+            np.testing.assert_array_equal(np.asarray(ring.data(0)["end_time"]),
+                                          [100.])
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("storage", ["array", "data"])
+def test_live_fixed_time_preserves_wrapped_float32_subnormals(device, storage):
+    """Wrapped scalar promotion must keep times device casts can flush."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    tiny = np.nextafter(np.float32(0.), np.float32(1.))
+    host = np.array([tiny, -tiny, -0., 0., .2, 1e9], dtype=np.float32)
+    with scheme.JAXScheme(device):
+        values = Array(host)
+        if storage == "data":
+            values = values._data
+        for index in range(len(host)):
+            expected = jnp.array(values[index], ndmin=1, dtype=jnp.float64)
+            actual = coinc_jax._live_fixed_time_jax(values, index)
+            assert actual.dtype == jnp.float64
+            assert np.asarray(actual).tobytes() == np.asarray(expected).tobytes()
+            assert np.asarray(actual)[0] == float(host[index])
+            if index < 2:
+                # Flushing the incoming float32 subnormal to zero would invent
+                # a coincident pair in this narrow double-precision window.
+                result = coinc.time_coincidence(jnp.array([0.]), actual,
+                                                float(tiny) / 4)
+                assert result[0].size == 0
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("memory_dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("unused_mchirp", [False, True])
+def test_live_match_preparation_preserves_columns_and_memory_tail(device,
+                                                                memory_dtype,
+                                                                unused_mchirp):
+    """Counts 8, 2, 4 retain earlier memory tails and ordered duplicate rows."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    tiny = np.nextafter(np.float32(0.), np.float32(1.))
+    with scheme.JAXScheme(device):
+        memory = expected_memory = jnp.zeros(1, dtype=memory_dtype)
+        for number, count in enumerate((8, 2, 4)):
+            dtype = np.float32 if number % 2 else np.float64
+            fixed_stats = jnp.asarray(np.array([-0., tiny, 7.], dtype=dtype))
+            mchirps = None if unused_mchirp else jnp.array(
+                [-0., np.nextafter(10., 11.), 30.])
+            index = number
+            fixed_time = jnp.array([(-1 if number % 2 else 1) * 1e9 + .01])
+            times = jnp.array([1e9 + .02, 1e9 + .01, -0., 1e9 + .1])
+            stats = jnp.asarray(np.array([tiny, -0., 5., 7.],
+                                         dtype=np.float64 if number % 2 else
+                                         np.float32))
+            expiration = jnp.array([7, 4, 3, 2], dtype=jnp.int32)
+            indices = jnp.array(([3, 0, 3, 1] * 2)[:count], dtype=jnp.int64)
+            while memory.size < count:
+                memory = jnp.pad(memory, (0, memory.size))
+                expected_memory = jnp.pad(expected_memory,
+                                          (0, expected_memory.size))
+            values = (memory, fixed_stats, mchirps, fixed_time, times, stats,
+                      expiration)
+            assert coinc_jax._can_prepare_live_match(values, indices, 2, 8)
+            actual = coinc_jax._prepare_live_match(
+                memory, fixed_stats, mchirps, index, fixed_time, times, stats,
+                expiration, indices, 2, 8)
+            if unused_mchirp:
+                assert actual[3] is None
+            expected_memory = expected_memory.at[:count].set(fixed_stats[index])
+            payload = (times[indices],
+                       jnp.full(count, fixed_time[0], dtype=jnp.float64),
+                       expiration[indices], jnp.full(count, 8, jnp.int32),
+                       jnp.zeros(count, jnp.int32) + 2,
+                       indices.astype(jnp.int32),
+                       (jnp.zeros(count) - 1).astype(jnp.int32))
+            expected = (expected_memory, expected_memory[:count], stats[indices],
+                        None if unused_mchirp else mchirps[index], payload)
+            for got, want in zip(jax.tree_util.tree_leaves(actual),
+                                 jax.tree_util.tree_leaves(expected)):
+                got, want = np.asarray(got), np.asarray(want)
+                assert got.shape == want.shape and got.dtype == want.dtype
+                assert got.tobytes() == want.tobytes()
+            memory = actual[0]
+        assert memory.size == 8
+        np.testing.assert_array_equal(np.asarray(memory)[4:], [-0.] * 4)
+        # Host and wrapper scalar promotion keep the prior preparation path.
+        for storage in (np.asarray(fixed_stats), Array(np.asarray(fixed_stats))):
+            fallback = (memory, storage, mchirps, fixed_time, times, stats,
+                        expiration)
+            assert not coinc_jax._can_prepare_live_match(fallback, indices, 2, 8)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_live_match_preparation_accepts_large_incoming_vector(device):
+    """Resident incoming columns do not enlarge the bounded matched payload."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    with scheme.JAXScheme(device):
+        values = (jnp.zeros(1, jnp.float32), jnp.arange(132, dtype=jnp.float32),
+                  jnp.arange(132, dtype=jnp.float64), jnp.array([1e9]),
+                  jnp.array([1e9]), jnp.array([7.], jnp.float32),
+                  jnp.array([3], jnp.int32))
+        indices = jnp.array([0], jnp.int64)
+        assert coinc_jax._can_prepare_live_match(values, indices, 0, 4)
+        result = coinc_jax._prepare_live_match(
+            *values[:3], 131, *values[3:], indices, 0, 4)
+        np.testing.assert_array_equal(np.asarray(result[1]), [131.])
+        assert float(result[3]) == 131.
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_live_match_join_preserves_order_and_bounds_compiled_arity(monkeypatch,
+                                                                device):
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    with scheme.JAXScheme(device):
+        rows = []
+        for index in range(67):
+            size = 1 + index % 3
+            ids = jnp.arange(size, dtype=jnp.int64)
+            rows.append((jnp.full(size, index, jnp.float64),
+                         jnp.full(size, index % 3 - 1, jnp.int32),
+                         jnp.full(size, 1e9 + index / 100, jnp.float64),
+                         jnp.full(size, -0. if index % 2 else .5,
+                                  jnp.float32 if index % 3 else jnp.float64),
+                         jnp.full(size, index, jnp.int32),
+                         jnp.full(size, index + 1, jnp.int32),
+                         jnp.full(size, index % 2, jnp.int32),
+                         ids, jnp.zeros(size) - 1))
+        rows = tuple(rows)
+        expected = tuple(jnp.concatenate(tuple(row[i] for row in rows))
+                         for i in range(9))
+        expected = tuple(value.astype(jnp.float64) if i in (2, 3) else
+                         value.astype(jnp.int32) if i in (6, 7, 8) else value
+                         for i, value in enumerate(expected))
+        calls = []
+        compiled = coinc_jax._concatenate_live_matches
+
+        def bounded(payloads):
+            assert len(payloads) <= 32
+            calls.append(len(payloads))
+            return compiled(payloads)
+
+        monkeypatch.setattr(coinc_jax, "_concatenate_live_matches", bounded)
+        actual = coinc_jax._join_live_matches(rows)
+        assert calls == [32, 32, 3, 3]
+        for got, want in zip(actual, expected):
+            got, want = np.asarray(got), np.asarray(want)
+            assert got.dtype == want.dtype and got.shape == want.shape
+            assert got.tobytes() == want.tobytes()
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_live_match_assembly_matches_eager_output_and_estimator_state(
+        monkeypatch, device):
+    """Compare both directions, duplicates, foreground and expiration exactly."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+
+    def triggers(times, stats, templates):
+        stats = np.asarray(stats, dtype=np.float32)
+        return {"snr": stats, "chisq": np.full(stats.size, 2., np.float32),
+                "chisq_dof": np.full(stats.size, 2., np.float32),
+                "template_id": np.asarray(templates, dtype=np.int32),
+                "end_time": np.asarray(times, dtype=np.float64),
+                "mass1": np.linspace(10., 20., stats.size),
+                "mass2": np.linspace(9., 12., stats.size),
+                "approximant": np.array(["TaylorF2"] * stats.size)}
+
+    with scheme.JAXScheme(device):
+        kwargs = dict(ifar_limit=1, timeslide_interval=.1,
+                      return_background=True)
+        estimators = [coinc_jax.JAXLiveCoincTimeslideBackgroundEstimator(
+            2, 10, "single_ranking_only", "snr", [], ["H1", "L1"], **kwargs)
+                      for _ in range(2)]
+        for estimator in estimators:
+            estimator.coincs.expiration = 2
+        blocks = [
+            {"H1": triggers([100., 100.002, 100.101], [7., 7., 5.], [0, 0, 0]),
+             "L1": triggers([100.001, 100.004, 100.103], [8., 8., 6.], [0, 0, 0])},
+            {"H1": triggers([101., 101.103], [5., 7.], [0, 1]),
+             "L1": triggers([101.001, 101.102], [6., 8.], [0, 1])},
+            {ifo: triggers([], [], []) for ifo in ("H1", "L1")},
+            {"H1": triggers([104., 104.001], [7., 5.], [0, 0]),
+             "L1": triggers([104.001, 104.003], [8., 6.], [0, 0])}]
+        prepare = coinc_jax._prepare_live_match
+        preparations = []
+
+        def recorded(*args):
+            preparations.append(args[8].size)
+            return prepare(*args)
+
+        monkeypatch.setattr(coinc_jax, "_prepare_live_match", recorded)
+        for block in blocks:
+            with monkeypatch.context() as reference:
+                reference.setattr(coinc_jax, "_can_prepare_live_match",
+                                  lambda *args: False)
+                reference.setattr(coinc_jax, "_prepare_live_payloads",
+                                  lambda *args: {})
+                reference.setattr(coinc_jax, "_prepare_live_cluster",
+                                  lambda *args: None)
+                reference.setattr(coinc_jax, "_prepare_live_foreground",
+                                  lambda *args: {})
+                reference.setattr(coinc_jax, "_can_append_expire_coinc_buffer",
+                                  lambda *args: False)
+                reference.setattr(coinc_jax, "_join_live_matches",
+                                  coinc_jax._concatenate_live_match_columns)
+                expected = estimators[0].add_singles(copy.deepcopy(block))
+            actual = estimators[1].add_singles(copy.deepcopy(block))
+            assert actual.keys() == expected.keys()
+            for key in expected:
+                got, want = np.asarray(actual[key]), np.asarray(expected[key])
+                assert got.shape == want.shape and got.dtype == want.dtype, key
+                assert got.tobytes() == want.tobytes(), key
+            got, want = estimators[1], estimators[0]
+            for left, right in ((got.trig_stat_memory, want.trig_stat_memory),
+                                (got.coincs.buffer, want.coincs.buffer),
+                                *( (got.coincs.timer[ifo], want.coincs.timer[ifo])
+                                   for ifo in got.ifos )):
+                assert np.asarray(left).tobytes() == np.asarray(right).tobytes()
+            assert got.coincs.index == want.coincs.index
+            assert got.coincs.time == want.coincs.time
+            for ifo in got.ifos:
+                assert got.singles[ifo].time == want.singles[ifo].time
+                assert got.singles[ifo].valid_ends == want.singles[ifo].valid_ends
+        assert preparations
+
+
+def test_pick_best_coinc_jax_foreground_stat_shape():
+    candidates = [{"coinc_possible": True, "foreground/ifar": 3.,
+                   "foreground/stat": jnp.array([2.]),
+                   "foreground/type": "H1-L1"},
+                  {"coinc_possible": True, "foreground/ifar": 3.,
+                   "foreground/stat": jnp.array([4.]),
+                   "foreground/type": "H1-L1"}]
+    with scheme.JAXScheme():
+        result = coinc_jax.JAXLiveCoincTimeslideBackgroundEstimator.pick_best_coinc(
+            candidates)
+    assert np.asarray(result["foreground/stat"]).shape == (1,)
+    assert np.asarray(result["foreground/stat"]).item() == 4.
+    assert float(np.asarray(result["foreground/ifar"])) == 1.5
+
+
+@pytest.mark.parametrize('device', ['cpu', 'cuda'])
+@pytest.mark.parametrize('dtype', [np.float32, np.float64])
+@pytest.mark.parametrize('ifars,stats,chosen', [
+    ([3., 4., 2.], [9., 1., 20.], 1),
+    ([3., 3., 2.], [2., 4., 20.], 1),
+    ([3., 3., 3.], [4., 4., 4.], 0),
+    ([np.inf, np.inf, 3.], [2., 4., 20.], 1),
+    ([np.nan, 3., 2.], [2., 4., 20.], 1),
+])
+def test_best_coinc_finishes_numeric_work_before_one_terminal_read(
+        monkeypatch, device, dtype, ifars, stats, chosen):
+    """Host dictionary routing/logging follow complete on-device selection."""
+    from pycbc.events import coinc_jax
+
+    if device == 'cuda' and not any(d.platform == 'gpu' for d in jax.devices()):
+        pytest.skip('CUDA device unavailable')
+    native_candidates = [
+        {'coinc_possible': True, 'foreground/ifar': dtype(ifar),
+         'foreground/stat': np.asarray([stat], dtype=dtype),
+         'foreground/type': f'pair{index}'}
+        for index, (ifar, stat) in enumerate(zip(ifars, stats))]
+    native_candidates.append({'coinc_possible': False, 'background/count': 0})
+    with scheme.CPUScheme():
+        expected = coinc.LiveCoincTimeslideBackgroundEstimator.pick_best_coinc(
+            native_candidates)
+    assert expected is native_candidates[chosen]
+    expected_ifar = np.asarray(expected['foreground/ifar'])
+    with scheme.JAXScheme(device):
+        candidates = [
+            {'coinc_possible': True, 'foreground/ifar': jnp.asarray(ifar, dtype=dtype),
+             'foreground/stat': jnp.asarray([stat], dtype=dtype),
+             'foreground/type': f'pair{index}'}
+            for index, (ifar, stat) in enumerate(zip(ifars, stats))]
+        # A possible pair without a foreground still contributes to trials.
+        candidates.append({'coinc_possible': False, 'background/count': 0})
+        original_ifars = tuple(row['foreground/ifar'] for row in candidates[:3])
+        readbacks, logs = [], []
+        original_device_get = jax.device_get
+
+        def readback(values):
+            assert len(values) == 2
+            assert all(isinstance(value, jax.Array) and value.shape == ()
+                       for value in values)
+            assert values[1].dtype == dtype
+            # The correction is already dispatched; no further numeric result
+            # work is allowed after this single terminal collection.
+            readbacks.append(values)
+            with jax.transfer_guard_device_to_host('allow'):
+                return original_device_get(values)
+
+        class Logger:
+            def info(self, fmt, pair, ifar):
+                assert not isinstance(ifar, jax.Array)
+                with jax.transfer_guard_device_to_host('disallow'):
+                    logs.append(fmt % (pair, ifar))
+
+        monkeypatch.setattr(jax, 'device_get', readback)
+        with jax.transfer_guard_device_to_host('disallow_explicit'):
+            result = coinc_jax.pick_best_coinc_jax(candidates, Logger())
+        assert result is candidates[chosen]
+        assert len(readbacks) == 1
+        assert result['foreground/ifar'] is readbacks[0][1]
+        assert len(logs) == 1 and f'pair{chosen}' in logs[0]
+        for index, value in enumerate(original_ifars):
+            if index != chosen:
+                assert candidates[index]['foreground/ifar'] is value
+        actual_ifar = np.asarray(result['foreground/ifar'])
+        assert actual_ifar.dtype == expected_ifar.dtype
+        assert actual_ifar.tobytes() == expected_ifar.tobytes()
+
+
+def test_best_coinc_empty_and_malformed_cases_preserve_public_errors(monkeypatch):
+    from pycbc.events import coinc_jax
+
+    class NoReadback:
+        def info(self, *_args):
+            raise AssertionError('empty foreground reached logging')
+
+    def fail(_values):
+        raise AssertionError('empty/malformed foreground reached publication')
+
+    with scheme.JAXScheme('cpu'):
+        monkeypatch.setattr(jax, 'device_get', fail)
+        first = {'coinc_possible': True, 'background/count': 0}
+        second = {'background/count': 0}
+        assert coinc_jax.pick_best_coinc_jax([first, second], NoReadback()) is first
+        with pytest.raises(IndexError):
+            coinc_jax.pick_best_coinc_jax([], NoReadback())
+        with pytest.raises(KeyError, match='foreground/stat'):
+            coinc_jax.pick_best_coinc_jax(
+                [{'coinc_possible': True, 'foreground/ifar': 1.}], NoReadback())
+        with pytest.raises((ValueError, TypeError)):
+            coinc_jax.pick_best_coinc_jax([
+                {'coinc_possible': True, 'foreground/ifar': 1.,
+                 'foreground/stat': jnp.array([1.])},
+                {'coinc_possible': True, 'foreground/ifar': 1.,
+                 'foreground/stat': jnp.array([1., 2.])}], NoReadback())
+
+
+
+
 def test_cluster_coincs_jax_parity():
     """Verify 2-detector and multi-detector coincidence clustering."""
     time1 = np.array([0.0, 0.6, 1.2, 2.5], dtype=np.float64)
@@ -1039,3 +1669,50 @@ def test_cluster_coincs_jax_parity():
     np.testing.assert_array_equal(np.asarray(actual_multi), expected_multi)
 
 
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_jax_single_ranking_only_foreground_stat_dtype_matches_cpu(device):
+    """JAX keeps native float64 dtype for the returned coincident statistic."""
+    from pycbc.events.coinc import LiveCoincTimeslideBackgroundEstimator
+
+    jax.config.update("jax_enable_x64", True)
+    if device == "cuda":
+        try:
+            jax.devices("gpu")
+        except RuntimeError:
+            pytest.skip("CUDA unavailable")
+
+    def _trigger(time, snr):
+        return {
+            "snr": np.array([snr], dtype=np.float32),
+            "chisq": np.array([2.0], dtype=np.float32),
+            "chisq_dof": np.array([2.0], dtype=np.float32),
+            "template_id": np.array([0], dtype=np.int32),
+            "end_time": np.array([time], dtype=np.float64),
+            "mass1": np.array([10.0], dtype=np.float64),
+            "mass2": np.array([10.0], dtype=np.float64),
+            "approximant": np.array(["TaylorF2"]),
+        }
+
+    kwargs = dict(ifar_limit=1, timeslide_interval=0.1, return_background=True)
+    block = {"H1": _trigger(100.0, 5.0), "L1": _trigger(100.001, 6.0)}
+
+    cpu_estimator = LiveCoincTimeslideBackgroundEstimator(
+        2, 10, "single_ranking_only", "snr", [], ["H1", "L1"], **kwargs
+    )
+    expected = cpu_estimator.add_singles(
+        {ifo: dict(values) for ifo, values in block.items()}
+    )
+
+    with scheme.JAXScheme(device):
+        jax_estimator = coinc_jax.JAXLiveCoincTimeslideBackgroundEstimator(
+            2, 10, "single_ranking_only", "snr", [], ["H1", "L1"], **kwargs
+        )
+        actual = jax_estimator.add_singles(
+            {ifo: dict(values) for ifo, values in block.items()}
+        )
+
+    assert expected["foreground/stat"].dtype == np.dtype("float64")
+    assert np.asarray(actual["foreground/stat"]).dtype == np.dtype("float64")
+    np.testing.assert_allclose(
+        np.asarray(actual["foreground/stat"]), expected["foreground/stat"]
+    )

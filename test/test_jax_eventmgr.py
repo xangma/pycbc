@@ -300,3 +300,4 @@ def test_jax_add_template_events_direct_matches_standard():
     for col in columns:
         np.testing.assert_allclose(np.asarray(m1.events[col]), np.asarray(m2.events[col]))
     np.testing.assert_array_equal(np.asarray(m1.events["template_id"]), np.asarray(m2.events["template_id"]))
+
