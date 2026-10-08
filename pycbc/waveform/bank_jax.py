@@ -283,6 +283,19 @@ def execute_batch_decompression_jax(bank, indices, power_chisq=None, psd=None):
         fs._sigmasq = {}
         tmpls[idx] = fs
 
+    if (
+        power_chisq is not None
+        and getattr(power_chisq, "do", False)
+        and psd is not None
+    ):
+        try:
+            from pycbc.vetoes.chisq_jax import cache_batch_power_chisq_bins_jax
+            batch_list = TemplateBatchList([tmpls[idx] for idx in indices])
+            batch_list._batch_tensor = batch_waveforms
+            cache_batch_power_chisq_bins_jax(power_chisq, batch_list, psd)
+        except Exception as e:
+            logging.warning("Pre-caching power chisq bins failed: %s", e)
+
     return tuple(indices), host_waveforms, batch_waveforms, tmpls
 
 

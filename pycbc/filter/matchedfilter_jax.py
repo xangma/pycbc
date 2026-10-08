@@ -22,7 +22,7 @@ validation routes perform host work and run outside JAX transformations.
 """
 
 import functools
-
+import math
 
 
 
@@ -32,7 +32,9 @@ import jax
 import jax.numpy as jnp
 
 from pycbc.events import ranking
-from pycbc.filter.matchedfilter import _BaseCorrelator, get_cutoff_indices
+from pycbc.filter.matchedfilter import (
+    _BaseCorrelator, MatchedFilterControl, get_cutoff_indices,
+)
 from pycbc.types.array_jax import (
     JAXArrayData,
     _as_jax_array,
@@ -1506,17 +1508,638 @@ def batch_matched_filter_bank(
     return (snr * norm[:, None]).astype(snr.dtype), sigmasqs
 
 
+def _batched_filter_core(
+    templates_2d,
+    seg_slice,
+    kmin,
+    kmax,
+    tlen,
+    valid_start,
+    valid_stop,
+    full_templates=False,
+):
+    """Build the shared batched correlation and valid SNR series."""
+    if full_templates:
+        templates_2d = templates_2d[:, kmin:kmax]
+    corr_slice = jnp.conj(templates_2d) * seg_slice[None, :]
+    pad_left = kmin
+    pad_right = tlen - kmax
+    qtilde = jnp.pad(corr_slice, ((0, 0), (pad_left, pad_right)))
+    snr_series = jnp.fft.ifft(qtilde, axis=-1) * tlen
+    valid_snr = snr_series[:, valid_start:valid_stop]
+    return snr_series, valid_snr, corr_slice
 
 
+def _cluster_filtered_batch(valid_snr, thresh_sq, window):
+    """Cluster inside the filter JIT without recomputing SNR magnitudes."""
+    from pycbc.events.threshold_jax import _batched_cluster_from_magnitude
+
+    mag_sq = valid_snr.real ** 2 + valid_snr.imag ** 2
+    return _batched_cluster_from_magnitude(
+        valid_snr, mag_sq, thresh_sq, window
+    )
 
 
+@functools.partial(
+    jax.jit,
+    static_argnames=(
+        "kmin", "kmax", "tlen", "valid_start", "valid_stop", "window",
+        "full_templates",
+    ),
+)
+def _batched_filter_and_cluster(
+    templates_2d,
+    seg_slice,
+    thresh_sq,
+    kmin,
+    kmax,
+    tlen,
+    valid_start,
+    valid_stop,
+    window,
+    full_templates=False,
+):
+    """JIT correlation, IFFT, and clustering as one compiled boundary."""
+    snr_series, valid_snr, corr_slice = _batched_filter_core(
+        templates_2d, seg_slice, kmin, kmax, tlen, valid_start,
+        valid_stop, full_templates=full_templates,
+    )
+    clustered = _cluster_filtered_batch(valid_snr, thresh_sq, window)
+    return (snr_series, corr_slice, *clustered)
 
 
+@functools.partial(
+    jax.jit,
+    static_argnames=(
+        "kmin", "kmax", "tlen", "valid_start", "valid_stop", "window",
+        "full_templates",
+    ),
+)
+def _batched_filter_and_cluster_lean(
+    templates_2d,
+    seg_slice,
+    thresh_sq,
+    kmin,
+    kmax,
+    tlen,
+    valid_start,
+    valid_stop,
+    window,
+    full_templates=False,
+):
+    """Compiled filter and cluster path without retaining full SNR series."""
+    _, valid_snr, corr_slice = _batched_filter_core(
+        templates_2d, seg_slice, kmin, kmax, tlen, valid_start,
+        valid_stop, full_templates=full_templates,
+    )
+    clustered = _cluster_filtered_batch(valid_snr, thresh_sq, window)
+    return (corr_slice, *clustered)
 
 
+class JAXMatchedFilterControl(MatchedFilterControl):
+    """Matched-filter control with device batch execution for JAX searches."""
+
+    def batched_matched_filter_and_cluster(
+        self, segnum, templates, sigmasqs, window, epoch=None
+    ):
+        return batched_matched_filter_and_cluster_jax(
+            self, segnum, templates, sigmasqs, window, epoch=epoch)
+
+    def clear_batch_cache(self):
+        """Release the preceding batch's packed template tensor."""
+        self._cached_templates_key = None
+        self._cached_templates_2d = None
 
 
+def _reference_batched_filter(control, segnum, templates, sigmasqs, window, epoch):
+    """Apply selected original primitives through the scalar control API."""
+    from pycbc.types import Array
+
+    results = []
+    for template, sigmasq in zip(templates, sigmasqs):
+        control.htilde[control.kmin:control.kmax] = Array(
+            JAXArrayData(to_jax(template)[control.kmin:control.kmax]), copy=False)
+        result = control.matched_filter_and_cluster(
+            segnum, sigmasq, window, epoch=epoch)
+        # Scalar controls reuse workspaces; retain this template's outputs.
+        results.append(tuple(value.copy() if hasattr(value, "copy") else value
+                             for value in result))
+    return results
 
 
+def batched_matched_filter_and_cluster_jax(
+    mf_control,
+    segnum,
+    templates,
+    sigmasqs,
+    window,
+    epoch=None,
+):
+    """Batched matched filtering, thresholding, and clustering on JAX device.
+
+    Parameters
+    ----------
+    mf_control : MatchedFilterControl
+        The matched filter control object holding analysis configuration.
+    segnum : int
+        Index of the segment to filter against.
+    templates : list of FrequencySeries
+        Templates in the current batch.
+    sigmasqs : sequence of float
+        Normalization factors for each template in the batch.
+    window : int
+        Clustering window size in samples.
+    epoch : optional
+        GPS epoch for the returned TimeSeries.
+
+    Returns
+    -------
+    list of tuples
+        For each template, returns (snr, norm, corr, idx, snrv) matching
+        MatchedFilterControl's contract.
+    """
+    _ensure_x64()
+    from pycbc.types import Array, TimeSeries
+
+    b = len(sigmasqs)
+    if b == 0:
+        return []
+
+    if any(_reference_enabled(operation) for operation in (
+            "correlate", "ifft", "threshold_cluster")):
+        return _reference_batched_filter(
+            mf_control, segnum, templates, sigmasqs, window, epoch)
+
+    seg = mf_control.segments[segnum]
+    kmin, kmax = mf_control.kmin, mf_control.kmax
+    tlen = mf_control.tlen
+    delta_f = mf_control.delta_f
+    delta_t = mf_control.delta_t
+    valid_start = seg.analyze.start
+    valid_stop = seg.analyze.stop
+    threshold = float(mf_control.snr_threshold)
+
+    from pycbc import scheme
+    state = getattr(scheme.mgr, "state", None)
+    target_dev = getattr(state, "jax_device", None)
+
+    # Pre-stack all segments into a persistent 2D tensor in VRAM during setup / first call
+    segment_key = (kmin, kmax, target_dev,
+                   tuple(id(to_jax(s, device=target_dev))
+                         for s in mf_control.segments))
+    cached_seg_tensor = getattr(mf_control, "_jax_segments_tensor", None)
+    if (
+        cached_seg_tensor is None
+        or getattr(mf_control, "_jax_segments_key", None) != segment_key
+        or (target_dev is not None
+            and cached_seg_tensor.devices() != {target_dev})
+    ):
+        slices = []
+        for s in mf_control.segments:
+            s_jax = to_jax(s, device=target_dev)
+            slices.append(s_jax[kmin:kmax])
+        mf_control._jax_segments_tensor = jnp.stack(slices, axis=0)
+        mf_control._jax_segments_key = segment_key
+        if target_dev is not None:
+            mf_control._jax_segments_tensor = jax.device_put(
+                mf_control._jax_segments_tensor, target_dev
+            )
+
+    seg_slice = mf_control._jax_segments_tensor[segnum]
+
+    # Cache 2D templates on mf_control across segments to avoid re-stacking 5x per batch
+    batch_tensor = getattr(templates, "_batch_tensor", None)
+    if batch_tensor is not None:
+        cache_key = (id(batch_tensor), kmin, kmax, target_dev, True)
+        full_templates = True
+    else:
+        cache_key = (tuple(id(to_jax(t, device=target_dev)) for t in templates),
+                     kmin, kmax, target_dev, False)
+        full_templates = False
+
+    if getattr(mf_control, "_cached_templates_key", None) == cache_key:
+        templates_2d = mf_control._cached_templates_2d
+    else:
+        if batch_tensor is not None:
+            # Keep the full batch tensor cached. Slicing inside the JIT avoids
+            # retaining a second device allocation for the cropped templates.
+            templates_2d = to_jax(batch_tensor, device=target_dev)
+        elif hasattr(templates, "ndim") and templates.ndim == 2:
+            templates_2d = to_jax(templates, device=target_dev)[:, kmin:kmax]
+        else:
+            templates_2d = jnp.stack(
+                [to_jax(t, device=target_dev)[kmin:kmax] for t in templates], axis=0
+            )
+        if target_dev is not None:
+            templates_2d = jax.device_put(templates_2d, target_dev)
+        mf_control._cached_templates_key = cache_key
+        mf_control._cached_templates_2d = templates_2d
+
+    norms_host = np.asarray([(4.0 * delta_f) / math.sqrt(value)
+                             for value in sigmasqs], dtype=np.float64)
+    thresh_sq_np = (threshold / norms_host) ** 2
+    if target_dev is not None:
+        thresh_sq = jax.device_put(thresh_sq_np, target_dev)
+    else:
+        thresh_sq = jax.device_put(thresh_sq_np)
+
+    # Keep correlation, IFFT, magnitude reduction, thresholding, and
+    # clustering in one compiled boundary. This prevents a duplicate pass
+    # over the full valid SNR matrix and avoids an intermediate launch.
+    need_snr = getattr(mf_control, "need_snr_series", False)
+    platform = getattr(target_dev, "platform", "cpu") if target_dev else "cpu"
+    is_cuda = platform in ("cuda", "gpu")
+
+    if not is_cuda and b > 1:
+        corr_slices, max_idxs, masks, max_snrs = [], [], [], []
+        snr_series_list = [] if need_snr else None
+        for i in range(b):
+            t_slice = templates_2d[i:i + 1]
+            th_slice = thresh_sq[i:i + 1]
+            if need_snr:
+                (snr_s, c_s, m_idx, s_mask, m_snr) = _batched_filter_and_cluster(
+                    t_slice,
+                    seg_slice,
+                    th_slice,
+                    kmin,
+                    kmax,
+                    tlen,
+                    valid_start,
+                    valid_stop,
+                    window,
+                    full_templates=full_templates,
+                )
+                snr_series_list.append(snr_s[0])
+            else:
+                (c_s, m_idx, s_mask, m_snr) = (
+                    _batched_filter_and_cluster_lean(
+                        t_slice,
+                        seg_slice,
+                        th_slice,
+                        kmin,
+                        kmax,
+                        tlen,
+                        valid_start,
+                        valid_stop,
+                        window,
+                        full_templates=full_templates,
+                    )
+                )
+            corr_slices.append(c_s[0])
+            max_idxs.append(m_idx[0])
+            masks.append(s_mask[0])
+            max_snrs.append(m_snr[0])
+        corr_slice = jnp.stack(corr_slices, axis=0)
+        batched_max_idx = jnp.stack(max_idxs, axis=0)
+        batched_survivor_mask = jnp.stack(masks, axis=0)
+        batched_max_snr = jnp.stack(max_snrs, axis=0)
+        snr_series = (
+            jnp.stack(snr_series_list, axis=0) if need_snr else None
+        )
+    else:
+        if need_snr:
+            (snr_series, corr_slice, batched_max_idx,
+             batched_survivor_mask, batched_max_snr) = _batched_filter_and_cluster(
+                templates_2d,
+                seg_slice,
+                thresh_sq,
+                kmin,
+                kmax,
+                tlen,
+                valid_start,
+                valid_stop,
+                window,
+                full_templates=full_templates,
+            )
+        else:
+            (corr_slice, batched_max_idx,
+             batched_survivor_mask, batched_max_snr) = (
+                _batched_filter_and_cluster_lean(
+                    templates_2d,
+                    seg_slice,
+                    thresh_sq,
+                    kmin,
+                    kmax,
+                    tlen,
+                    valid_start,
+                    valid_stop,
+                    window,
+                    full_templates=full_templates,
+                )
+            )
+            snr_series = None
+
+    empty_idx = np.empty(0, dtype=np.uint32)
+    empty_snrv = np.empty(0, dtype=np.complex64)
+
+    # One bounded device-to-host transfer replaces per-template boolean
+    # synchronizations.  These arrays contain one candidate per clustering
+    # window, not the full SNR series.
+    host_max_idx, host_survivor_mask, host_max_snr = jax.device_get(
+        (batched_max_idx, batched_survivor_mask, batched_max_snr)
+    )
+
+    results = []
+    if not np.any(host_survivor_mask):
+        for i in range(b):
+            results.append(([], float(norms_host[i]), [], empty_idx, empty_snrv))
+        return results
+
+    from pycbc.waveform.bank_jax import LazyFrequencySeries
+
+    for i in range(b):
+        norm_i = float(norms_host[i])
+        mask = host_survivor_mask[i]
+        if not np.any(mask):
+            results.append(([], norm_i, [], empty_idx, empty_snrv))
+            continue
+
+        survivor_indices = np.asarray(
+            host_max_idx[i][mask], dtype=np.uint32
+        )
+        survivor_values = np.asarray(host_max_snr[i][mask])
+
+        corr = LazyFrequencySeries(corr_slice, i, delta_f)
+        corr._kmin = kmin
+        corr._tlen = tlen
+
+        if need_snr and snr_series is not None:
+            snr = TimeSeries(
+                Array(JAXArrayData(snr_series[i]), copy=False),
+                epoch=epoch,
+                delta_t=delta_t,
+                copy=False,
+            )
+        else:
+            snr = None
+
+        results.append((snr, norm_i, corr, survivor_indices, survivor_values))
+
+    del batched_max_idx, batched_survivor_mask, batched_max_snr
+    if snr_series is not None:
+        del snr_series
+    if corr_slice is not None:
+        del corr_slice
+
+    return results
 
 
+def process_batch_inspiral_jax(
+    event_mgr,
+    bank,
+    batch_tnums,
+    segments,
+    matched_filter,
+    power_chisq,
+    cluster_window,
+    next_batch_tnums=None,
+    bank_chisq=None,
+    autochisq=None,
+    sg_chisq=None,
+    inj_filter_rejector=None,
+    opt=None,
+):
+    """Execute batched filtering, vetoes, and direct event manager insertion for JAX."""
+    import logging
+    from pycbc.events.eventmgr import findchirp_cluster_over_window_cython
+    from pycbc.vetoes.chisq_jax import (
+        batch_power_chisq_jax,
+        cache_batch_power_chisq_bins_jax,
+    )
+
+    b = len(batch_tnums)
+    if b == 0:
+        return
+
+    if hasattr(bank, "get_batch"):
+        batch_templates = bank.get_batch(batch_tnums)
+        if next_batch_tnums is not None and hasattr(bank, "prefetch_batch_jax"):
+            bank.prefetch_batch_jax(
+                next_batch_tnums,
+                power_chisq=power_chisq,
+                psd=segments[0].psd,
+            )
+    else:
+        batch_templates = [bank[i] for i in batch_tnums]
+
+    # Pre-cache chi-square bins for the batch
+    if power_chisq is not None and getattr(power_chisq, "do", False):
+        cache_batch_power_chisq_bins_jax(
+            power_chisq, batch_templates, segments[0].psd
+        )
+
+    sigmasq_caches = {}
+    triggered_events = [[] for _ in range(b)]
+    flow = getattr(opt, "low_frequency_cutoff", None)
+
+    for s_num, stilde in enumerate(segments):
+        active_indices = []
+        active_templates = []
+        active_sigmasqs = []
+        psd_id = id(stilde.psd)
+
+        if psd_id not in sigmasq_caches:
+            sigmasq_caches[psd_id] = np.asarray(jax.device_get(
+                live_template_norms_jax(
+                    batch_templates, stilde.psd,
+                    template_matrix=getattr(batch_templates, "_batch_tensor", None)
+                )), dtype=np.float64)
+        batch_sigmasqs = sigmasq_caches[psd_id]
+
+        if inj_filter_rejector is None:
+            active_indices = list(range(b))
+            active_templates = batch_templates
+            active_sigmasqs = batch_sigmasqs
+        else:
+            for i, t_num in enumerate(batch_tnums):
+                if not inj_filter_rejector.template_segment_checker(
+                    bank, t_num, stilde
+                ):
+                    continue
+                active_indices.append(i)
+                active_templates.append(batch_templates[i])
+                active_sigmasqs.append(batch_sigmasqs[i])
+
+            if not active_indices:
+                continue
+
+            batch_tensor = getattr(batch_templates, "_batch_tensor", None)
+            if batch_tensor is not None:
+                from pycbc.waveform.bank_jax import TemplateBatchList
+                act_list = TemplateBatchList(active_templates)
+                if len(active_indices) == len(batch_templates):
+                    act_list._batch_tensor = batch_tensor
+                else:
+                    act_list._batch_tensor = batch_tensor[jnp.asarray(active_indices)]
+                active_templates = act_list
+
+        if opt and getattr(opt, "update_progress", None):
+            from pycbc.workflow import update_progress
+            update_progress(
+                (batch_tnums[0] + (s_num / float(len(segments)))) / len(bank),
+                opt.update_progress,
+                getattr(opt, "update_progress_file", None),
+            )
+
+        logging.info(
+            "Filtering template batch %d-%d/%d segment %d/%d"
+            % (batch_tnums[0] + 1, batch_tnums[-1] + 1, len(bank), s_num + 1, len(segments))
+        )
+
+        batch_results = matched_filter.batched_matched_filter_and_cluster(
+            s_num,
+            active_templates,
+            active_sigmasqs,
+            cluster_window,
+            epoch=stilde._epoch,
+        )
+
+        # Check if any template in this segment produced triggers
+        has_triggers = any(len(res[3]) > 0 for res in batch_results)
+        if not has_triggers:
+            continue
+
+        chisq_map = None
+        if power_chisq is not None and getattr(power_chisq, "do", False):
+            corr_tensor = None
+            for res in batch_results:
+                if res[2] is not None and hasattr(res[2], "_batch_tensor"):
+                    corr_tensor = res[2]._batch_tensor
+                    break
+            if corr_tensor is not None:
+                chisq_map = batch_power_chisq_jax(
+                    corr_tensor,
+                    batch_results,
+                    active_templates,
+                    stilde.psd,
+                    stilde.analyze.start,
+                    snr_threshold=power_chisq.snr_threshold,
+                    power_chisq=power_chisq,
+                )
+
+        for act_pos, tmpl_idx in enumerate(active_indices):
+            snr, norm, corr, idx, snrv = batch_results[act_pos]
+            if not len(idx):
+                continue
+
+            tmpl = active_templates[act_pos]
+            sigmasq = active_sigmasqs[act_pos]
+            idx_cum = idx + stilde.cumulative_index
+            snr_vals = snrv * norm
+
+            if chisq_map is not None and act_pos in chisq_map:
+                chisq_val, chisq_dof_val = chisq_map[act_pos]
+            elif power_chisq is not None and getattr(power_chisq, "do", False):
+                chisq_val, chisq_dof_val = power_chisq.values(
+                    corr, snrv, norm, stilde.psd, idx + stilde.analyze.start, tmpl
+                )
+            else:
+                chisq_val, chisq_dof_val = None, None
+
+            bank_chisq_val, bank_chisq_dof_val = (
+                bank_chisq.values(tmpl, stilde.psd, stilde, snrv, norm, idx + stilde.analyze.start)
+                if bank_chisq is not None and getattr(bank_chisq, "do", False)
+                else (None, None)
+            )
+            sg_chisq_val = (
+                sg_chisq.values(stilde, tmpl, stilde.psd, snrv, norm, chisq_val, chisq_dof_val, idx + stilde.analyze.start)
+                if sg_chisq is not None and getattr(sg_chisq, "do", False)
+                else None
+            )
+            cont_chisq_val, cont_chisq_dof_val = (
+                autochisq.values(snr, idx + stilde.analyze.start, tmpl, stilde.psd, norm, stilde=stilde, low_frequency_cutoff=flow)
+                if autochisq is not None and getattr(autochisq, "do", False)
+                else (None, None)
+            )
+
+            triggered_events[tmpl_idx].append({
+                "time_index": idx_cum,
+                "snr": snr_vals,
+                "chisq": chisq_val,
+                "chisq_dof": chisq_dof_val,
+                "sigmasq": sigmasq,
+                "bank_chisq": bank_chisq_val,
+                "bank_chisq_dof": bank_chisq_dof_val,
+                "sg_chisq": sg_chisq_val,
+                "cont_chisq": cont_chisq_val,
+                "cont_chisq_dof": cont_chisq_dof_val,
+            })
+
+    # Add accumulated events directly to event_mgr per template
+    for tmpl_idx, ev_list in enumerate(triggered_events):
+        if not ev_list:
+            continue
+        tmpl = batch_templates[tmpl_idx]
+        if len(ev_list) == 1:
+            ev = ev_list[0]
+            times = ev["time_index"]
+            snrs = ev["snr"]
+            chisqs = ev["chisq"]
+            dofs = ev["chisq_dof"]
+            sigmasq_val = ev["sigmasq"]
+            sigmasqs_arr = np.full(len(times), sigmasq_val, dtype=np.float32)
+            b_chisq = ev["bank_chisq"]
+            b_dof = ev["bank_chisq_dof"]
+            sg = ev["sg_chisq"]
+            cont = ev["cont_chisq"]
+            cont_dof = ev["cont_chisq_dof"]
+        else:
+            times = np.concatenate([e["time_index"] for e in ev_list])
+            snrs = np.concatenate([e["snr"] for e in ev_list])
+            chisqs = np.concatenate([e["chisq"] for e in ev_list]) if ev_list[0]["chisq"] is not None else None
+            dofs = np.concatenate([e["chisq_dof"] for e in ev_list]) if ev_list[0]["chisq_dof"] is not None else None
+            sigmasqs_arr = np.concatenate([np.full(len(e["time_index"]), e["sigmasq"], dtype=np.float32) for e in ev_list])
+            b_chisq = np.concatenate([e["bank_chisq"] for e in ev_list]) if ev_list[0]["bank_chisq"] is not None else None
+            b_dof = np.concatenate([e["bank_chisq_dof"] for e in ev_list]) if ev_list[0]["bank_chisq_dof"] is not None else None
+            sg = np.concatenate([e["sg_chisq"] for e in ev_list]) if ev_list[0]["sg_chisq"] is not None else None
+            cont = np.concatenate([e["cont_chisq"] for e in ev_list]) if ev_list[0]["cont_chisq"] is not None else None
+            cont_dof = np.concatenate([e["cont_chisq_dof"] for e in ev_list]) if ev_list[0]["cont_chisq_dof"] is not None else None
+
+        columns = jax.device_get((
+            times, snrs, chisqs, dofs, b_chisq, b_dof, sg, cont, cont_dof))
+        times, snrs, chisqs, dofs, b_chisq, b_dof, sg, cont, cont_dof = (
+            None if value is None else np.asarray(value) for value in columns)
+
+        if cluster_window > 0 and len(times) > 1:
+            times_i32 = times.astype(np.int32)
+            indices = np.zeros(len(times), dtype=np.int32)
+            count = findchirp_cluster_over_window_cython(
+                times_i32, np.asarray(abs(snrs)), cluster_window, indices, len(times)
+            )
+            indices = indices[:count + 1]
+            times = times[indices]
+            snrs = snrs[indices]
+            if chisqs is not None:
+                chisqs = chisqs[indices]
+            if dofs is not None:
+                dofs = dofs[indices]
+            sigmasqs_arr = sigmasqs_arr[indices]
+            if b_chisq is not None:
+                b_chisq = b_chisq[indices]
+            if b_dof is not None:
+                b_dof = b_dof[indices]
+            if sg is not None:
+                sg = sg[indices]
+            if cont is not None:
+                cont = cont[indices]
+            if cont_dof is not None:
+                cont_dof = cont_dof[indices]
+
+        event_mgr.add_template_events_direct(
+            tmpl.params,
+            times,
+            snrs,
+            chisq=chisqs,
+            chisq_dof=dofs,
+            sigmasq=sigmasqs_arr,
+            bank_chisq=b_chisq,
+            bank_chisq_dof=b_dof,
+            cont_chisq=cont,
+            cont_chisq_dof=cont_dof,
+            sg_chisq=sg,
+        )
+
+    if hasattr(bank, "clear_batch_cache"):
+        bank.clear_batch_cache(batch_tnums, collect=False)
+    if hasattr(matched_filter, "clear_batch_cache"):
+        matched_filter.clear_batch_cache()
