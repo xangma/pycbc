@@ -9,18 +9,19 @@ launched with mpirun.
 
 See https://arxiv.org/abs/1805.11174 for an overview."""
 
+import sys
 import numpy, pycbc, logging, cProfile, h5py, json
 import os.path
 import itertools
 import platform
+import time
 from matplotlib import use
 use('agg')
 from mpi4py import MPI as mpi
-from pycbc.pool import BroadcastPool
 from pycbc import fft, waveform, scheme
 from pycbc.filter import LiveBatchMatchedFilter
 from pycbc.strain import StrainBuffer
-from pycbc.events.coinc import LiveCoincTimeslideBackgroundEstimator as Coincer
+from pycbc.events.coinc_jax import JAXLiveCoincTimeslideBackgroundEstimator as Coincer
 from pycbc.events.single import LiveSingle
 import pycbc.waveform.bank
 from pycbc.vetoes.sgchisq import SingleDetSGChisq
@@ -42,10 +43,92 @@ except ImportError:
         pass
 
 
-from pycbc.live.cli import LiveEventManager, check_max_length, create_parser
+def _stage_event(name, event, **fields):
+    """Emit a machine-readable stage boundary for benchmark profilers.
+
+    ``perf_counter_ns`` is monotonic and therefore remains meaningful when a
+    replay uses historical GPS epochs.  Keep this a single-line JSON record so
+    MPI's interleaved stderr can still be parsed losslessly.
+    """
+    # Stage events are a benchmark instrumentation channel.  Keep the live
+    # executable's normal path free of JSON serialization and stderr I/O;
+    # benchmark runners opt in explicitly through the environment.
+    if os.environ.get('PYCBC_BENCHMARK_STAGES', '').lower() not in ('1', 'true', 'yes'):
+        return
+    synchronized = False
+    if event == 'end':
+        from pycbc.benchmark import synchronize_jax_stage
+        synchronized = synchronize_jax_stage()
+    record = {
+        'pid': os.getpid(),
+        'rank': mpi.COMM_WORLD.Get_rank(),
+        'stage': str(name),
+        'label': str(name),
+        'event': str(event),
+        'monotonic_ns': time.perf_counter_ns(),
+    }
+    # Keep aliases for older local consumers while the profiler contract uses
+    # the explicit stage/monotonic names above.
+    record['name'] = record['stage']
+    record['time_ns'] = record['monotonic_ns']
+    if synchronized:
+        record['synchronized'] = True
+    record.update(fields)
+    sys.stderr.write('PYCBC_STAGE_EVENT ' + json.dumps(
+        record, sort_keys=True, separators=(',', ':')) + '\n')
+    sys.stderr.flush()
+
+
+def _write_benchmark_evidence(path, data_reader, psds, start, end):
+    """Write opt-in per-block strain/PSD evidence for the strict qualifier."""
+    if not path or mpi.COMM_WORLD.Get_rank() != 0:
+        return
+    os.makedirs(path, exist_ok=True)
+    filename = os.path.join(path, f"block-{float(start):.6f}-{float(end):.6f}.hdf")
+    with h5py.File(filename, 'w') as evidence:
+        evidence.attrs['science_config'] = os.environ.get('PYCBC_SCIENCE_CONFIG', '{}')
+        evidence.attrs['analyze_start'] = float(start)
+        evidence.attrs['analyze_end'] = float(end)
+        first_strain = True
+        for ifo in sorted(data_reader):
+            reader = data_reader[ifo]
+            segment = evidence.create_group(f'segments/{ifo}')
+            segment.attrs['analyze_start'] = float(start)
+            segment.attrs['analyze_end'] = float(end)
+            if reader.strain is not None:
+                segment.attrs['delta_t'] = float(getattr(reader.strain, 'delta_t', 0.0))
+                segment.attrs['epoch'] = float(getattr(reader.strain, 'start_time', start))
+            if reader.strain is not None:
+                strain = numpy.asarray(reader.strain)
+                segment.create_dataset('strain', data=strain)
+                if first_strain:
+                    evidence.create_dataset('conditioned_strain', data=strain)
+                    first_strain = False
+            if psds.get(ifo) is not None:
+                segment.attrs['delta_f'] = float(getattr(psds[ifo], 'delta_f', 0.0))
+                segment.create_dataset('psd', data=numpy.asarray(psds[ifo]))
+
+
+from pycbc.live.cli import check_max_length, create_parser
+from pycbc.live.cli_jax import JAXLiveEventManager
 
 parser = create_parser(__doc__)
+parser.set_defaults(processing_scheme='jax:cpu')
+parser.add_argument('--replay-clock', action='store_true',
+                    help='Read cached frames using a historical replay clock')
+parser.add_argument('--replay-rate', type=float, default=0.0,
+                    help='Data seconds per wall second; zero runs without pacing')
+parser.add_argument('--benchmark-evidence-path',
+                    help='Directory for per-block numerical comparison data')
+
 args = parser.parse_args()
+
+if args.replay_rate < 0:
+    parser.error('--replay-rate must be non-negative')
+if args.replay_clock:
+    # DataBuffer uses this explicit switch to avoid a comparison between the
+    # historical frame epoch and the host's current GPS time.
+    os.environ['PYCBC_REPLAY_CLOCK'] = '1'
 
 scheme.verify_processing_options(args, parser)
 fft.verify_fft_options(args, parser)
@@ -67,8 +150,8 @@ pycbc.init_logging(
 )
 
 ctx = scheme.from_cli(args)
-if isinstance(ctx, scheme.JAXScheme):
-    parser.error('Use pycbc_live_jax for a JAX processing scheme')
+if not isinstance(ctx, scheme.JAXScheme):
+    parser.error("pycbc_live_jax requires a JAX processing scheme")
 fft.from_cli(args)
 
 # Approximant guess of the total padding
@@ -88,7 +171,7 @@ if bank.min_f_lower < args.low_frequency_cutoff:
                  'minimum f_lower across all templates '
                  '({} Hz)'.format(args.low_frequency_cutoff, bank.min_f_lower))
 
-evnt = LiveEventManager(args, bank, parser)
+evnt = JAXLiveEventManager(args, bank, parser)
 
 logging.info('Analyzing data from detectors %s', ppdets(evnt.ifos))
 logging.info('Using %s for localization only', ppdets(evnt.skymap_only_ifos))
@@ -111,8 +194,14 @@ if evnt.rank == 0 and args.enable_gracedb_upload:
     logging.info('GraceDB ping response: %s %s time elapsed: %s',
             response.status, response.reason, response.elapsed.total_seconds())
 
+waveforms = None
+
 # I'm not the root, so do some actual filtering.
-with ctx:
+from pycbc.events.live_output_jax import (
+    live_output_scope, collect_live_background_jax)
+from pycbc.events.live_pipeline_jax import live_result_scope
+from pycbc.events.live_mpi_jax import host_stage
+with ctx, live_output_scope(evnt), live_result_scope(evnt):
     try:
         # Import system wisdom.
         if args.fftw_import_system_wisdom:
@@ -132,9 +221,24 @@ with ctx:
         exit()
 
     if evnt.rank > 0:
-        bank.table.sort(order='mchirp')
-        waveforms = list(bank[evnt.rank-1::evnt.size-1])
-        check_max_length(args, waveforms)
+        if waveforms is None:
+            _stage_event('filter_bank_setup', 'start')
+            _stage_event('filter_bank_sort', 'start')
+            bank.table.sort(order='mchirp')
+            _stage_event('filter_bank_sort', 'end')
+            _stage_event('filter_waveform_generation', 'start')
+            from pycbc.waveform.live_bank_jax import (
+                generate_live_waveforms_jax,
+            )
+            waveforms = generate_live_waveforms_jax(
+                bank, evnt.rank, evnt.size
+            )
+            _stage_event('filter_waveform_generation', 'end', templates=len(waveforms))
+            _stage_event('filter_bank_length_check', 'start')
+            check_max_length(args, waveforms)
+            _stage_event('filter_bank_length_check', 'end')
+            _stage_event('filter_bank_setup', 'end', templates=len(waveforms))
+        _stage_event('filter_workspace_setup', 'start', templates=len(waveforms))
         mf = LiveBatchMatchedFilter(
             waveforms,
             args.snr_threshold,
@@ -145,6 +249,7 @@ with ctx:
             max_triggers_in_batch=args.max_triggers_in_batch,
             maxelements=args.max_batch_size
         )
+        _stage_event('filter_workspace_setup', 'end', templates=len(waveforms))
 
     # Synchronize start time if not provided on the command line
     if not args.start_time:
@@ -184,36 +289,14 @@ with ctx:
                 args, len(bank), args.analysis_chunk, list(combo)
             ))
 
-        my_coinc_id = 999999
-        def set_coinc_id(i):
-            global my_coinc_id
-            my_coinc_id = i
-            c = estimators[my_coinc_id]
-            setproctitle(
-                'PyCBC Live {} bg estimator'.format(ppdets(c.ifos, '-'))
-            )
 
-        def estimator_refresh_threads(_):
-            c = estimators[my_coinc_id]
-            c.start_refresh_thread()
-
-        def get_coinc(results):
-            c = estimators[my_coinc_id]
-            r = c.add_singles(results)
-            logging.info('Coincs %i: %s-%s: %s in cbuffer', my_coinc_id,
-                         c.ifos[0], c.ifos[1], c.coincs.index)
-            return r
-
-        def output_background(_):
-            estim = estimators[my_coinc_id]
-            bg_time = conv.sec_to_year(estim.background_time)
-            return estim.ifos, estim.coincs.data, bg_time
-
-        coinc_pool = BroadcastPool(len(estimators))
-        coinc_pool.allmap(set_coinc_id, range(len(estimators)))
-        coinc_pool.broadcast(estimator_refresh_threads, None)
+        for estimator in estimators:
+            estimator.start_refresh_thread()
 
     logging.info('Starting')
+
+    replay_wall_start = time.perf_counter()
+    replay_data_start = None
 
     if args.enable_profiling is not None and evnt.rank == args.enable_profiling:
         pr = cProfile.Profile()
@@ -232,52 +315,88 @@ with ctx:
     psd_var_filts = {ifo: None for ifo in evnt.trigg_ifos}
 
     while data_end() < args.end_time:
-        t1 = pycbc.gps_now()
-        logging.info('Analyzing from %s', data_end())
+        block_data_start = float(data_end())
+        if replay_data_start is None:
+            replay_data_start = block_data_start
+        if args.replay_clock and args.replay_rate > 0 and replay_data_start is not None:
+            # Release each cached block at its virtual historical arrival
+            # time.  Waiting after a block would let processing consume future
+            # data and would make the measured replay lag ambiguous.
+            target_wall = (block_data_start - replay_data_start) / args.replay_rate
+            target_sleep = target_wall - (time.perf_counter() - replay_wall_start)
+            if target_sleep > 0:
+                time.sleep(target_sleep)
+        t1 = time.perf_counter()
+        t1_gps = pycbc.gps_now()
+        _stage_event('block', 'start', data_start=block_data_start,
+                     analysis_chunk=float(args.analysis_chunk))
+        logging.info('Analyzing from %s', block_data_start)
 
         results = {}
         evnt.live_detectors = set()
 
-        for ifo in (evnt.ifos if evnt.rank == 0 else evnt.trigg_ifos):
-            results[ifo] = False
-            status = data_reader[ifo].advance(
-                valid_pad,
-                timeout=args.frame_read_timeout
-            )
-            if status and psd_count[ifo] == 0:
-                status = data_reader[ifo].recalculate_psd()
-                # If the psd has been recalculated then we need a new
-                #  filter for psd variation calculation
-                psd_recalculated[ifo] = True
-                psd_count[ifo] = args.psd_recompute_length - 1
-            elif not status:
-                psd_count[ifo] = 0
-            else:
-                psd_count[ifo] -= 1
+        analysis_ifos = evnt.ifos if evnt.rank == 0 else evnt.trigg_ifos
+        from pycbc.strain.live_data_jax import (
+            advance_live_data_jax, prepare_live_data_jax)
+        prepared_data = prepare_live_data_jax(
+            data_reader, analysis_ifos, psd_count, psd_recalculated,
+            increment=valid_pad, timeout=args.frame_read_timeout,
+            interval=args.psd_recompute_length,
+            min_distance=args.min_psd_abort_distance,
+            max_distance=args.max_psd_abort_distance,
+            stage_event=_stage_event, data_start=block_data_start)
 
-            status &= data_reader[ifo].check_psd_dist(
-                args.min_psd_abort_distance,
-                args.max_psd_abort_distance
-            )
+        for ifo in analysis_ifos:
+            results[ifo] = False
+            if prepared_data is None:
+                status = advance_live_data_jax(
+                    data_reader[ifo], ifo, psd_count, psd_recalculated,
+                    increment=valid_pad, timeout=args.frame_read_timeout,
+                    interval=args.psd_recompute_length,
+                    min_distance=args.min_psd_abort_distance,
+                    max_distance=args.max_psd_abort_distance,
+                    stage_event=_stage_event, data_start=block_data_start)
+            else:
+                status = prepared_data.status(ifo)
 
             if status is True:
                 if ifo not in evnt.skymap_only_ifos:
                     evnt.live_detectors.add(ifo)
                     if evnt.rank > 0:
+                        _stage_event('filter', 'start', ifo=ifo,
+                                     data_start=block_data_start,
+                                     templates=len(waveforms))
                         logging.info('Filtering %s', ifo)
-                        results[ifo] = mf.process_data(data_reader[ifo])
+                        from pycbc.events.live_pipeline_jax import enqueue_live_detector_jax
+                        results[ifo] = enqueue_live_detector_jax(mf, data_reader[ifo])
+                        if os.environ.get('PYCBC_BENCHMARK_STAGES') == '1':
+                            _stage_event(
+                                'filter', 'end', ifo=ifo,
+                                data_start=block_data_start, templates=len(waveforms),
+                                signal_dtypes=sorted({
+                                    str(buffer.dtype)
+                                    for buffers in (mf.out_mem, mf.cout_mem)
+                                    for buffer in buffers.values()}),
+                                sample_rate=float(data_reader[ifo].strain.sample_rate))
             else:
                 logging.info('Insufficient data for %s analysis', ifo)
 
         if evnt.rank > 0:
+            from pycbc.events.live_pipeline_jax import finish_live_detectors_jax
+            results = finish_live_detectors_jax(mf, results)
             evnt.commit_results((results, data_end()))
         else:
+            _stage_event('postprocess', 'start', data_start=block_data_start)
             psds = {ifo: data_reader[ifo].psd for ifo in data_reader
                          if data_reader[ifo].psd is not None}
 
             # Collect together the single detector triggers
             if evnt.size > 1:
+                _stage_event('mpi_gather', 'start',
+                             data_start=block_data_start)
                 results, valid_end = evnt.gather_results()
+                _stage_event('mpi_gather', 'end',
+                             data_start=block_data_start)
 
             # veto detectors with different state between the root
             # and worker nodes (e.g. late frame files on one node only)
@@ -358,9 +477,16 @@ with ctx:
 
                     results[ifo]['psd_var_val'] = psd_var_vals
 
+            # Support JAX single-detector output without changing the native
+            # CPU path. Coincidence estimation replaces this payload below.
+            best_coinc = {}
+
             # Look for coincident triggers and do background estimation
             if args.enable_background_estimation:
-                coinc_results = coinc_pool.broadcast(get_coinc, results)
+                with host_stage('coincidence_dispatch',
+                                data_start=block_data_start):
+                    coinc_results = [estimator.add_singles(results)
+                                     for estimator in estimators]
 
                 # Pick the best coinc in this chunk
                 best_coinc = Coincer.pick_best_coinc(coinc_results)
@@ -379,16 +505,23 @@ with ctx:
                                           data_end() - args.analysis_chunk,
                                           valid_pad)
 
+            _stage_event('output', 'start', data_start=block_data_start)
+            _write_benchmark_evidence(args.benchmark_evidence_path, data_reader,
+                                      psds, block_data_start, float(data_end()))
             evnt.dump(results, prefix, time_index=data_end(),
                       store_psd=(psds if args.store_psd else False),
                       store_loudest_index=args.store_loudest_index,
                       raw_results=best_coinc, gates=gates)
+            _stage_event('output', 'end', data_start=block_data_start,
+                         data_end=float(data_end()))
 
             # dump the background if needed
             if args.output_background and \
                     data_end() - last_bg_dump_time > float(args.output_background[0]):
                 last_bg_dump_time = int(data_end())
-                bg_dists = coinc_pool.broadcast(output_background, None)
+                bg_dists = [(estimator.ifos, estimator.coincs.data,
+                             conv.sec_to_year(estimator.background_time))
+                            for estimator in estimators]
                 bg_fn = '{}-LIVE_BACKGROUND-{}.hdf'.format(
                     ''.join(sorted(evnt.trigg_ifos)), last_bg_dump_time
                 )
@@ -402,24 +535,51 @@ with ctx:
                                 "We can only store positive int loudest triggers."
                             ds = bgf.create_dataset(
                                 ','.join(sorted(bg_ifos)),
-                                data=-numpy.partition(-bg_data, n_loudest)[:n_loudest],
+                                data=collect_live_background_jax(bg_data, n_loudest),
                                 compression='gzip'
                             )
                         else:
                             ds = bgf.create_dataset(
                                 ','.join(sorted(bg_ifos)),
-                                data=bg_data,
+                                data=collect_live_background_jax(bg_data),
                                 compression='gzip'
                             )
                         ds.attrs['background_time'] = bg_time
                     bgf.attrs['gps_time'] = last_bg_dump_time
 
             logging.info('Finished analyzing up to %s', data_end())
+            _stage_event('postprocess', 'end', data_start=block_data_start,
+                         data_end=float(data_end()),
+                         live_detectors=sorted(evnt.live_detectors))
 
+        if isinstance(ctx, scheme.JAXScheme) and data_end() >= args.end_time:
+            from pycbc.events.live_output_jax import drain_live_output_jax
+            drain_live_output_jax(evnt)
+            _stage_event('mpi_drain', 'start')
+            evnt._jax_result_transport.drain()
+            _stage_event('mpi_drain', 'end')
         if args.sync:
             evnt.barrier()
-        tdiff = pycbc.gps_now() - t1
-        lag = float(pycbc.gps_now() - data_end())
+        processing_tdiff = time.perf_counter() - t1
+        if args.replay_clock:
+            tdiff = time.perf_counter() - t1
+            if args.replay_rate > 0 and replay_data_start is not None:
+                virtual_available = (time.perf_counter() - replay_wall_start) * args.replay_rate
+                processed = float(data_end()) - replay_data_start
+                lag = max(0.0, virtual_available - processed)
+            else:
+                lag = 0.0
+        else:
+            tdiff = pycbc.gps_now() - t1_gps
+            lag = float(pycbc.gps_now() - data_end())
+        _stage_event('block', 'end', data_start=block_data_start,
+                     data_end=float(data_end()), elapsed_sec=float(tdiff),
+                     processing_elapsed_sec=float(processing_tdiff),
+                     lag_sec=float(lag),
+                     live_detectors=sorted(evnt.live_detectors),
+                     deadline_met=bool(processing_tdiff <= (
+                         float(args.analysis_chunk) / args.replay_rate
+                         if args.replay_clock and args.replay_rate > 0 else valid_pad)))
         logging.info('Took %1.2f, duty factor of %.2f, lag %.2f s, %d live detectors',
                      tdiff, tdiff / valid_pad, lag, len(evnt.live_detectors)
         )
@@ -448,6 +608,7 @@ with ctx:
                     json.dump(status, status_fp)
             except IOError:
                 logging.error('I/O error writing status JSON file!')
+
 
 if evnt.rank == 1:
     if args.fftw_output_float_wisdom_file:

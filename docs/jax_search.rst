@@ -148,3 +148,7 @@ held fixed in these examples.
    :hidden:
 
    jax_search_numerical_differences
+
+The dedicated search commands are described in :doc:`jax_inspiral` and
+:doc:`jax_live`. Waveform generation and its original-code validation option
+are described in :doc:`jax_waveform`.

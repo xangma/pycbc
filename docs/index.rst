@@ -67,6 +67,9 @@ library and application suite.
    jax_search
    jax_gwf
    jax_waveform
+   jax_inspiral
+   jax_live
+   jax_live_psd_numerical_differences
    searches
    inference
    apps
