@@ -174,3 +174,47 @@ def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
         epoch=htilde.epoch,
         copy=False,
     )
+
+
+def fused_detector_strain_fd_jax(hp_tensor, hc_tensor, fp_list, fc_list, dt_list, delta_f, kmin=0):
+    """Project polarizations and shift each detector on its waveform device."""
+    from pycbc.types.array_jax import _reference_enabled, to_jax
+    from pycbc.reference_jax import cpu_reference
+    import jax
+    import numpy as np
+    like = hp_tensor
+    device = None if isinstance(like, jax.core.Tracer) else like.device
+    ndet = len(fp_list)
+    if not ndet or len(fc_list) != ndet or len(dt_list) != ndet:
+        raise ValueError("fplus, fcross, and time-shift values must have the same non-zero detector count")
+    arrays = [to_jax(value, dtype=like.real.dtype, device=device)
+              for group in (fp_list, fc_list, dt_list) for value in group]
+    try:
+        arrays = jnp.broadcast_arrays(*arrays)
+    except (ValueError, TypeError) as error:
+        raise ValueError("Detector responses and time shifts do not have compatible sample shapes") from error
+    outputs = []
+    frequencies = jnp.arange(like.shape[-1], dtype=like.real.dtype, device=device) * delta_f
+    for index in range(ndet):
+        fp, fc, dt = arrays[index], arrays[index+ndet], arrays[index+2*ndet]
+        if _reference_enabled("inference_projection"):
+            if isinstance(fp, jax.core.Tracer):
+                raise RuntimeError("Native projection cannot run inside jax.jit")
+            pairs = zip(np.asarray(fp).reshape(-1), np.asarray(fc).reshape(-1))
+            projected = jnp.stack([to_jax(cpu_reference("inference_projection", np.asarray(like), hc=np.asarray(hc_tensor), fp=float(a), fc=float(b), spacing=delta_f), device=device) for a,b in pairs])
+            projected = projected.reshape(fp.shape + like.shape)
+        else:
+            projected = fp[..., None] * like + fc[..., None] * to_jax(hc_tensor, device=device)
+        if _reference_enabled("time_shift"):
+            if isinstance(dt, jax.core.Tracer):
+                raise RuntimeError("Native time shift cannot run inside jax.jit")
+            result = cpu_reference("time_shift", np.asarray(projected), spacing=delta_f, dt=np.asarray(dt), kmin=kmin)[0]
+            shifted = to_jax(result, device=device)
+        else:
+            phase = -2.0 * jnp.pi * dt[..., None] * frequencies
+            shift = jnp.cos(phase) + 1j * jnp.sin(phase)
+            shifted = projected * shift
+            if kmin:
+                shifted = jnp.concatenate((projected[..., :kmin], shifted[..., kmin:]), axis=-1)
+        outputs.append(shifted)
+    return jnp.stack(outputs)

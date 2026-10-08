@@ -309,6 +309,12 @@ def _execute(request):
             result = getattr(utils, operation)(series, **kwargs)
             return (result.numpy(), spacing,
                     None if result._epoch is None else str(result._epoch))
+        elif operation == "inference_projection":
+            hp = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            hc = FrequencySeries(kwargs.pop("hc"), delta_f=spacing, epoch=epoch)
+            fp, fc = kwargs.pop("fp"), kwargs.pop("fc")
+            output = fp * hp + fc * hc
+            return output.numpy()
         elif operation == "inference_weight":
             from pycbc.types import Array
 
