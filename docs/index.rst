@@ -78,6 +78,7 @@ library and application suite.
    searches
    inference
    apps
+   jax
 
 .. toctree::
    :caption: Dev Guides
