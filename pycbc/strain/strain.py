@@ -1213,7 +1213,25 @@ class StrainSegments(object):
         of the segment to analyze for triggers. The value 'cumulative_index'
         indexes from the beginning of the original strain series.
         """
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            reference = "fft" in scheme.mgr.state.jax_reference_operations
+            if getattr(self, "_jax_fourier_reference", reference) != reference:
+                self._fourier_segments = []
+            self._jax_fourier_reference = reference
         if not self._fourier_segments:
+            can_batch = (
+                isinstance(scheme.mgr.state, scheme.JAXScheme)
+                and len(self.segment_slices) > 0
+                and all(
+                    seg_slice.start >= 0 and seg_slice.stop <= len(self.strain)
+                    for seg_slice in self.segment_slices
+                )
+            )
+            if can_batch:
+                from .strain_jax import fourier_segments_jax
+                self._fourier_segments = fourier_segments_jax(self)
+                return self._fourier_segments
+
             self._fourier_segments = []
             for seg_slice, ana in zip(self.segment_slices, self.analyze_slices):
                 if seg_slice.start >= 0 and seg_slice.stop <= len(self.strain):
@@ -1845,6 +1863,13 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             )
         return good
 
+    def preload_overwhitened_data(self, delta_fs=None):
+        """Precompute and cache overwhitened strain data."""
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.strain.strain_jax import preload_overwhitened_data_jax
+            return preload_overwhitened_data_jax(self, delta_fs=delta_fs)
+        return {df: self.overwhitened_data(df) for df in (delta_fs or ())}
+
     def overwhitened_data(self, delta_f):
         """ Return overwhitened data
 
@@ -1858,6 +1883,10 @@ class StrainBuffer(pycbc.frame.DataBuffer):
         htilde: FrequencySeries
             Overwhited strain data
         """
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.strain.strain_jax import overwhitened_data_jax
+            return overwhitened_data_jax(self, delta_f)
+
         # we haven't already computed htilde for this delta_f
         if delta_f not in self.segments:
             buffer_length = int(1.0 / delta_f)
@@ -2078,6 +2107,12 @@ class StrainBuffer(pycbc.frame.DataBuffer):
 
         if self.psd is None and self.wait_duration <=0:
             self.recalculate_psd()
+
+        if (isinstance(scheme.mgr.state, scheme.JAXScheme)
+                and getattr(self, "auto_cache_overwhitened", False)
+                and self.psd is not None
+                and self.wait_duration <= 0):
+            self.preload_overwhitened_data()
 
         return self.wait_duration <= 0
 
