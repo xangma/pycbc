@@ -382,6 +382,10 @@ def td_taper(out, start, end, beta=8, side='left'):
     TimeSeries
         The tapered time series.
     """
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .utils_jax import td_taper_jax
+        return td_taper_jax(out, start, end, beta=beta, side=side)
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_t)
@@ -426,6 +430,10 @@ def fd_taper(out, start, end, beta=8, side='left'):
     FrequencySeries
         The tapered frequency series.
     """
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .utils_jax import fd_taper_jax
+        return fd_taper_jax(out, start, end, beta=beta, side=side)
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_f)

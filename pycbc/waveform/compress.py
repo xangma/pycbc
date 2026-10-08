@@ -616,6 +616,11 @@ def fd_decompress(amp, phase, sample_frequencies, out=None, df=None,
         If out was provided, writes to that array. Otherwise, a new
         FrequencySeries with the decompressed waveform.
     """
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .decompress_jax import fd_decompress_jax
+        return fd_decompress_jax(amp, phase, sample_frequencies, out, df,
+                                 f_lower, interpolation)
     precision = _precision_map[sample_frequencies.dtype.name]
     if _precision_map[amp.dtype.name] != precision or \
             _precision_map[phase.dtype.name] != precision:
