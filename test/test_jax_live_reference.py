@@ -9,7 +9,7 @@ import pytest
 jax = pytest.importorskip("jax")
 
 from pycbc import scheme
-from pycbc.filter.matchedfilter import MatchedFilterControl
+from pycbc.filter.matchedfilter import LiveBatchMatchedFilter, MatchedFilterControl
 from pycbc.filter.matchedfilter_jax import (
     JAXMatchedFilterControl, process_batch_inspiral_jax,
 )
@@ -57,6 +57,60 @@ def test_batched_filter_composes_original_correlation_ifft_and_cluster(count):
                 assert got.tobytes() == wanted.tobytes()
 
 
+@pytest.mark.parametrize("count", [1, 3])
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+def test_live_setup_retains_original_ifft_plan(monkeypatch, count, device):
+    """Native plans cannot bind a compiled CUDA Live workspace."""
+    from pycbc.fft import IFFT
+    from pycbc.fft import jaxfft
+    from pycbc.filter import matchedfilter_jax as module
+    from pycbc.types.array_jax import JAXArrayData
+
+    if device == "cuda:0":
+        try:
+            jax.devices("gpu")
+        except RuntimeError:
+            pytest.skip("CUDA JAX device unavailable")
+    else:
+        # Exercise CUDA workspace admission on CPU without changing execution.
+        bind_workspace = module._bind_live_ifft_workspace_jax
+        cuda_device = SimpleNamespace(platform="gpu")
+
+        def bind_cuda_geometry(plan):
+            with monkeypatch.context() as patch:
+                patch.setattr(JAXArrayData, "device",
+                              property(lambda self: cuda_device))
+                bind_workspace(plan)
+
+        monkeypatch.setattr(module, "_bind_live_ifft_workspace_jax",
+                            bind_cuda_geometry)
+
+    def reject_jax_transform(*args, **kwargs):
+        pytest.fail("Selected original IFFT entered the JAX transform")
+
+    monkeypatch.setattr(jaxfft, "_compile_jax_inv", reject_jax_transform)
+    monkeypatch.setattr(module, "_live_ifft_flat_jax", reject_jax_transform)
+    rng = np.random.default_rng(910)
+    rows = (rng.normal(size=(count, 33))
+            + 1j * rng.normal(size=(count, 33))).astype(np.complex64)
+    strain = (rng.normal(size=33) + 1j * rng.normal(size=33)).astype(np.complex64)
+    with scheme.JAXScheme(device, reference_operations=("ifft",)):
+        templates = [FrequencySeries(row, delta_f=1) for row in rows]
+        control = LiveBatchMatchedFilter(templates, 0, 0, None,
+                                         maxelements=count * 64)
+        mid = control.mids[0]
+        plan = control.ifts[mid]
+        assert plan._reference is not None
+        assert plan._jax_live_ifft_workspace is None
+        control.corr[0].execute(FrequencySeries(strain, delta_f=1))
+        correlations = np.asarray(control.cout_mem[mid]).copy()
+        module._live_ifft_execute_jax(plan)
+        actual = np.asarray(control.out_mem[mid]).copy()
+    with scheme.CPUScheme():
+        expected = zeros(count * 64, dtype=np.complex64)
+        IFFT(Array(correlations), expected, nbatch=count, size=64).execute()
+        assert actual.dtype == expected.dtype
+        assert actual.tobytes() == expected.numpy().tobytes()
 
 
 @pytest.mark.parametrize("operation", ["power_chisq_bins", "squared_norm", "divide", "cumsum"])

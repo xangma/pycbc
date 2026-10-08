@@ -1068,7 +1068,7 @@ _LivePreparedBatch = namedtuple("_LivePreparedBatch", (
 
 _LiveBatchInputs = namedtuple("_LiveBatchInputs", (
     "group_index", "templates", "stilde", "template_matrix", "native_norms",
-    "norms", "valid_start", "segment", "size"))
+    "norms", "valid_start", "segment", "size", "fused"))
 
 
 def _live_prepare_batch_inputs_jax(self, group_index=None):
@@ -1102,9 +1102,15 @@ def _live_prepare_batch_inputs_jax(self, group_index=None):
     valid_start = int(valid_end - self.data.blocksize * self.data.sample_rate)
 
     seg = slice(valid_start, valid_end)
+    abort_threshold = (jnp.inf if self.snr_abort_threshold is None
+                       else float(self.snr_abort_threshold))
+    fused = _live_fused_batch_inputs_jax(
+        self.corr[group_index], self.ifts[mid], stilde, norms, seg,
+        float(self.snr_threshold), abort_threshold,
+    )
     return _LiveBatchInputs(
         group_index, tgroup, stilde, template_matrix, native_norms, norms,
-        valid_start, seg, psize,
+        valid_start, seg, psize, fused,
     )
 
 
@@ -1124,44 +1130,53 @@ def _live_native_selection_jax(control, templates, peaks, sigmasqs):
         snr_abort_threshold=control.snr_abort_threshold)
 
 
-def _live_complete_batch_jax(self, inputs):
+def _live_complete_batch_jax(self, inputs, outputs=None):
     """Launch or publish captured inputs, preserving public full buffers."""
     from pycbc.benchmark import stage_event
 
     group_index, tgroup = inputs.group_index, inputs.templates
     mid = self.mids[group_index]
     native_selection = None
-    stage_event("filter_correlation", "start", templates=len(tgroup))
-    self.corr[group_index].execute(inputs.stilde)
-    stage_event("filter_correlation", "end", templates=len(tgroup))
-    # JAX CPU and unqualified geometries retain their original transform.
-    stage_event("filter_ifft", "start", templates=len(tgroup))
-    self.ifts[mid].execute()
-    stage_event("filter_ifft", "end", templates=len(tgroup))
-
-    stage_event("filter_peak_select", "start", templates=len(tgroup))
-    jax_peaks = batch_peak_values(
-        self.out_mem[mid], len(tgroup), inputs.size, inputs.segment)
-    if jax_peaks is None:
-        raise ValueError("JAX live peak reduction could not process the batch")
-    peak_indices, peak_values = jax_peaks
-    abort_threshold = (jnp.inf if self.snr_abort_threshold is None
-                       else float(self.snr_abort_threshold))
-    if _reference_enabled("live_selection"):
-        native_selection = _live_native_selection_jax(
-            self, tgroup, peak_values, inputs.native_norms)
-        native_result, selected, _ = native_selection
-        accepted = jnp.zeros(peak_values.shape, dtype=bool)
-        accepted = accepted.at[selected].set(True)
-        abort = jnp.full(peak_values.shape, native_result is False,
-                         dtype=bool)
-        scaled_peaks = peak_values
+    if inputs.fused is not None:
+        stage_event("filter_fused", "start", templates=len(tgroup))
+        if outputs is None:
+            outputs = _live_launch_fused_batch_jax(inputs.fused)
+        peak_indices, peak_values, scaled_peaks, accepted, abort = (
+            _live_publish_fused_batch_jax(inputs.fused, outputs))
+        stage_event("filter_fused", "end", templates=len(tgroup))
     else:
-        scaled_peaks, accepted, abort = _live_select_peaks(
-            peak_values, inputs.norms, float(self.snr_threshold),
-            abort_threshold)
-    stage_event("filter_peak_select", "end", templates=len(tgroup))
+        if outputs is not None:
+            raise ValueError("Unqualified Live batch cannot publish fused output")
+        stage_event("filter_correlation", "start", templates=len(tgroup))
+        self.corr[group_index].execute(inputs.stilde)
+        stage_event("filter_correlation", "end", templates=len(tgroup))
+        # JAX CPU and unqualified geometries retain their original transform.
+        stage_event("filter_ifft", "start", templates=len(tgroup))
+        _live_ifft_execute_jax(self.ifts[mid])
+        stage_event("filter_ifft", "end", templates=len(tgroup))
 
+        stage_event("filter_peak_select", "start", templates=len(tgroup))
+        jax_peaks = batch_peak_values(
+            self.out_mem[mid], len(tgroup), inputs.size, inputs.segment)
+        if jax_peaks is None:
+            raise ValueError("JAX live peak reduction could not process the batch")
+        peak_indices, peak_values = jax_peaks
+        abort_threshold = (jnp.inf if self.snr_abort_threshold is None
+                           else float(self.snr_abort_threshold))
+        if _reference_enabled("live_selection"):
+            native_selection = _live_native_selection_jax(
+                self, tgroup, peak_values, inputs.native_norms)
+            native_result, selected, _ = native_selection
+            accepted = jnp.zeros(peak_values.shape, dtype=bool)
+            accepted = accepted.at[selected].set(True)
+            abort = jnp.full(peak_values.shape, native_result is False,
+                             dtype=bool)
+            scaled_peaks = peak_values
+        else:
+            scaled_peaks, accepted, abort = _live_select_peaks(
+                peak_values, inputs.norms, float(self.snr_threshold),
+                abort_threshold)
+        stage_event("filter_peak_select", "end", templates=len(tgroup))
 
     # Peak vectors remain independent of subsequent shared-workspace writes.
     return _LivePreparedBatch(
@@ -1610,6 +1625,7 @@ def live_batch_matched_filter_init_jax(control, templates, maxelements=2**27):
             nbatch=count,
             size=len(control.cout_mem[i]) // count,
         )
+        _bind_live_ifft_workspace_jax(control.ifts[i])
 
     # Split the templates into their processing groups
     for dur, count in mem_ids:
@@ -1633,6 +1649,8 @@ def live_batch_matched_filter_init_jax(control, templates, maxelements=2**27):
         correlator = BatchCorrelator(
             tgroup, [t.cout for t in tgroup], len(tgroup[0]),
             immutable_templates=True)
+        if control.cout_mem[mid]._data.device.platform in ("cuda", "gpu"):
+            _bind_live_correlate_workspace_jax(correlator, control.cout_mem[mid])
         control.corr.append(correlator)
 
     control.unique_delta_fs = tuple(sorted(
@@ -1648,14 +1666,83 @@ def set_live_data_jax(control, data):
 
 
 
+@functools.partial(jax.jit, static_argnums=(1, 2))
+def _live_ifft_flat_jax(flat, count, size):
+    """Keep both workspace reshapes inside the unnormalized transform.
+
+    Separate CUDA reshape dispatches copy immutable arrays. Within this JIT
+    they are compiler bitcasts, preserving the frequency input without copies.
+    """
+    matrix = flat.reshape(count, size)
+    return (jnp.fft.ifft(matrix, axis=-1) * size).reshape(-1)
 
 
+_LiveIFFTWorkspace = namedtuple(
+    "_LiveIFFTWorkspace",
+    "invec outvec source target geometry shape dtype device compiled",
+)
 
 
+def _bind_live_ifft_workspace_jax(plan):
+    """Qualify only the fixed, full complex64 CUDA buffers owned by Live."""
+    from pycbc.fft.jaxfft import IFFT
+
+    plan._jax_live_ifft_workspace = None
+    if type(plan) is not IFFT or plan._reference is not None:
+        return
+    source, target = plan.invec._data, plan.outvec._data
+    geometry = (plan.nbatch, plan.size, plan.idist, plan.odist)
+    shape = (plan.nbatch * plan.size,)
+    if (not isinstance(source, JAXArrayData)
+            or not isinstance(target, JAXArrayData)
+            or source is target or plan.inplace
+            or source.parent is not None or target.parent is not None
+            or source.slice_info is not None or target.slice_info is not None
+            or source.shape != shape or target.shape != shape
+            or source.dtype != np.dtype(np.complex64)
+            or target.dtype != source.dtype or target.device != source.device
+            or source.device.platform not in ("cuda", "gpu")
+            or plan.idist != plan.size or plan.odist != plan.size):
+        return
+    plan._jax_live_ifft_workspace = _LiveIFFTWorkspace(
+        plan.invec, plan.outvec, source, target, geometry, shape,
+        source.dtype, source.device, plan._compiled,
+    )
 
 
+def _live_ifft_workspace_jax(plan):
+    """Validate retained transform ownership without executing or publishing."""
+    workspace = getattr(plan, "_jax_live_ifft_workspace", None)
+    if workspace is not None:
+        source, target = workspace.source, workspace.target
+        if (plan.invec is workspace.invec and plan.outvec is workspace.outvec
+                and plan.invec._data is source and plan.outvec._data is target
+                and plan._compiled is workspace.compiled and not plan.inplace
+                and (plan.nbatch, plan.size, plan.idist, plan.odist)
+                == workspace.geometry
+                and source.parent is None and target.parent is None
+                and source.slice_info is None and target.slice_info is None
+                and source.shape == target.shape == workspace.shape
+                and source.dtype == target.dtype == workspace.dtype
+                and source.array.dtype == target.array.dtype == workspace.dtype
+                and source.device == target.device == workspace.device
+                and source.array is not target.array):
+            return workspace
+        plan._jax_live_ifft_workspace = None
+    return None
 
 
+def _live_ifft_execute_jax(plan):
+    """Execute a qualified Live transform, retaining the generic fallback."""
+    if _reference_enabled("ifft"):
+        plan.execute()
+        return
+    workspace = _live_ifft_workspace_jax(plan)
+    if workspace is not None:
+        workspace.target.set_array(_live_ifft_flat_jax(
+            workspace.source.array, plan.nbatch, plan.size))
+        return
+    plan.execute()
 
 
 def _set_output_array(z, val):
@@ -1753,26 +1840,202 @@ def _batch_correlate_update(templates, y, parent, base, row_stride):
     return jax.lax.dynamic_update_slice(parent, block.reshape(-1), (base,))
 
 
+@functools.partial(jax.jit, static_argnums=(3,))
+def _live_construct_correlate_jax(templates, strain, parent, row_stride):
+    """Build a complete Live buffer without updating an immutable old root.
+
+    Preserve the current row tails, including nonzero negative frequencies.
+    The explicit cast retains the scatter's destination rounding boundary.
+    Inputs are never donated: retained raw arrays and lazy views stay valid.
+    """
+    products = correlate_jax(templates, strain).astype(parent.dtype)
+    rows = parent.reshape(templates.shape[0], row_stride)
+    return jnp.concatenate((products, rows[:, templates.shape[1]:]),
+                           axis=1).reshape(-1)
 
 
+def _batch_correlate_geometry_jax(outputs, size):
+    """Validate sibling views without caching mutable caller geometry."""
+    zdata = []
+    for z in outputs:
+        data = z if isinstance(z, JAXArrayData) else getattr(z, "_data", None)
+        if not isinstance(data, JAXArrayData):
+            return None
+        info = data.slice_info
+        parent = data.parent
+        if parent is None or not isinstance(info, slice) or info.step not in (None, 1):
+            return None
+        start = 0 if info.start is None else info.start
+        stop = parent.shape[0] if info.stop is None else info.stop
+        zdata.append((parent, start, stop))
+
+    if not zdata or not all(item[0] is zdata[0][0] for item in zdata):
+        return None
+    parent, base, end = zdata[0]
+    row_stride = end - base
+    if (row_stride < size
+            or not all(stop - start == row_stride for _, start, stop in zdata)
+            or not all(start == base + row * row_stride
+                       for row, (_, start, _) in enumerate(zdata))
+            or base + len(zdata) * row_stride > parent.shape[0]):
+        return None
+    return parent, base, row_stride
 
 
+_LiveCorrelateWorkspace = namedtuple(
+    "_LiveCorrelateWorkspace",
+    "owner parent outputs xs matrix size shape dtype device base row_stride",
+)
 
 
+def _bind_live_correlate_workspace_jax(correlator, owner):
+    """Retain geometry explicitly owned by the CUDA Live initializer.
+
+    Live fixes its output views for the correlator's lifetime, just as it fixes
+    its packed templates. Owning the output tuple prevents in-place row swaps;
+    its members' storage and slice metadata belong to this fixed workspace.
+    This contract must not be inferred from immutable_templates or a caller's
+    tuple. Generic BatchCorrelators still validate every output on every call.
+    No device array value is retained here: the root contents change per block.
+    """
+    correlator._jax_live_workspace = None
+    outputs = tuple(correlator.zs)
+    geometry = _batch_correlate_geometry_jax(outputs, correlator.size)
+    matrix = getattr(correlator, "_jax_template_matrix", None)
+    parent = getattr(owner, "_data", None)
+    if (geometry is None or geometry[0] is not parent
+            or parent.parent is not None or parent.slice_info is not None
+            or len(parent.shape) != 1 or matrix is None
+            or matrix.shape != (len(outputs), correlator.size)):
+        return
+    correlator.zs = outputs
+    correlator._jax_live_workspace = _LiveCorrelateWorkspace(
+        owner, parent, outputs, correlator.xs, matrix, correlator.size,
+        parent.shape, parent.dtype, parent.device, geometry[1], geometry[2],
+    )
 
 
+def _live_correlate_workspace_jax(correlator, templates):
+    """Reuse owned geometry, dropping ownership when the workspace changes."""
+    workspace = getattr(correlator, "_jax_live_workspace", None)
+    if workspace is None:
+        return None
+    parent = workspace.parent
+    if (correlator.zs is workspace.outputs
+            and correlator.xs is workspace.xs
+            and getattr(correlator, "_jax_template_matrix", None) is workspace.matrix
+            and correlator.size == workspace.size
+            and getattr(workspace.owner, "_data", None) is parent
+            and parent.parent is None and parent.slice_info is None
+            and parent.shape == workspace.shape and parent.dtype == workspace.dtype
+            and parent.array.dtype == workspace.dtype
+            and parent.device == workspace.device
+            and templates.shape == (len(workspace.outputs), workspace.size)):
+        return workspace
+    correlator._jax_live_workspace = None
+    return None
 
 
+def _live_full_correlate_workspace_jax(workspace):
+    """Qualify construction only for explicitly owned complete CUDA roots."""
+    return (workspace is not None
+            and workspace.device.platform in ("cuda", "gpu")
+            and workspace.base == 0
+            and workspace.shape == (
+                len(workspace.outputs) * workspace.row_stride,))
 
 
+_LiveFusedBatchInputs = namedtuple("_LiveFusedBatchInputs", (
+    "correlator", "plan", "correlation", "ifft", "templates", "strain",
+    "parent", "norms", "threshold", "abort_threshold", "count", "size",
+    "start", "stop"))
 
 
+def _live_fused_batch_inputs_jax(
+        correlator, plan, strain, norms, segment, threshold, abort_threshold):
+    """Capture CUDA-owned inputs without dispatching the fused filter.
+
+    Keep the original path for CPU, partial roots, changed plans and overridden
+    peak helpers. The latter also preserves existing diagnostic instrumentation.
+    """
+    if any(_reference_enabled(operation) for operation in (
+            "correlate", "ifft", "abs_arg_max", "live_selection")):
+        return None
+    if (_batch_peak_core, _live_select_peaks) != _LIVE_PEAK_FUNCTIONS_JAX:
+        return None
+    templates = getattr(correlator, "_jax_template_matrix", None)
+    if templates is None:
+        return None
+    correlation = _live_correlate_workspace_jax(correlator, templates)
+    if not _live_full_correlate_workspace_jax(correlation):
+        return None
+    transform = _live_ifft_workspace_jax(plan)
+    if (transform is None or transform.source is not correlation.parent
+            or plan.nbatch != len(correlation.outputs)
+            or plan.size != correlation.row_stride
+            or segment.step not in (None, 1)):
+        return None
+    start, stop, _ = segment.indices(plan.size)
+    if start >= stop:
+        return None
+    strain = to_jax(strain)
+    if strain.ndim != 1 or strain.size < correlation.size:
+        return None
+    if strain.size != correlation.size:
+        strain = strain[:correlation.size]
+    parent = correlation.parent.array
+    if (norms.shape != (plan.nbatch,)
+            or not all(isinstance(value, jax.Array)
+                       and not isinstance(value, jax.core.Tracer)
+                       and value.devices() == {transform.device}
+                       for value in (templates, strain, parent, norms))):
+        return None
+    return _LiveFusedBatchInputs(
+        correlator, plan, correlation, transform, templates, strain, parent,
+        norms, threshold, abort_threshold, plan.nbatch, plan.size, start, stop,
+    )
 
 
+@functools.partial(jax.jit, static_argnames=("count", "size", "start", "stop"))
+def _live_fused_batch_core_jax(
+        templates, strain, parent, norms, threshold, abort_threshold,
+        *, count, size, start, stop):
+    """Construct, transform and select while returning both public buffers."""
+    correlation = _live_construct_correlate_jax(templates, strain, parent, size)
+    output = _live_ifft_flat_jax(correlation, count, size)
+    # Preserve the existing JIT boundaries' rounded FFT output and peak values.
+    # These barriers prevent contraction across stages without donating roots.
+    output = jax.lax.optimization_barrier(output)
+    indices, peaks = _batch_peak_core(output, count, start, stop)
+    peaks = jax.lax.optimization_barrier(peaks)
+    scaled, accepted, abort = _live_select_peaks(
+        peaks, norms, threshold, abort_threshold)
+    return correlation, output, indices, peaks, scaled, accepted, abort
 
 
+def _live_launch_fused_batch_jax(inputs):
+    """Dispatch captured inputs; publication remains a separate ordered step."""
+    return _live_fused_batch_core_jax(
+        inputs.templates, inputs.strain, inputs.parent, inputs.norms,
+        inputs.threshold, inputs.abort_threshold,
+        count=inputs.count, size=inputs.size, start=inputs.start, stop=inputs.stop,
+    )
 
 
+def _live_publish_fused_batch_jax(inputs, outputs):
+    """Publish full roots only while their captured ownership remains valid."""
+    correlation, output, indices, peaks, scaled, accepted, abort = outputs
+    if (_live_correlate_workspace_jax(inputs.correlator, inputs.templates)
+            is not inputs.correlation
+            or _live_ifft_workspace_jax(inputs.plan) is not inputs.ifft
+            or correlation.shape != inputs.correlation.shape
+            or output.shape != inputs.ifft.shape
+            or correlation.dtype != inputs.correlation.dtype
+            or output.dtype != inputs.ifft.dtype):
+        raise ValueError("Live fused workspace changed before publication")
+    inputs.correlation.parent.set_array(correlation)
+    inputs.ifft.target.set_array(output)
+    return indices, peaks, scaled, accepted, abort
 
 
 def batch_correlate_execute(self, y):
@@ -1818,44 +2081,30 @@ def batch_correlate_execute(self, y):
 
     if templates is None:
         templates = jnp.stack([to_jax(x)[:size] for x in self.xs], axis=0)
+    workspace = _live_correlate_workspace_jax(self, templates)
+    if workspace is not None:
+        if _live_full_correlate_workspace_jax(workspace):
+            updated = _live_construct_correlate_jax(
+                templates, y_arr, workspace.parent.array, workspace.row_stride)
+        else:
+            updated = _batch_correlate_update(
+                templates, y_arr, workspace.parent.array,
+                workspace.base, workspace.row_stride,
+            )
+        workspace.parent.set_array(updated)
+        return
     # LiveBatchMatchedFilter passes sibling views into one contiguous output
     # allocation.  Updating each view separately makes JAX rebuild the whole
     # immutable parent for every template.  Fold the updates into one JAX
     # expression and publish the parent once, preserving any untouched tails.
-    zdata = []
-    for z in self.zs:
-        data = z if isinstance(z, JAXArrayData) else getattr(z, "_data", None)
-        if not isinstance(data, JAXArrayData):
-            zdata = []
-            break
-        info = data.slice_info
-        parent = data.parent
-        if (parent is None or not isinstance(info, slice)
-                or info.step not in (None, 1)):
-            zdata = []
-            break
-        start = 0 if info.start is None else info.start
-        stop = parent.shape[0] if info.stop is None else info.stop
-        zdata.append((data, parent, start, stop))
-
-    contiguous = False
-    if zdata and all(item[1] is zdata[0][1] for item in zdata):
-        parent = zdata[0][1]
-        row_stride = zdata[0][3] - zdata[0][2]
-        base = zdata[0][2]
-        contiguous = (
-            row_stride >= size and
-            all(stop - start == row_stride for _, _, start, stop in zdata) and
-            all(start == base + row * row_stride
-                for row, (_, _, start, _) in enumerate(zdata)) and
-            base + len(zdata) * row_stride <= parent.shape[0]
+    geometry = _batch_correlate_geometry_jax(self.zs, size)
+    if geometry is not None:
+        parent, base, row_stride = geometry
+        updated = _batch_correlate_update(
+            templates, y_arr, parent.array, base, row_stride,
         )
-        if contiguous:
-            updated = _batch_correlate_update(
-                templates, y_arr, parent.array, base, row_stride,
-            )
-            parent.set_array(updated)
-            return
+        parent.set_array(updated)
+        return
 
     # General BatchCorrelator users may provide unrelated output arrays.
     # Retain the existing per-output behavior for those cases.
@@ -2153,6 +2402,7 @@ def _batch_peak_core(tensor, template_count, segment_start, segment_stop):
     return indices, peaks
 
 
+_LIVE_PEAK_FUNCTIONS_JAX = (_batch_peak_core, _live_select_peaks)
 
 
 def batch_peak_values(output, template_count, template_size, segment):
