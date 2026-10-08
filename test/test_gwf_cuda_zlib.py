@@ -205,3 +205,101 @@ def test_numeric_wire_conversion(
     assert calls == [(payload, values.nbytes, cuda_device)]
 
 
+@pytest.fixture
+def cpu_replay():
+    pytest.importorskip("jax")
+    from pycbc import scheme
+    from pycbc.frame import gwf_replay_jax as replay
+    import test_gwf_jax as builders
+
+    with scheme.JAXScheme("cpu"):
+        yield replay, builders
+
+
+@pytest.mark.parametrize("cuda_codec", [None, "deflate"])
+@pytest.mark.parametrize("endian", ["little", "big"])
+def test_unavailable_replay_falls_back_exactly_once(
+    tmp_path, monkeypatch, cpu_replay, cuda_codec, endian,
+):
+    from test_gwf_deflate_jax import _fresh_frame
+
+    replay, builders = cpu_replay
+    values = np.array([-0., np.nextafter(0., 1.), np.inf, -np.inf,
+                       1.25, -1.25, np.pi, -np.pi], dtype=np.float64)
+    path = _fresh_frame(tmp_path, builders, values, 100, endian)
+    monkeypatch.delenv("PYCBC_GWF_CUDA_DECOMPRESS", raising=False)
+    attempts, inflated, transferred = [], [], []
+    host_decode, device_put = replay._host_decompress, replay._device_put
+
+    def unavailable(vector, **kwargs):
+        attempts.append(vector)
+        raise adapter.GWFDeflateUnavailable("optional backend unavailable")
+
+    def host(vector):
+        inflated.append(vector)
+        return host_decode(vector)
+
+    def transfer(data, *args):
+        transferred.append(data.tobytes())
+        return device_put(data, *args)
+
+    monkeypatch.setattr(adapter, "decode_fr_vect_deflate", unavailable)
+    monkeypatch.setattr(replay, "_host_decompress", host)
+    monkeypatch.setattr(replay, "_device_put", transfer)
+    source = replay.GWFReplaySource(path, "H1:TEST", 2,
+                                    cuda_codec=cuda_codec)
+    assert source._cuda_codec == "deflate"
+    full = source.read(100, 4)
+    sliced = source.read(100.5, 1.5)
+    assert np.asarray(full).tobytes() == values.tobytes()
+    assert np.asarray(sliced).tobytes() == values[1:4].tobytes()
+    assert len(attempts) == len(inflated) == 1
+    assert attempts[0] is inflated[0]
+    assert transferred == [values.tobytes(), values[1:4].tobytes()]
+    from pycbc import scheme
+    assert source._cuda_codec == "deflate"
+    assert source._cuda_unavailable_devices == {scheme.mgr.state.jax_device}
+    assert source._cuda_cache is None
+
+
+def test_default_cpu_replay_works_without_optional_package(
+    tmp_path, monkeypatch, cpu_replay,
+):
+    from test_gwf_deflate_jax import _fresh_frame
+
+    replay, builders = cpu_replay
+    values = np.arange(8, dtype=np.float64)
+    path = _fresh_frame(tmp_path, builders, values, 100)
+    monkeypatch.delenv("PYCBC_GWF_CUDA_DECOMPRESS", raising=False)
+    monkeypatch.setitem(sys.modules, "cuda_zlib", None)
+    source = replay.GWFReplaySource(path, "H1:TEST", 2)
+    actual = source.read(100, 4)
+    assert np.asarray(actual).tobytes() == values.tobytes()
+    assert source._cuda_codec == "deflate"
+
+
+@pytest.mark.parametrize("change", ["checksum", "trailing", "extent"])
+def test_host_fallback_still_rejects_invalid_streams(
+    tmp_path, monkeypatch, cpu_replay, change,
+):
+    replay, builders = cpu_replay
+    values = np.arange(8, dtype=np.float64)
+    raw = values.tobytes()
+    payload = zlib.compress(raw[:-8] if change == "extent" else raw)
+    if change == "checksum":
+        payload = payload[:-1] + bytes((payload[-1] ^ 1,))
+    elif change == "trailing":
+        payload += b"\0"
+    record = builders._frvect(
+        8, "little", payload, 2, compression=257, shape=values.shape,
+        n_data=len(values), spacing=0.5, origin=0., checksum_type=1,
+    )
+    path = tmp_path / "H-TEST-100-4.gwf"
+    path.write_bytes(builders._replay_container(
+        8, "little", record, start=100, duration=4, channel="H1:TEST"))
+    monkeypatch.delenv("PYCBC_GWF_CUDA_DECOMPRESS", raising=False)
+    source = replay.GWFReplaySource(path, "H1:TEST", 2)
+    with pytest.raises(GWFFormatError):
+        source.read(100, 4)
+    assert source._host_cache is None
+    assert source._cuda_cache is None

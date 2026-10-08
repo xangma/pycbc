@@ -8,8 +8,12 @@
 """Direct synthetic tests for the clean-room GWF FrVect decoder."""
 
 from dataclasses import replace
+import hashlib
 import math
+import os
+from pathlib import Path
 import struct
+import types
 import zlib
 
 import numpy as np
@@ -30,6 +34,10 @@ from pycbc.frame.gwf_jax import (  # noqa: E402
     parse_gwf,
     parse_header,
     posix_cksum,
+)
+from pycbc.frame.gwf_replay_jax import (  # noqa: E402
+    GWFReplaySource,
+    GWFReplayUnsupported,
 )
 
 
@@ -206,6 +214,43 @@ def _checked_container(version, endian, vector, *, before=b"", after=b""):
     eof[-8:-4] = _pack(endian, "I", _fixture_cksum(eof[:-8]))
     eof[-4:] = _pack(endian, "I", _fixture_cksum(prefix + eof[:-4]))
     return prefix + eof
+
+
+def _replay_container(version, endian, vector, *, start=200, duration=None,
+                      channel=None, time_offset=0):
+    """A checked, single-channel time series with explicit frame pointers."""
+    descriptor = parse_gwf(_container(version, endian, vector)).vectors[0]
+    span = descriptor.n_data * descriptor.spacing[0]
+    duration = span if duration is None else duration
+    channel = descriptor.name if channel is None else channel
+    seconds = math.floor(start)
+    nanoseconds = round((start - seconds) * 1e9)
+    null = _pack(endian, "HI", 0, 0)
+    pointers = [null] * 13
+    pointers[6] = _pack(endian, "HI", 45, 0)
+    frame = (_string(endian, "TEST")
+             + _pack(endian, "iIIII", 0, 0, 0, seconds, nanoseconds))
+    if version == 8:
+        frame += _pack(endian, "H", 18)
+    frame += (_pack(endian, "d", duration) + b"".join(pointers)
+              + _pack(endian, "I", 0))
+    parent = (_string(endian, channel) + _string(endian, "")
+              + _pack(endian, "HHdddfddH", 1, 0, time_offset, span,
+                      0, 0, 0, 0, 0)
+              + _pack(endian, "HI", 42, descriptor.structure.instance)
+              + null * 4 + _pack(endian, "I", 0))
+    before = (
+        _frsh(endian, 44, "FrameH", checksum_type=1)
+        + _frsh(endian, 45, "FrProcData", checksum_type=1)
+        + _frsh(endian, 46, "FrEndOfFrame", checksum_type=1)
+        + _structure(endian, 44, frame, checksum_type=1)
+        + _structure(endian, 45, parent, checksum_type=1)
+    )
+    after = _structure(
+        endian, 46, _pack(endian, "iIIII", 0, 0, seconds, nanoseconds, 0),
+        checksum_type=1)
+    return _checked_container(
+        version, endian, vector, before=before, after=after)
 
 
 def _file_bytes(values, endian):
@@ -617,6 +662,71 @@ def test_codec_honors_scheme_device_over_ambient_default(compressed):
         assert np.asarray(decoded).tobytes() == values.tobytes()
 
 
+@pytest.mark.parametrize("compression", ("raw", "zlib", "gzip"))
+def test_replay_source_exact_channel_slice(tmp_path, compression):
+    values = np.arange(16, dtype=np.float64)
+    raw = _file_bytes(values, "little")
+    if compression == "raw":
+        payload = raw
+        code = _raw_code(8, "little")
+    elif compression == "zlib":
+        payload = zlib.compress(raw)
+        code = 257
+    else:
+        compressor = zlib.compressobj(wbits=16 + zlib.MAX_WBITS)
+        payload = compressor.compress(raw) + compressor.flush()
+        code = 257
+    vector = _frvect(
+        8,
+        "little",
+        payload,
+        2,
+        compression=code,
+        shape=(len(values),),
+        n_data=len(values),
+        spacing=0.25,
+        origin=0.0,
+    )
+    path = tmp_path / "H-TEST-100-4.gwf"
+    path.write_bytes(_replay_container(8, "little", vector, start=100))
+
+    with scheme.JAXScheme("cpu"):
+        source = GWFReplaySource([str(path)], "H1:TEST", 4)
+        actual = source.read(101, 2)
+
+    assert float(actual.start_time) == 101
+    assert actual.delta_t == 0.25
+    assert actual._data.backend == "jax"
+    np.testing.assert_array_equal(np.asarray(actual), values[4:12])
+
+
+def test_replay_source_rejects_malformed_and_unsupported_payloads(tmp_path):
+    values = np.arange(8, dtype=np.int32)
+    raw = _file_bytes(values, "little")
+    cases = (
+        ("truncated", zlib.compress(raw)[:-2], 257, GWFFormatError),
+        ("differential", zlib.compress(raw), 259, GWFReplayUnsupported),
+    )
+    for name, payload, code, error in cases:
+        vector = _frvect(
+            8,
+            "little",
+            payload,
+            4,
+            compression=code,
+            shape=(len(values),),
+            n_data=len(values),
+            spacing=0.5,
+            origin=0.0,
+        )
+        path = tmp_path / ("H-%s-200-4.gwf" % name)
+        path.write_bytes(_replay_container(8, "little", vector))
+        with scheme.JAXScheme("cpu"):
+            source = GWFReplaySource([str(path)], "H1:TEST", 2)
+            with pytest.raises(error):
+                source.read(200, 4)
+
+
 @pytest.mark.parametrize("data,expected", (
     (b"", 4294967295),
     (b"123456789", 930766865),
@@ -630,13 +740,141 @@ def test_posix_cksum_known_values_and_chunk_boundary(data, expected):
         assert _fixture_cksum(data) == expected
 
 
+@pytest.mark.parametrize("version", (8, 9))
+@pytest.mark.parametrize("endian", ("little", "big"))
+@pytest.mark.parametrize("compressed", (False, True))
+def test_replay_validates_file_header_and_vector_checksums(
+    tmp_path, version, endian, compressed
+):
+    values = np.arange(8, dtype=np.int32)
+    payload = _file_bytes(values, endian)
+    code = _raw_code(version, endian)
+    if compressed:
+        payload = zlib.compress(payload)
+        code = (257 if endian == "little" else 1) if version == 8 else (
+            0x8002 if endian == "little" else 2
+        )
+    vector = _frvect(
+        version,
+        endian,
+        payload,
+        4,
+        compression=code,
+        shape=(len(values),),
+        n_data=len(values),
+        spacing=0.5,
+        origin=0.0,
+        checksum_type=1,
+    )
+    path = tmp_path / "H-CHECKSUM-200-4.gwf"
+    content = _replay_container(version, endian, vector)
+    path.write_bytes(content)
+    parsed = parse_gwf(content)
+    assert all(item.checksum_type == 1 for item in parsed.structures)
+
+    with scheme.JAXScheme("cpu"):
+        source = GWFReplaySource([str(path)], "H1:TEST", 2)
+        actual = source.read(201, 2)
+    assert actual.delta_t == 0.5
+    assert float(actual.start_time) == 201
+    assert actual.dtype == values.dtype
+    assert actual._data.backend == "jax"
+    np.testing.assert_array_equal(np.asarray(actual), values[2:6])
+
+
 def _checked_replay_fixture():
     vector = _frvect(
         8, "little", zlib.compress(np.arange(8, dtype="<i4").tobytes()),
         4, compression=257, shape=(8,), n_data=8, spacing=0.5,
         origin=0.0, checksum_type=1,
     )
-    return _checked_container(8, "little", vector)
+    return _replay_container(8, "little", vector)
+
+
+@pytest.mark.parametrize(
+    "part", ("dictionary", "vector", "eof", "header", "file")
+)
+def test_checksum_corruption_is_rejected_before_decode(
+    tmp_path, part, monkeypatch
+):
+    content = bytearray(_checked_replay_fixture())
+    parsed = parse_gwf(content)
+    if part == "dictionary":
+        content[parsed.structures[0].offset + 20] ^= 1
+    elif part == "vector":
+        vector = parsed.vectors[0]
+        payload_byte = vector.structure.offset + 14 + 2 + len(vector.name) + 21
+        content[payload_byte] ^= 1
+    elif part == "eof":
+        content[-8] ^= 1
+    elif part == "header":
+        # Stored header CRC; keep EOF CRC independently valid.
+        content[-12] ^= 1
+        content[-8:-4] = _pack(
+            "little", "I", _fixture_cksum(content[-46:-8])
+        )
+    else:
+        content[-4] ^= 1
+
+    from pycbc.frame import gwf_replay_jax
+    monkeypatch.setattr(
+        gwf_replay_jax, "_host_decompress",
+        lambda vector: pytest.fail("unverified compressed bytes decoded"),
+    )
+    path = tmp_path / "H-CORRUPT-200-4.gwf"
+    path.write_bytes(content)
+    with scheme.JAXScheme("cpu"):
+        with pytest.raises(GWFFormatError, match="checksum mismatch"):
+            GWFReplaySource([str(path)], "H1:TEST", 2).read(200, 4)
+
+
+def test_checksum_corruption_never_switches_to_compatibility_reader(tmp_path):
+    from pycbc.frame.frame_jax import JAXReplayFrameReader
+    from pycbc.types import TimeSeries
+
+    content = bytearray(_checked_replay_fixture())
+    content[-4] ^= 1
+    path = tmp_path / "H-CORRUPT-200-4.gwf"
+    path.write_bytes(content)
+    with scheme.JAXScheme("cpu"):
+        buffer = types.SimpleNamespace(
+            frame_src=[str(path)], channel_name="H1:TEST", raw_sample_rate=2,
+            read_pos=200.0,
+            raw_buffer=TimeSeries(np.zeros(8), delta_t=0.5, epoch=196),
+            _read_frame=lambda duration: pytest.fail(
+                "corrupt frame fell back"
+            ),
+        )
+        reader = JAXReplayFrameReader(204, 2, read_ahead_seconds=4)
+        with pytest.raises(GWFFormatError, match="file checksum mismatch"):
+            reader.advance(buffer, 2)
+        assert not reader._gwf_disabled
+        assert buffer.read_pos == 200
+
+
+def test_checksummed_replay_reader_uses_native_source(tmp_path):
+    from pycbc.frame.frame_jax import JAXReplayFrameReader
+    from pycbc.types import TimeSeries
+
+    path = tmp_path / "H-CHECKED-200-4.gwf"
+    path.write_bytes(_checked_replay_fixture())
+    with scheme.JAXScheme("cpu"):
+        buffer = types.SimpleNamespace(
+            frame_src=[str(path)], channel_name="H1:TEST", raw_sample_rate=2,
+            read_pos=200.0,
+            raw_buffer=TimeSeries(np.zeros(8), delta_t=0.5, epoch=196),
+            _read_frame=lambda duration: pytest.fail(
+                "valid CRC frame fell back"
+            ),
+        )
+        reader = JAXReplayFrameReader(204, 2, read_ahead_seconds=4)
+        blocks = [reader.advance(buffer, 2) for _ in range(2)]
+    assert not reader._gwf_disabled
+    np.testing.assert_array_equal(
+        np.concatenate([np.asarray(x) for x in blocks]),
+        np.arange(8, dtype=np.int32),
+    )
+    assert [float(block.start_time) for block in blocks] == [200, 202]
 
 
 def test_declared_file_checksum_requires_valid_eof_and_byte_count():
@@ -697,3 +935,234 @@ def test_unknown_structure_checksum_cannot_hide_known_file_corruption(
         parse_gwf(content)
 
 
+@pytest.mark.parametrize("endian", ("little", "big"))
+def test_v9_nonzero_toc_checksum_defers_without_hiding_corruption(
+    tmp_path, endian
+):
+    vector = _frvect(
+        9, endian, _file_bytes(np.arange(8, dtype=np.int32), endian), 4,
+        shape=(8,), n_data=8, spacing=0.5, origin=0.0, checksum_type=1,
+    )
+    content = bytearray(_replay_container(9, endian, vector))
+    content[-16:-12] = _pack(endian, "I", 1)
+    content[-8:-4] = _pack(endian, "I", _fixture_cksum(content[-50:-8]))
+    content[-4:] = _pack(endian, "I", _fixture_cksum(content[:-4]))
+    with pytest.raises(UnsupportedGWFChecksum, match="version-9 TOC"):
+        parse_gwf(content)
+    path = tmp_path / "H-TOC-200-4.gwf"
+    path.write_bytes(content)
+    with scheme.JAXScheme("cpu"):
+        with pytest.raises(GWFReplayUnsupported, match="unsupported GWF"):
+            GWFReplaySource([str(path)], "H1:TEST", 2).read(200, 4)
+    content[-4] ^= 1
+    with pytest.raises(GWFFormatError, match="file checksum mismatch"):
+        parse_gwf(content)
+
+
+@pytest.mark.parametrize("type_code", (0, 1, 9, 11, 12))
+def test_checked_vector_unsupported_timeseries_dtype_falls_back(
+    tmp_path, type_code
+):
+    values = np.arange(8, dtype=_DTYPES[type_code])
+    vector = _frvect(
+        8, "little", _file_bytes(values, "little"), type_code,
+        shape=(8,), n_data=8, spacing=0.5, origin=0.0, checksum_type=1,
+    )
+    path = tmp_path / "H-DTYPE-200-4.gwf"
+    path.write_bytes(_replay_container(8, "little", vector))
+    with scheme.JAXScheme("cpu"):
+        with pytest.raises(
+            GWFReplayUnsupported, match="unsupported by TimeSeries"
+        ):
+            GWFReplaySource([str(path)], "H1:TEST", 2).read(200, 4)
+
+
+@pytest.mark.parametrize("unsupported", ("checksum", "dtype"))
+def test_checked_reader_retains_unsupported_input_fallback(
+    tmp_path, unsupported
+):
+    from pycbc.frame.frame_jax import JAXReplayFrameReader
+    from pycbc.types import TimeSeries
+
+    content = bytearray(_checked_replay_fixture())
+    if unsupported == "checksum":
+        content[39] = 2
+    else:
+        vector = _frvect(
+            8, "little", np.arange(8, dtype="<i2").tobytes(), 1,
+            shape=(8,), n_data=8, spacing=0.5, origin=0.0, checksum_type=1,
+        )
+        content = _replay_container(8, "little", vector)
+    path = tmp_path / "H-UNSUPPORTED-200-4.gwf"
+    path.write_bytes(content)
+    calls = []
+    with scheme.JAXScheme("cpu"):
+        def compatibility_read(duration):
+            calls.append(duration)
+            return TimeSeries(
+                np.arange(8, dtype=np.int32), delta_t=0.5, epoch=200
+            )
+
+        buffer = types.SimpleNamespace(
+            frame_src=[str(path)], channel_name="H1:TEST", raw_sample_rate=2,
+            read_pos=200.0,
+            raw_buffer=TimeSeries(np.zeros(8), delta_t=0.5, epoch=196),
+            _read_frame=compatibility_read,
+        )
+        reader = JAXReplayFrameReader(204, 2, read_ahead_seconds=4)
+        actual = reader.advance(buffer, 2)
+    assert reader._gwf_disabled
+    assert calls == [4]
+    np.testing.assert_array_equal(
+        np.asarray(actual), np.arange(4, dtype=np.int32)
+    )
+
+
+@pytest.mark.parametrize("ifo,digest", (
+    ("H1",
+     "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"),
+    ("L1",
+     "ff9743efc1555a47bc3f2effcaabba252a2244f10fd3a8f85a7c5f677b3c772e"),
+))
+def test_pinned_losc_checked_replay_matches_public_reader(ifo, digest):
+    """Optional real-frame oracle, selected by PYCBC_TEST_GWF_DIR."""
+    from pycbc.frame import read_frame
+    from pycbc.frame.frame_jax import JAXReplayFrameReader
+    from pycbc.types import TimeSeries
+
+    fixture_dir = Path(__file__).resolve().parents[1] / "docs/_include"
+    directory = Path(os.environ.get("PYCBC_TEST_GWF_DIR", fixture_dir))
+    name = "%s-%s_LOSC_CLN_4_V1-1187007040-2048.gwf" % (ifo[0], ifo)
+    path = directory / name
+    if not path.is_file():
+        pytest.skip("pinned LOSC frame not available")
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
+
+    for suffix, rate, duration in (
+        ("STRAIN", 4096, 64), ("DQMASK", 1, 64), ("INJMASK", 1, 64),
+        ("STRAIN", 4096, 640),
+    ):
+        channel = "%s:LOSC-%s" % (ifo, suffix)
+        start = 1187007080
+        with scheme.CPUScheme():
+            expected = read_frame(
+                str(path), channel, start_time=start,
+                duration=duration, check_integrity=True,
+            )
+        with scheme.JAXScheme("cpu"):
+            buffer = types.SimpleNamespace(
+                frame_src=[str(path)], channel_name=channel,
+                raw_sample_rate=rate,
+                read_pos=float(start),
+                raw_buffer=TimeSeries(
+                    np.zeros(8 * rate, dtype=expected.dtype),
+                    delta_t=1.0 / rate, epoch=start - 8,
+                ),
+                _read_frame=lambda duration: pytest.fail(
+                    "LOSC replay used compatibility reader"
+                ),
+            )
+            reader = JAXReplayFrameReader(start + duration, 2, duration)
+            blocks = [reader.advance(buffer, 2) for _ in range(duration // 2)]
+            actual = np.concatenate([np.asarray(block) for block in blocks])
+        assert not reader._gwf_disabled
+        assert reader._gwf_source is not None
+        assert actual.dtype == expected.dtype
+        assert actual.shape == expected.shape
+        assert actual.tobytes() == expected.numpy().tobytes()
+        assert blocks[0].start_time == expected.start_time
+        assert blocks[0].delta_t == expected.delta_t
+        assert buffer.read_pos == start + duration
+
+
+def test_replay_source_defers_unknown_checksum_format_string_and_validity(
+    tmp_path
+):
+    cases = []
+
+    checked = bytearray(_container(
+        8,
+        "little",
+        _frvect(
+            8, "little", b"\0" * 32, 4, shape=(8,), n_data=8,
+            spacing=0.5, origin=0.0,
+        ),
+    ))
+    checked[39] = 2
+    cases.append(("file-checksum", bytes(checked), "unsupported GWF"))
+    with pytest.raises(UnsupportedGWFChecksum):
+        parse_gwf(checked)
+
+    unknown_structure = bytearray(_checked_replay_fixture())
+    unknown_structure[48] = 2
+    unknown_structure[-4:] = _pack(
+        "little", "I", _fixture_cksum(unknown_structure[:-4]))
+    cases.append((
+        "structure-checksum", bytes(unknown_structure), "unsupported GWF"
+    ))
+    with pytest.raises(UnsupportedGWFChecksum):
+        parse_gwf(unknown_structure)
+
+    unknown_version = bytearray(checked)
+    unknown_version[5] = 7
+    cases.append(("version", bytes(unknown_version), "unsupported GWF"))
+
+    string = _frvect(
+        9, "little", b"abcdefgh", 8, shape=(8,), n_data=8,
+        spacing=0.5, origin=0.0,
+    )
+    cases.append(("string", _replay_container(9, "little", string), "string"))
+
+    validity = _frvect(
+        9, "little", b"\0" * 32, 4, shape=(8,), n_data=8,
+        data_valid=b"\1" * 8, spacing=0.5, origin=0.0,
+    )
+    cases.append((
+        "validity", _replay_container(9, "little", validity),
+        "validity metadata"
+    ))
+
+    for name, content, message in cases:
+        path = tmp_path / ("H-%s-200-4.gwf" % name)
+        path.write_bytes(content)
+        with scheme.JAXScheme("cpu"):
+            source = GWFReplaySource([str(path)], "H1:TEST", 2)
+            with pytest.raises(GWFReplayUnsupported, match=message):
+                source.read(200, 4)
+
+
+def test_replay_source_contiguous_boundary_gap_and_overlap(tmp_path):
+    def write_frame(name, start, values):
+        vector = _frvect(
+            8,
+            "little",
+            _file_bytes(values, "little"),
+            2,
+            shape=(len(values),),
+            n_data=len(values),
+            spacing=0.25,
+            origin=0.0,
+        )
+        path = tmp_path / ("H-%s-%d-2.gwf" % (name, start))
+        path.write_bytes(_replay_container(8, "little", vector, start=start))
+        return str(path)
+
+    first_values = np.arange(8, dtype=np.float64)
+    second_values = np.arange(8, 16, dtype=np.float64)
+    first = write_frame("FIRST", 100, first_values)
+    contiguous = write_frame("CONTIGUOUS", 102, second_values)
+    gap = write_frame("GAP", 103, second_values)
+    overlap = write_frame("OVERLAP", 101, second_values)
+
+    with scheme.JAXScheme("cpu"):
+        source = GWFReplaySource([first, contiguous], "H1:TEST", 4)
+        actual = source.read(101, 2)
+        np.testing.assert_array_equal(
+            np.asarray(actual),
+            np.concatenate((first_values[4:], second_values[:4])),
+        )
+
+        with pytest.raises(GWFReplayUnsupported, match="uniquely cover"):
+            GWFReplaySource([first, gap], "H1:TEST", 4).read(101, 3)
+        with pytest.raises(GWFReplayUnsupported, match="uniquely cover"):
+            GWFReplaySource([first, overlap], "H1:TEST", 4).read(101, 1)

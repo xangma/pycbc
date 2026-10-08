@@ -65,6 +65,7 @@ library and application suite.
    jax_filtering
    jax_strain
    jax_search
+   jax_gwf
    searches
    inference
    apps

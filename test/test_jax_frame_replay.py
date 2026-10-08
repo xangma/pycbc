@@ -1,6 +1,10 @@
 """Device-resident frame staging for bounded JAX replays."""
 
 import types
+import os
+import subprocess
+import sys
+import zlib
 
 import lal
 import numpy as np
@@ -9,9 +13,9 @@ import pytest
 jax = pytest.importorskip("jax")
 
 from pycbc import scheme
-from pycbc.frame import frame_jax
+from pycbc.frame import frame_jax, gwf_replay_jax
 from pycbc.frame.frame import (
-    DataBuffer, locations_to_cache, write_frame,
+    DataBuffer, StatusBuffer, locations_to_cache, write_frame,
 )
 from pycbc.frame.frame_jax import (
     JAXReplayFrameReader, JAXReplayReadError, configure_jax_replay,
@@ -127,6 +131,11 @@ def test_typed_single_frame_replay_matches_stream_and_bounds_device_data(
                             max_buffer=4, dtype=dtype)
         configure_jax_replay(actual, end_time=1000000008, blocksize=2,
                              read_ahead_seconds=4)
+        # Exercise the typed compatibility reader after native admission fails.
+        def unsupported_native(*_args, **_kwargs):
+            raise gwf_replay_jax.GWFReplayUnsupported('test compatibility path')
+
+        monkeypatch.setattr(gwf_replay_jax, 'GWFReplaySource', unsupported_native)
         reader, native_dtype = frame_jax._FRAME_FILE_READERS[actual.channel_type]
         calls = []
 
@@ -462,6 +471,50 @@ def test_replay_read_ahead_is_bounded_and_refills(device):
         )
 
 
+def test_replay_prefers_direct_gwf_source(monkeypatch):
+    calls = []
+
+    class Source:
+        def __init__(self, frame_src, channel_name, sample_rate):
+            calls.append((frame_src, channel_name, sample_rate))
+
+        def read(self, start, duration):
+            calls.append((start, duration))
+            return TimeSeries(
+                np.arange(int(duration * 2), dtype=np.float32),
+                delta_t=0.5,
+                epoch=start,
+            )
+
+    monkeypatch.setattr(gwf_replay_jax, "GWFReplaySource", Source)
+    with scheme.JAXScheme("cpu"):
+        buffer = object.__new__(DataBuffer)
+        buffer.frame_src = ["direct.gwf"]
+        buffer.channel_name = "H1:STRAIN"
+        buffer.raw_sample_rate = 2
+        buffer.read_pos = 20.0
+        buffer.force_update_cache = False
+        buffer.increment_update_cache = None
+        buffer.raw_buffer = TimeSeries(
+            np.zeros(8, dtype=np.float32), delta_t=0.5, epoch=16.0
+        )
+        buffer._read_frame = types.MethodType(
+            lambda self, duration: pytest.fail("compatibility read used"),
+            buffer,
+        )
+        configure_jax_replay(
+            buffer, end_time=24.0, blocksize=2.0,
+            read_ahead_seconds=4.0,
+        )
+
+        buffer.attempt_advance(2.0)
+
+    assert calls == [
+        (["direct.gwf"], "H1:STRAIN", 2),
+        (20.0, 4.0),
+    ]
+
+
 def test_incremental_frame_discovery_is_not_replaced():
     buffer = object.__new__(DataBuffer)
     buffer.read_pos = 10.0
@@ -481,8 +534,9 @@ def test_nested_status_and_idq_readers_are_configured():
         current.raw_buffer = TimeSeries(
             np.zeros(8, dtype=np.float32), delta_t=0.5, epoch=start - 4
         )
-        current._read_frame = types.MethodType(lambda self, duration: None,
-                                                current)
+        current._read_frame = types.MethodType(
+            lambda self, duration: None, current
+        )
         return current
 
     buffer = reader(10.0)
@@ -500,6 +554,53 @@ def test_nested_status_and_idq_readers_are_configured():
     )
     assert all(hasattr(current, "_jax_replay_reader")
                for current in configured)
+
+
+@pytest.mark.parametrize("gap", [False, True])
+@pytest.mark.parametrize("device", _devices())
+def test_status_buffer_advances_with_configured_replay_reader(device, gap):
+    calls = []
+    cache_updates = []
+    with scheme.JAXScheme(device) as ctx:
+        buffer = object.__new__(StatusBuffer)
+        buffer.channel_name = "H1:DQ"
+        buffer.raw_sample_rate = 1
+        buffer.read_pos = 10.0
+        buffer.force_update_cache = False
+        buffer.increment_update_cache = None
+        buffer.valid_mask = 3
+        buffer.valid_on_zero = False
+        buffer.raw_buffer = TimeSeries(
+            np.zeros(6, dtype=np.int32), delta_t=1.0, epoch=4.0
+        )
+
+        def read_frame(self, duration):
+            calls.append((self.read_pos, duration))
+            if gap and duration > 2:
+                raise RuntimeError("read-ahead crosses a gap")
+            return TimeSeries(
+                np.full(int(duration), 3, dtype=np.int32),
+                delta_t=1.0,
+                epoch=self.read_pos,
+            )
+
+        buffer._read_frame = types.MethodType(read_frame, buffer)
+        buffer.update_cache = lambda: cache_updates.append(buffer.read_pos)
+        configure_jax_replay(
+            buffer, end_time=14.0, blocksize=2.0,
+            read_ahead_seconds=4.0,
+        )
+
+        assert buffer.advance(2.0)
+        assert buffer.advance(2.0)
+        assert calls == ([(10.0, 4.0), (10.0, 2.0), (12.0, 2.0)]
+                         if gap else [(10.0, 4.0)])
+        assert cache_updates == ([10.0] if gap else [])
+        assert (buffer._jax_replay_reader is None) == gap
+        assert to_jax(buffer.raw_buffer).devices() == {ctx.jax_device}
+        np.testing.assert_array_equal(
+            np.asarray(buffer.raw_buffer), np.array([0, 0, 3, 3, 3, 3])
+        )
 
 
 @pytest.mark.parametrize("device", _devices())
@@ -611,3 +712,204 @@ def test_cpu_frame_retry_ignores_jax_replay_mode(monkeypatch):
         assert buffer.attempt_advance(2, timeout=10) == "original reader"
         assert attempts == [2, 2]
         assert sleeps == [0.1]
+
+
+@pytest.mark.parametrize("channel_dtype,buffer_dtype", [
+    (np.float64, np.float32), (np.uint32, np.int32),
+])
+@pytest.mark.parametrize("device", _devices())
+def test_replay_preserves_buffer_dtype_when_channel_differs(
+        tmp_path, channel_dtype, buffer_dtype, device):
+    path = tmp_path / 'H-test-1000000000-16.gwf'
+    values = np.arange(256, dtype=channel_dtype)
+    if channel_dtype == np.float64:
+        values /= 7
+    else:
+        values += np.uint32(2**31)
+    with scheme.CPUScheme():
+        write_frame(str(path), 'H1:TEST', TimeSeries(
+            values, delta_t=1/16, epoch=1000000000))
+        native = DataBuffer([str(path)], 'H1:TEST', 1000000002,
+                            max_buffer=4, dtype=buffer_dtype)
+        expected = [native.advance(2) for _ in range(2)]
+        expected_raw = native.raw_buffer.numpy().copy()
+    with scheme.JAXScheme(device) as ctx:
+        actual = DataBuffer([str(path)], 'H1:TEST', 1000000002,
+                            max_buffer=4, dtype=buffer_dtype)
+        configure_jax_replay(actual, end_time=1000000006, blocksize=2,
+                             read_ahead_seconds=4)
+        actual._read_frame = lambda *args: pytest.fail("direct replay fell back")
+        for want in expected:
+            got = actual.attempt_advance(2)
+            assert got.dtype == want.dtype
+            assert got.numpy().tobytes() == want.numpy().tobytes()
+            assert actual.raw_buffer.dtype == np.dtype(buffer_dtype)
+            assert to_jax(got).device == ctx.jax_device
+        assert actual.raw_buffer.numpy().tobytes() == expected_raw.tobytes()
+        assert not actual._jax_replay_reader._gwf_disabled
+
+
+def test_cpu_status_advance_ignores_configured_jax_replay():
+    with scheme.CPUScheme():
+        buffer = object.__new__(StatusBuffer)
+        buffer.increment_update_cache = None
+        buffer.raw_sample_rate = 1
+        buffer.read_pos = 10
+        buffer.valid_mask = 3
+        buffer.valid_on_zero = False
+        buffer.raw_buffer = TimeSeries(
+            np.zeros(4, np.int32), delta_t=1, epoch=6)
+        calls = []
+
+        def read_frame(self, duration):
+            calls.append((self.read_pos, duration))
+            return TimeSeries(np.full(duration, 3, np.int32),
+                              delta_t=1, epoch=self.read_pos)
+
+        buffer._read_frame = types.MethodType(read_frame, buffer)
+        buffer._jax_replay_reader = types.SimpleNamespace(
+            advance=lambda *args: pytest.fail("CPU used JAX status replay"))
+        assert buffer.advance(2)
+        assert calls == [(10, 2)]
+        assert buffer.read_pos == 12
+        np.testing.assert_array_equal(buffer.raw_buffer.numpy(), [0, 0, 3, 3])
+
+
+def test_replay_honors_selected_device_for_cached_and_host_data():
+    code = """
+import tempfile, types
+from pathlib import Path
+import jax
+import numpy as np
+from pycbc import scheme
+from pycbc.frame.frame import DataBuffer, write_frame
+from pycbc.frame.frame_jax import configure_jax_replay
+from pycbc.frame.gwf_replay_jax import GWFReplaySource
+from pycbc.frame.gwf_deflate_jax import GWFDeflateUnavailable
+from pycbc.types import TimeSeries
+from pycbc.types.array_jax import to_jax
+cpu0, cpu1 = jax.devices('cpu')
+with tempfile.TemporaryDirectory() as directory:
+    path = Path(directory) / 'H-test-1000000000-16.gwf'
+    values = np.arange(256, dtype=np.float64) / 7
+    with scheme.CPUScheme():
+        write_frame(str(path), 'H1:TEST', TimeSeries(
+            values, delta_t=1/16, epoch=1000000000))
+    with scheme.JAXScheme('0'):
+        buffer = DataBuffer([str(path)], 'H1:TEST', 1000000002, max_buffer=4)
+        configure_jax_replay(buffer, 1000000006, 2, read_ahead_seconds=4)
+        buffer.attempt_advance(2)
+        original = buffer._jax_replay_reader._data
+    with scheme.JAXScheme('1'), jax.default_device(cpu0):
+        block = buffer.attempt_advance(2)
+        assert to_jax(block).device == to_jax(buffer.raw_buffer).device == cpu1
+        assert original.device == cpu0
+        assert block.numpy().tobytes() == values[64:96].tobytes()
+        source = GWFReplaySource([str(path)], 'H1:TEST', 16, cuda_codec='host')
+        result = source.read(1000000002, 2)
+        assert to_jax(result).device == cpu1
+        assert result.numpy().tobytes() == values[32:64].tobytes()
+    source = GWFReplaySource([str(path)], 'H1:TEST', 16)
+    attempts = []
+    def codec(self, frame, vector):
+        device = scheme.mgr.state.jax_device
+        attempts.append(device)
+        if device == cpu0:
+            raise GWFDeflateUnavailable('device backend unavailable')
+        return jax.device_put(values, device)
+    source._cuda_values = types.MethodType(codec, source)
+    for target in ['0', '0', '1']:
+        with scheme.JAXScheme(target), jax.default_device(cpu0):
+            result = source.read(1000000002, 2)
+            assert to_jax(result).device == scheme.mgr.state.jax_device
+            assert result.numpy().tobytes() == values[32:64].tobytes()
+    assert attempts == [cpu0, cpu1]
+    assert source._cuda_codec == 'deflate'
+    assert source._cuda_unavailable_devices == {cpu0}
+"""
+    env = dict(os.environ, JAX_PLATFORMS='cpu',
+               XLA_FLAGS='--xla_force_host_platform_device_count=2')
+    result = subprocess.run([sys.executable, '-c', code], env=env,
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_direct_replay_rejects_misnamed_frame_gps_span(tmp_path):
+    path = tmp_path / 'H-test-1000000100-16.gwf'
+    _write_samples(path, np.float64)
+    with scheme.JAXScheme('cpu'):
+        source = gwf_replay_jax.GWFReplaySource([str(path)], 'H1:TEST', 16)
+        with pytest.raises(gwf_replay_jax.GWFReplayUnsupported, match='FrameH GPS'):
+            source.read(1000000102, 2)
+    with scheme.CPUScheme():
+        with pytest.raises(RuntimeError):
+            DataBuffer([str(path)], 'H1:TEST', 1000000102,
+                       max_buffer=4)._read_frame(2)
+
+
+def test_parent_channel_time_offset_uses_original_reader(tmp_path):
+    original = tmp_path / 'original.gwf'
+    _write_samples(original, np.float64)
+    source = lalframe.FrameUFrFileOpen(str(original), 'r')
+    channel = lalframe.FrameUFrChanRead(source, 'H1:TEST', 0)
+    lalframe.FrameUFrChanSetTimeOffset(channel, 0.25)
+    frame = lalframe.FrameUFrameHAlloc('TEST', 1000000000, 0, 16, 0)
+    lalframe.FrameUFrameHFrChanAdd(frame, channel)
+    path = tmp_path / 'H-shifted-1000000000-16.gwf'
+    output = lalframe.FrameUFrFileOpen(str(path), 'w')
+    lalframe.FrameUFrameHWrite(output, frame)
+    del output
+    with scheme.CPUScheme():
+        native = DataBuffer([str(path)], 'H1:TEST', 1000000002, max_buffer=4)
+        expected = [native.advance(2) for _ in range(2)]
+    with scheme.JAXScheme('cpu'):
+        source = gwf_replay_jax.GWFReplaySource([str(path)], 'H1:TEST', 16)
+        with pytest.raises(gwf_replay_jax.GWFReplayUnsupported, match='time offset'):
+            source.read(1000000002, 2)
+        actual = DataBuffer([str(path)], 'H1:TEST', 1000000002, max_buffer=4)
+        configure_jax_replay(actual, 1000000006, 2, read_ahead_seconds=4)
+        for want in expected:
+            got = actual.attempt_advance(2)
+            assert got.numpy().tobytes() == want.numpy().tobytes()
+            assert got.start_time == want.start_time
+        assert actual._jax_replay_reader._gwf_disabled
+
+
+def test_gzip_vector_keeps_cuda_preference_for_later_zlib(tmp_path, monkeypatch):
+    from test_gwf_jax import _frvect, _replay_container
+
+    first = np.arange(8, dtype=np.float32)
+    second = first + 8
+    compressor = zlib.compressobj(wbits=16 + zlib.MAX_WBITS)
+    gzip = compressor.compress(first.tobytes()) + compressor.flush()
+    paths = []
+    for start, payload in [(200, gzip), (202, zlib.compress(second.tobytes()))]:
+        vector = _frvect(8, 'little', payload, 3, compression=257,
+                         shape=(8,), n_data=8, spacing=0.25, origin=0)
+        path = tmp_path / ('H-test-%s-2.gwf' % start)
+        path.write_bytes(_replay_container(8, 'little', vector, start=start))
+        paths.append(str(path))
+    cuda_calls, host_calls = [], []
+    native_host = gwf_replay_jax._host_decompress
+
+    def host(vector):
+        host_calls.append(True)
+        assert vector.payload[:2] == b'\x1f\x8b'
+        return native_host(vector)
+
+    with scheme.JAXScheme('cpu'):
+        source = gwf_replay_jax.GWFReplaySource(paths, 'H1:TEST', 4)
+
+        def codec(frame, vector):
+            assert vector.payload[:2] != b'\x1f\x8b'
+            cuda_calls.append(frame.start)
+            return jax.device_put(second, scheme.mgr.state.jax_device)
+
+        monkeypatch.setattr(source, '_cuda_values', codec)
+        monkeypatch.setattr(gwf_replay_jax, '_host_decompress', host)
+        actual = source.read(200, 4)
+        assert actual.numpy().tobytes() == np.concatenate((first, second)).tobytes()
+        assert source._cuda_codec == 'deflate'
+        assert source._cuda_unavailable_devices == set()
+    assert cuda_calls == [202]
+    assert len(host_calls) == 1
