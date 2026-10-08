@@ -346,3 +346,52 @@ def test_ring_append_matches_native_expiration(device):
                                    if key != "metadata" else want[key])
                 np.testing.assert_array_equal(np.asarray(actual.expire_vector(ring)),
                                               native.expire_vector(ring))
+
+
+@pytest.mark.parametrize("index", [-1, 0, 1])
+def test_foreground_gathers_only_selected_pruned_row(monkeypatch, device, index):
+    """Terminal host routing retains payload bits, metadata and last-row IDs."""
+    with scheme.JAXScheme(device):
+        actual = coinc_jax.JAXMultiRingBuffer(3, 2)
+        expected = coinc_jax.JAXMultiRingBuffer(3, 2)
+        payload = np.array([0x80000000, 1, 0x7fc00017], "u4").view("f4")
+        columns = {
+            "snr": jnp.asarray(payload),
+            "time": jnp.asarray([100., 101., 102.], dtype=jnp.float64),
+            "event_id": jnp.asarray([2**53 + 1, 2**53 + 3, 2**53 + 5],
+                                    dtype=jnp.uint64),
+            "vector": jnp.arange(6, dtype=jnp.int16).reshape(3, 2),
+            "metadata": np.array(["expired", "first", "last"], dtype=object),
+        }
+        for ring in (actual, expected):
+            ring.add([2], {key: value[:1] for key, value in columns.items()})
+            ring.add([2, 2], {key: value[1:] for key, value in columns.items()})
+            ring.buffer[2]["weak"] = jnp.broadcast_to(jnp.asarray(2.), (3,))
+            ring.time = 3
+        calls = []
+        gather = coinc_jax._gather_singles_columns
+
+        def record(values, position):
+            calls.append((tuple(value.shape for value in values), position.device))
+            return gather(values, position)
+
+        monkeypatch.setattr(coinc_jax, "_gather_singles_columns", record)
+        stored = actual.data(2)
+        want = expected.data(2)
+        with jax.transfer_guard_device_to_host("disallow"):
+            selected = coinc_jax._prepare_live_foreground(stored, index)
+        assert list(selected) == ["snr", "time", "event_id", "weak"]
+        assert calls == [(((2,),) * 4, stored["snr"].device)]
+        for key, value in stored.items():
+            got = selected[key] if key in selected else value[index]
+            reference = want[key][index]
+            if isinstance(reference, jax.Array):
+                _assert_column(got, reference)
+            else:
+                np.testing.assert_equal(got, reference)
+        assert selected["weak"].weak_type
+        # Existing device-index publication retains its weak type contract.
+        device_selected = coinc_jax._prepare_live_foreground(
+            stored, jax.device_put(np.int32(index), stored["snr"].device))
+        assert device_selected["weak"].weak_type
+        _assert_state(actual, expected)

@@ -44,6 +44,16 @@ These guides describe the supported device calculations and their original-imple
    jax_fft
    jax_filtering
 
+Searches
+--------
+
+The library guide describes device arrays for batched filtering, events and coincidences.
+
+.. toctree::
+   :maxdepth: 1
+
+   jax_search
+
 Validation and performance
 --------------------------
 
