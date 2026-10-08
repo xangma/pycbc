@@ -338,16 +338,31 @@ def print_sgburst_approximants():
     for approx in _lalsim_sgburst_approximants.keys():
         print("  " + approx)
 
+_default_availability_scheme = _scheme.mgr.state
+
+
 def td_approximants(scheme=_scheme.mgr.state):
     """Return a list containing the available time domain approximants for
        the given processing scheme.
     """
+    if isinstance(scheme, _scheme.JAXScheme) or (
+            scheme is _default_availability_scheme and
+            isinstance(_scheme.mgr.state, _scheme.JAXScheme)):
+        from .diffgw_jax import available_approximants
+        selected = scheme if isinstance(scheme, _scheme.JAXScheme) else _scheme.mgr.state
+        return available_approximants('td', selected)
     return list(td_wav[type(scheme)].keys())
 
 def fd_approximants(scheme=_scheme.mgr.state):
     """Return a list containing the available fourier domain approximants for
        the given processing scheme.
     """
+    if isinstance(scheme, _scheme.JAXScheme) or (
+            scheme is _default_availability_scheme and
+            isinstance(_scheme.mgr.state, _scheme.JAXScheme)):
+        from .diffgw_jax import available_approximants
+        selected = scheme if isinstance(scheme, _scheme.JAXScheme) else _scheme.mgr.state
+        return available_approximants('fd', selected)
     return list(fd_wav[type(scheme)].keys())
 
 def sgburst_approximants(scheme=_scheme.mgr.state):
@@ -360,6 +375,12 @@ def filter_approximants(scheme=_scheme.mgr.state):
     """Return a list of fourier domain approximants including those
        written specifically as templates.
     """
+    if isinstance(scheme, _scheme.JAXScheme) or (
+            scheme is _default_availability_scheme and
+            isinstance(_scheme.mgr.state, _scheme.JAXScheme)):
+        from .diffgw_jax import available_approximants
+        selected = scheme if isinstance(scheme, _scheme.JAXScheme) else _scheme.mgr.state
+        return available_approximants('filter', selected)
     return list(filter_wav[type(scheme)].keys())
 
 # Input parameter handling ###################################################
@@ -523,6 +544,9 @@ def get_fd_waveform_sequence(template=None, **kwds):
         The cross phase of the waveform in frequency domain evaluated at the
     frequency points.
     """
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        from .diffgw_jax import generate_waveform
+        return generate_waveform("get_fd_waveform_sequence", template, **kwds)
     input_params = props(template, **kwds)
     input_params['delta_f'] = -1
     input_params['f_lower'] = -1
@@ -595,6 +619,9 @@ def get_td_waveform(template=None, **kwargs):
     hcross: TimeSeries
         The cross polarization of the waveform.
     """
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        from .diffgw_jax import generate_waveform
+        return generate_waveform("get_td_waveform", template, **kwargs)
     input_params = props(template, **kwargs)
     wav_gen = td_wav[type(_scheme.mgr.state)]
     if input_params['approximant'] not in wav_gen:
@@ -630,6 +657,9 @@ def get_fd_waveform(template=None, **kwargs):
     hcrosstilde: FrequencySeries
         The cross phase of the waveform in frequency domain.
     """
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        from .diffgw_jax import generate_waveform
+        return generate_waveform("get_fd_waveform", template, **kwargs)
     input_params = props(template, **kwargs)
     wav_gen = fd_wav[type(_scheme.mgr.state)]
     if input_params['approximant'] not in wav_gen:
@@ -1194,10 +1224,16 @@ fd_wav = _scheme.ChooseBySchemeDict()
 td_wav.update({_scheme.CPUScheme:cpu_td,_scheme.CUDAScheme:cuda_td})
 fd_wav.update({_scheme.CPUScheme:cpu_fd,_scheme.CUDAScheme:cuda_fd})
 sgburst_wav = {_scheme.CPUScheme:cpu_sgburst}
+fd_wav[_scheme.JAXScheme] = cpu_fd
+td_wav[_scheme.JAXScheme] = cpu_td
+filter_wav[_scheme.JAXScheme] = _inspiral_fd_filters
 
 def get_waveform_filter(out, template=None, **kwargs):
     """Return a frequency domain waveform filter for the specified approximant
     """
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        from .diffgw_jax import generate_filter
+        return generate_filter(out, template, **kwargs)
     n = len(out)
 
     input_params = props(template, **kwargs)
@@ -1301,6 +1337,9 @@ def get_two_pol_waveform_filter(outplus, outcross, template, **kwargs):
     components of the waveform, which are needed for searches where h_plus
     and h_cross are not related by a simple phase shift.
     """
+    if isinstance(_scheme.mgr.state, _scheme.JAXScheme):
+        from .diffgw_jax import generate_two_pol_filter
+        return generate_two_pol_filter(outplus, outcross, template, **kwargs)
     n = len(outplus)
 
     # If we don't have an inclination column alpha3 might be used
