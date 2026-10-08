@@ -334,6 +334,14 @@ class QuadratureSumStatistic(Stat):
         numpy.ndarray
             Array of coincident ranking statistic values
         """
+        from pycbc import scheme
+        from pycbc.types.backend import is_backend
+
+        if isinstance(scheme.mgr.state, scheme.JAXScheme) or any(
+                is_backend(item[1], 'jax') for item in sngls_list):
+            from .ranking_jax import quadrature_sum_jax
+
+            return quadrature_sum_jax(sngls_list)
         cstat = sum(sngl[1] ** 2. for sngl in sngls_list) ** 0.5
         # For single-detector "cuts" the single ranking is set to -1
         for sngls in sngls_list:

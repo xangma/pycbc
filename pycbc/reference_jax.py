@@ -129,6 +129,48 @@ def _execute(request):
             )
             return (result.numpy(), result.delta_t,
                     None if result._epoch is None else str(result._epoch))
+        elif operation in ("newsnr", "effsnr"):
+            from pycbc.events import ranking
+
+            snr = values[()] if kwargs.pop("is_scalar", False) else values
+            return getattr(ranking, operation)(snr, **kwargs)
+        elif operation == "findchirp_cluster":
+            from pycbc.events.eventmgr import findchirp_cluster_over_window
+
+            return findchirp_cluster_over_window(
+                kwargs.pop("times"), values, kwargs.pop("window_length"))
+        elif operation == "segment_veto":
+            from pycbc.events import veto
+
+            function = (veto.indices_outside_times
+                        if kwargs.pop("outside", False)
+                        else veto.indices_within_times)
+            return function(values, kwargs.pop("start"), kwargs.pop("end"))
+        elif operation == "quadrature_sum":
+            from pycbc.events.stat import QuadratureSumStatistic
+
+            statistic = object.__new__(QuadratureSumStatistic)
+            return statistic.rank_stat_coinc(**kwargs)
+        elif operation.startswith("event_"):
+            from types import SimpleNamespace
+            from pycbc.events.eventmgr import EventManager
+
+            columns = [name for name in values.dtype.names
+                       if name != "template_id"]
+            manager = EventManager(
+                SimpleNamespace(**kwargs.pop("opt", {})), columns,
+                [values.dtype.fields[name][0] for name in columns],
+                array_minsize=max(1, len(values)))
+            manager._events[:len(values)] = values
+            manager._events_size = len(values)
+            manager.template_params = kwargs.pop("template_params", [])
+            method = {
+                "event_chisq_threshold": "chisq_threshold",
+                "event_newsnr_threshold": "newsnr_threshold",
+                "event_loudest": "keep_loudest_in_interval",
+            }[operation]
+            getattr(manager, method)(**kwargs.pop("method_options"))
+            return manager.events.copy()
         elif operation == "power_chisq_bins":
             from pycbc.vetoes.chisq import power_chisq_bins
 
