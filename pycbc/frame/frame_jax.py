@@ -7,11 +7,15 @@
 
 """JAX data staging for bounded historical frame replays.
 
-GWF decompression is a host operation provided by LALFrame.  Re-reading a
-compressed frame for every analysis chunk needlessly repeats that operation.
-This module amortizes the unavoidable host work over a bounded replay span,
-transfers the decoded samples once, and then performs block extraction and
-rolling-buffer updates on the selected JAX device.
+Local GWF inputs first use the narrow clean-room source in
+``gwf_replay_jax.py``.  Its raw and zero-suppressed codecs run with JAX, while
+RFC 1950 streams use installed ``cuda-zlib`` on CUDA, with bounded host
+decoding followed by one transfer when the optional backend is unavailable.
+RFC 1952 streams also use host decoding. The separate ``gwf_deflate_jax.py``
+module adapts the external codec to JAX.
+Unsupported layouts and codecs retain the existing LALFrame compatibility
+reader.  Read-ahead then performs block extraction and rolling-buffer updates
+on the selected JAX device.
 
 The normal streaming reader remains authoritative.  This path is configured
 only for an explicitly bounded ``--replay-clock`` run and falls back to the
@@ -19,6 +23,7 @@ streaming reader if a contiguous read-ahead span is unavailable.
 """
 
 import functools
+import logging
 import math
 import os
 
@@ -29,11 +34,15 @@ import lal
 import lalframe
 import numpy as np
 
+from pycbc.benchmark import stage_event
 from pycbc.types import TimeSeries
 from pycbc.types.array_jax import JAXArrayData, to_jax
 
 
 DEFAULT_READ_AHEAD_SECONDS = 1024
+
+
+logger = logging.getLogger(__name__)
 
 
 _FRAME_VECTOR_TYPES = {
@@ -159,7 +168,8 @@ def _advance_replay_buffer(raw_buffer, replay_data, offset, block_samples):
     block = lax.dynamic_slice_in_dim(
         replay_data, offset, block_samples, axis=0
     )
-    updated = jnp.concatenate((raw_buffer[block_samples:], block))
+    updated = jnp.concatenate((raw_buffer[block_samples:],
+                               block.astype(raw_buffer.dtype)))
     return updated, block
 
 
@@ -177,6 +187,8 @@ class JAXReplayFrameReader:
         self.read_ahead_seconds = float(read_ahead_seconds)
         self._data = None
         self._offset = 0
+        self._gwf_source = None
+        self._gwf_disabled = False
 
     def _read_ahead_duration(self, read_pos):
         remaining = self.raw_end_time - float(read_pos)
@@ -192,12 +204,34 @@ class JAXReplayFrameReader:
         duration = self._read_ahead_duration(buffer.read_pos)
         if duration <= 0:
             raise JAXReplayReadError("JAX replay read-ahead is exhausted")
-        try:
-            series = _read_single_frame_span(buffer, duration)
-            if series is None:
-                series = buffer._read_frame(duration)
-        except RuntimeError as exc:
-            raise JAXReplayReadError(str(exc)) from exc
+        series = None
+        if not self._gwf_disabled and hasattr(buffer, "frame_src"):
+            from pycbc.frame.gwf_replay_jax import (
+                GWFReplaySource,
+                GWFReplayUnsupported,
+            )
+            try:
+                if self._gwf_source is None:
+                    self._gwf_source = GWFReplaySource(
+                        buffer.frame_src,
+                        buffer.channel_name,
+                        buffer.raw_sample_rate,
+                    )
+                series = self._gwf_source.read(buffer.read_pos, duration)
+            except GWFReplayUnsupported as exc:
+                logger.info(
+                    "Direct JAX GWF replay unavailable for %s; using the "
+                    "compatibility reader: %s", buffer.channel_name, exc
+                )
+                self._gwf_disabled = True
+                self._gwf_source = None
+        if series is None:
+            try:
+                series = _read_single_frame_span(buffer, duration)
+                if series is None:
+                    series = buffer._read_frame(duration)
+            except RuntimeError as exc:
+                raise JAXReplayReadError(str(exc)) from exc
         expected = int(round(duration * buffer.raw_sample_rate))
         if len(series) != expected:
             raise JAXReplayReadError(
@@ -208,21 +242,30 @@ class JAXReplayFrameReader:
         self._offset = 0
 
     def advance(self, buffer, blocksize):
-        """Advance ``buffer`` by one block without returning samples to host."""
+        """Advance ``buffer`` without returning samples to the host."""
         if abs(float(blocksize) - self.blocksize) > 1e-9:
             raise ValueError("JAX replay blocksize changed during a run")
         block_samples = int(round(blocksize * buffer.raw_sample_rate))
-        if self._data is None or self._offset + block_samples > len(self._data):
+        needs_refill = (
+            self._data is None
+            or self._offset + block_samples > len(self._data)
+        )
+        if needs_refill:
             self._refill(buffer)
         if self._offset + block_samples > len(self._data):
             raise JAXReplayReadError("JAX replay has no complete block left")
+        self._data = to_jax(self._data)
 
-        updated, block = _advance_replay_buffer(
-            to_jax(buffer.raw_buffer),
-            self._data,
-            jnp.asarray(self._offset, dtype=jnp.int32),
-            block_samples,
-        )
+        stage_event("gwf_replay_buffer", "start")
+        try:
+            updated, block = _advance_replay_buffer(
+                to_jax(buffer.raw_buffer),
+                self._data,
+                to_jax(np.int32(self._offset)),
+                block_samples,
+            )
+        finally:
+            stage_event("gwf_replay_buffer", "end")
         buffer.raw_buffer._data = JAXArrayData(updated)
         buffer.raw_buffer._saved.clear()
 
@@ -236,6 +279,22 @@ class JAXReplayFrameReader:
         buffer.read_pos += blocksize
         buffer.raw_buffer.start_time += blocksize
         return result
+
+
+def advance_status_replay_jax(buffer, blocksize):
+    """Advance an explicitly configured status replay with gap fallback."""
+    try:
+        return buffer._jax_replay_reader.advance(buffer, blocksize)
+    except JAXReplayReadError as exc:
+        from pycbc.frame.frame import DataBuffer
+
+        logger.warning(
+            "JAX replay read-ahead unavailable for %s; falling back "
+            "to frame reads: %s", buffer.channel_name, exc
+        )
+        buffer._jax_replay_reader = None
+        buffer.update_cache()
+        return DataBuffer.advance(buffer, blocksize)
 
 
 def _data_buffers(root):
@@ -261,7 +320,8 @@ def configure_jax_replay(buffer, end_time, blocksize,
 
     The raw input must cover every analysis advance, including the initial
     conditioning corruption preceding ``buffer.end_time``.  Each nested data
-    buffer receives the same raw end point so state and strain stay in lockstep.
+    buffer receives the same raw end point so state and strain stay in
+    lockstep.
     Buffers that discover frame paths incrementally retain their existing
     streaming implementation.
     """

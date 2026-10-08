@@ -889,7 +889,14 @@ class StatusBuffer(DataBuffer):
         try:
             if self.increment_update_cache:
                 self.update_cache_by_increment(blocksize)
-            ts = DataBuffer.advance(self, blocksize)
+            replay_reader = (getattr(self, '_jax_replay_reader', None)
+                             if isinstance(scheme.mgr.state, scheme.JAXScheme)
+                             else None)
+            if replay_reader is None:
+                ts = DataBuffer.advance(self, blocksize)
+            else:
+                from pycbc.frame.frame_jax import advance_status_replay_jax
+                ts = advance_status_replay_jax(self, blocksize)
             return self.check_valid(ts)
         except RuntimeError:
             self.null_advance(blocksize)
