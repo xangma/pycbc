@@ -144,6 +144,49 @@ def _execute(request):
             return power_chisq_at_points_from_precomputed(
                 correlation, **kwargs
             )
+        elif operation == "sg_basis":
+            from pycbc.waveform.sinegauss import fd_sine_gaussian
+
+            result = fd_sine_gaussian(**kwargs)
+        elif operation == "time_shift":
+            from pycbc.waveform.utils import apply_fseries_time_shift
+
+            if values.ndim > 1:
+                shifts = np.broadcast_to(
+                    kwargs.pop("dt"), values.shape[:-1]
+                ).reshape(-1)
+                result = np.empty_like(values)
+                for row, output, shift in zip(
+                    values.reshape(-1, values.shape[-1]),
+                    result.reshape(-1, values.shape[-1]),
+                    shifts,
+                ):
+                    series = FrequencySeries(row, delta_f=spacing, epoch=epoch)
+                    output[:] = apply_fseries_time_shift(
+                        series, float(shift), **kwargs
+                    ).numpy()
+                return result, spacing, epoch
+            series = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            result = apply_fseries_time_shift(series, **kwargs)
+        elif operation == "sgchisq":
+            from types import SimpleNamespace
+            from pycbc.vetoes.sgchisq import SingleDetSGChisq
+
+            stilde = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            template = FrequencySeries(kwargs.pop("template"), delta_f=spacing,
+                                       epoch=kwargs.pop("template_epoch"))
+            template.f_lower = kwargs.pop("f_lower")
+            template.params = SimpleNamespace(
+                template_hash=kwargs.pop("template_hash")
+            )
+            psd = FrequencySeries(kwargs.pop("psd"), delta_f=spacing)
+            calculator = SingleDetSGChisq.__new__(SingleDetSGChisq)
+            calculator.do = True
+            calculator.params = kwargs.pop("params")
+            calculator.snr_threshold = kwargs.pop("snr_threshold")
+            bins = kwargs.pop("bins")
+            calculator.cached_chisq_bins = lambda template, psd: bins
+            return calculator.values(stilde, template, psd, **kwargs)
         else:
             raise ValueError("Unknown CPU validation operation")
         return (

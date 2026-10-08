@@ -42,6 +42,7 @@ These guides describe the supported device calculations and their original-imple
    :maxdepth: 1
 
    jax_fft
+   jax_filtering
 
 Validation and performance
 --------------------------
