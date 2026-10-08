@@ -24,8 +24,8 @@ validation routes perform host work and run outside JAX transformations.
 import functools
 import math
 
-
-
+import weakref
+from collections import namedtuple
 from types import SimpleNamespace
 import numpy as np
 import jax
@@ -252,6 +252,41 @@ def live_template_norms_jax(
         jnp.asarray(kmaxs, dtype=jnp.int32))
 
 
+def _live_cached_template_norms_jax(correlator, templates, psd):
+    """Reuse complete norms for one immutable Live group and PSD lifecycle.
+
+    The cache belongs to the interpolated Live PSD, which is replaced when
+    strain conditioning recalculates its PSD. Weak correlator keys distinguish
+    template groups without extending their lifetime. Mutable correlators and
+    the public normalization helper retain their uncached behavior. As with
+    the packed immutable template matrix, template contents and normalization
+    metadata remain fixed for the lifetime of each owned group.
+    """
+    from pycbc.scheme import current_backend_key
+
+    backend_key = current_backend_key()
+    psd._jax_psd = to_jax(psd)
+    matrix = getattr(correlator, "_jax_template_matrix", None)
+    power = getattr(correlator, "_jax_template_power", None)
+    immutable = matrix is not None and getattr(correlator, "xs", None) is templates
+    cache = getattr(psd, "_jax_live_template_norms", None)
+    if immutable and cache is not None:
+        cached = cache.get(correlator)
+        if (cached is not None and cached[0] is matrix
+                and cached[1] is power and cached[2] is templates
+                and cached[3] is getattr(psd, "_jax_psd", None)
+                and cached[4] == backend_key):
+            return cached[5:]
+
+    native = live_template_norms_jax(
+        templates, psd, template_matrix=matrix, template_power=power)
+    norms = (4.0 * templates[0].delta_f) / jnp.sqrt(native)
+    if immutable:
+        if cache is None:
+            cache = psd._jax_live_template_norms = weakref.WeakKeyDictionary()
+        cache[correlator] = (matrix, power, templates, psd._jax_psd,
+                             backend_key, native, norms)
+    return native, norms
 
 
 def live_veto_buffer_jax(size, dtype):
@@ -395,27 +430,63 @@ def _live_prune_empty_column(values):
 
 @functools.lru_cache(maxsize=128)
 def _live_concat_resident_executable(shapes, groups, device, x64):
-    """Retain handles by geometry, device and precision, without results."""
+    """Retain handles by geometry, device and precision, without result data."""
     from pycbc.vetoes.chisq_jax import _live_chisq_executable
 
-    abstracts = tuple(
-        jax.ShapeDtypeStruct(shape, np.dtype(dtype)) for shape, dtype in shapes
-    )
-    return _live_chisq_executable(
-        _live_concat_resident_columns,
-        abstracts,
-        dict(groups=groups),
-        {},
-        device,
-    )
+    abstracts = tuple(jax.ShapeDtypeStruct(shape, np.dtype(dtype))
+                      for shape, dtype in shapes)
+    return _live_chisq_executable(_live_concat_resident_columns, abstracts,
+                                 dict(groups=groups), {}, device)
 
 
+@functools.lru_cache(maxsize=32)
+def _live_host_empty_columns(device, dtypes, x64):
+    """Retain uncommitted empty host uploads, never candidate result data."""
+    with jax.ensure_compile_time_eval(), jax.default_device(device):
+        return tuple(jnp.asarray(np.empty(0, dtype=np.dtype(dtype)))
+                     for dtype in dtypes)
 
 
+def _live_host_column_parts(values, dtypes):
+    """Upload matching nonempty vectors once, keeping empty JAX promotion."""
+    if any(value.ndim != 1 for value in values):
+        return None
+    nonempty = [(value, dtype) for value, dtype in zip(values, dtypes)
+                if value.shape[0]]
+    if not nonempty:
+        return None
+    dtype = nonempty[0][1]
+    if any(other != dtype for _, other in nonempty):
+        return None
+    uploaded = jnp.asarray(np.concatenate(
+        [np.asarray(value, dtype=dtype) for value, _ in nonempty]))
+    if (not isinstance(uploaded, jax.Array)
+            or isinstance(uploaded, jax.core.Tracer)
+            or len(uploaded.devices()) != 1):
+        return None
+    device = next(iter(uploaded.devices()))
+    layout = getattr(getattr(uploaded, "format", None), "layout", None)
+    if (device.platform != "gpu"
+            or uploaded.sharding != jax.sharding.SingleDeviceSharding(device)
+            or layout is None or layout.major_to_minor != (0,)
+            or layout.tiling or layout.sub_byte_element_size_in_bits != 0):
+        return None
+    # Do not widen on the host: XLA's casts flush some subnormals and round
+    # wide signed/unsigned integers differently from NumPy promotion.
+    empty_dtypes = tuple(sorted({np.dtype(other).str
+                                for value, other in zip(values, dtypes)
+                                if not value.shape[0] and other != dtype}))
+    return [uploaded, *_live_host_empty_columns(
+        device, empty_dtypes, bool(jax.config.jax_enable_x64))]
 
 
 def combine_live_results_jax(results):
     """Upload uniform host columns once and join CUDA columns together."""
+    from pycbc import scheme
+
+    target = getattr(scheme.mgr.state, "jax_device", None)
+    gpu = (getattr(target, "platform", None) in ("cuda", "gpu")
+           and jax.config.jax_default_device == target)
     combined = {}
     resident = {}
     device = None
@@ -428,6 +499,7 @@ def combine_live_results_jax(results):
                 dtype = np.asarray(value).dtype
             kinds.append(np.dtype(dtype).kind)
         if all(kind in "biufc" for kind in kinds):
+            arrays = None
             if all(type(value) is np.ndarray and value.dtype.isnative
                    and value.ndim > 0
                    and value.shape[1:] == values[0].shape[1:]
@@ -442,23 +514,25 @@ def combine_live_results_jax(results):
                               for value in values]
                     combined[key] = jnp.asarray(np.concatenate(arrays))
                     continue
-            arrays = [jnp.asarray(value) for value in values]
+                if gpu and jax.config.jax_numpy_dtype_promotion == "standard":
+                    arrays = _live_host_column_parts(values, dtypes)
+            if arrays is None:
+                arrays = [value if gpu and isinstance(value, jax.Array)
+                          and not isinstance(value, jax.core.Tracer)
+                          and not value.weak_type
+                          and value.devices() == {target}
+                          and value.dtype == jax.dtypes.canonicalize_dtype(
+                              value.dtype) else jnp.asarray(value)
+                          for value in values]
             # Keep conversions outside fusion: host canonicalization and JAX
             # promotion differ from NumPy for wide integers and subnormals.
-            eligible = (
-                jax.config.jax_numpy_dtype_promotion == "standard"
-                and all(
-                    (type(value) is np.ndarray and value.dtype.isnative)
-                    or (
-                        isinstance(value, jax.Array)
-                        and not isinstance(value, jax.core.Tracer)
-                        and not value.weak_type
-                        and value.dtype
-                        == jax.dtypes.canonicalize_dtype(value.dtype)
-                    )
-                    for value in values
-                )
-            )
+            eligible = jax.config.jax_numpy_dtype_promotion == "standard" and all(
+                (type(value) is np.ndarray and value.dtype.isnative)
+                or (isinstance(value, jax.Array)
+                    and not isinstance(value, jax.core.Tracer)
+                    and not value.weak_type
+                    and value.dtype == jax.dtypes.canonicalize_dtype(
+                        value.dtype)) for value in values)
             eligible = eligible and all(
                 isinstance(array, jax.Array)
                 and not isinstance(array, jax.core.Tracer)
@@ -599,102 +673,156 @@ def _live_candidate_columns_bucketed(
     return _live_compact_results(columns, count, cache, peaks.device)
 
 
+_LivePreparedBatch = namedtuple("_LivePreparedBatch", (
+    "group_index", "templates", "stilde", "template_matrix", "native_norms",
+    "norms", "valid_start", "peak_values", "scaled_peaks", "selection",
+    "native_selection"),
+    defaults=(None,))
 
 
+_LiveBatchInputs = namedtuple("_LiveBatchInputs", (
+    "group_index", "templates", "stilde", "template_matrix", "native_norms",
+    "norms", "valid_start", "segment", "size"))
 
 
+def _live_prepare_batch_inputs_jax(self, group_index=None):
+    """Capture one group's immutable inputs without launch or publication.
 
+    Explicit indices let detector batching gather inputs from a shared control
+    without advancing its group cursor or replacing public filter buffers.
+    """
+    from pycbc.benchmark import stage_event
+    if group_index is None:
+        group_index = self.block_id
+    if group_index == len(self.tgroups):
+        return None
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def live_process_batch_jax(self):
-    """Process only a single batch group of data"""
-    from pycbc.filter.matchedfilter import logger
-    if self.block_id == len(self.tgroups):
-        return None, None
-
-    tgroup = self.tgroups[self.block_id]
-    psize = self.chunk_tsamples[self.block_id]
-    mid = self.mids[self.block_id]
+    tgroup = self.tgroups[group_index]
+    psize = self.chunk_tsamples[group_index]
+    mid = self.mids[group_index]
+    stage_event("filter_overwhiten", "start", templates=len(tgroup))
     stilde = self.data.overwhitened_data(tgroup[0].delta_f)
+    stage_event("filter_overwhiten", "end", templates=len(tgroup))
     psd = stilde.psd
     template_matrix = getattr(
-        self.corr[self.block_id], "_jax_template_matrix", None
+        self.corr[group_index], "_jax_template_matrix", None
     )
-    template_power = getattr(
-        self.corr[self.block_id], "_jax_template_power", None
-    )
-    native_norms = live_template_norms_jax(
-        tgroup, psd, template_matrix=template_matrix,
-        template_power=template_power,
-    )
+    stage_event("filter_norms", "start", templates=len(tgroup))
+    native_norms, norms = _live_cached_template_norms_jax(
+        self.corr[group_index], tgroup, psd)
+    stage_event("filter_norms", "end", templates=len(tgroup))
 
     valid_end = int(psize - self.data.trim_padding)
     valid_start = int(valid_end - self.data.blocksize * self.data.sample_rate)
 
     seg = slice(valid_start, valid_end)
+    return _LiveBatchInputs(
+        group_index, tgroup, stilde, template_matrix, native_norms, norms,
+        valid_start, seg, psize,
+    )
 
-    self.corr[self.block_id].execute(stilde)
-    # The JAX plan stays on-device by default and honors an explicit native
-    # IFFT validation route through the same plan API.
+
+def _live_native_selection_jax(control, templates, peaks, sigmasqs):
+    """Run the original Live selection with each template's scalar contract."""
+    from pycbc import waveform
+    from pycbc.reference_jax import cpu_reference
+
+    return cpu_reference(
+        "live_selection", peaks, spacing=templates[0].delta_f,
+        sigmasqs=np.asarray(sigmasqs),
+        python_sigmasq=np.asarray([
+            not waveform.waveform_norm_exists(
+                getattr(template, "approximant", ""))
+            for template in templates]),
+        snr_threshold=control.snr_threshold,
+        snr_abort_threshold=control.snr_abort_threshold)
+
+
+def _live_complete_batch_jax(self, inputs):
+    """Launch or publish captured inputs, preserving public full buffers."""
+    from pycbc.benchmark import stage_event
+
+    group_index, tgroup = inputs.group_index, inputs.templates
+    mid = self.mids[group_index]
+    native_selection = None
+    stage_event("filter_correlation", "start", templates=len(tgroup))
+    self.corr[group_index].execute(inputs.stilde)
+    stage_event("filter_correlation", "end", templates=len(tgroup))
+    # JAX CPU and unqualified geometries retain their original transform.
+    stage_event("filter_ifft", "start", templates=len(tgroup))
     self.ifts[mid].execute()
+    stage_event("filter_ifft", "end", templates=len(tgroup))
 
-    self.block_id += 1
-
-    result = {}
-    tkeys = tgroup[0].params.dtype.names
-    for key in tkeys:
-        result[key] = []
-
-    veto_info = []
-
-    # Reduce, normalize, and select the full group before the only host
-    # synchronization.  The host loop below handles sparse metadata and veto
-    # objects, not accelerator decisions.
-    jax_peaks = batch_peak_values(self.out_mem[mid], len(tgroup), psize, seg)
+    stage_event("filter_peak_select", "start", templates=len(tgroup))
+    jax_peaks = batch_peak_values(
+        self.out_mem[mid], len(tgroup), inputs.size, inputs.segment)
     if jax_peaks is None:
         raise ValueError("JAX live peak reduction could not process the batch")
     peak_indices, peak_values = jax_peaks
-    norms = (4.0 * tgroup[0].delta_f) / jnp.sqrt(native_norms)
+    abort_threshold = (jnp.inf if self.snr_abort_threshold is None
+                       else float(self.snr_abort_threshold))
     if _reference_enabled("live_selection"):
-        from pycbc import waveform
-        from pycbc.reference_jax import cpu_reference
+        native_selection = _live_native_selection_jax(
+            self, tgroup, peak_values, inputs.native_norms)
+        native_result, selected, _ = native_selection
+        accepted = jnp.zeros(peak_values.shape, dtype=bool)
+        accepted = accepted.at[selected].set(True)
+        abort = jnp.full(peak_values.shape, native_result is False,
+                         dtype=bool)
+        scaled_peaks = peak_values
+    else:
+        scaled_peaks, accepted, abort = _live_select_peaks(
+            peak_values, inputs.norms, float(self.snr_threshold),
+            abort_threshold)
+    stage_event("filter_peak_select", "end", templates=len(tgroup))
 
-        native_result, accepted_indices, accepted_norms = cpu_reference(
-            "live_selection", peak_values, spacing=tgroup[0].delta_f,
-            sigmasqs=np.asarray(native_norms),
-            python_sigmasq=np.asarray([
-                not waveform.waveform_norm_exists(
-                    getattr(template, "approximant", ""))
-                for template in tgroup]),
-            snr_threshold=self.snr_threshold,
-            snr_abort_threshold=self.snr_abort_threshold)
+
+    # Peak vectors remain independent of subsequent shared-workspace writes.
+    return _LivePreparedBatch(
+        group_index, tgroup, inputs.stilde, inputs.template_matrix,
+        inputs.native_norms, inputs.norms, inputs.valid_start,
+        peak_values, scaled_peaks,
+        (peak_indices, accepted, abort), native_selection,
+    )
+
+
+def _live_prepare_batch_jax(self):
+    """Enqueue one group's kernels without retrieving peak decisions."""
+    inputs = _live_prepare_batch_inputs_jax(self)
+    if inputs is None:
+        return None
+    prepared = _live_complete_batch_jax(self, inputs)
+    self.block_id += 1
+    return prepared
+
+
+def _live_finish_batch_jax(self, prepared, host_selection):
+    """Assemble one group's sparse metadata using its collected decisions."""
+    from pycbc.filter.matchedfilter import logger
+
+    tgroup = prepared.templates
+    stilde = prepared.stilde
+    template_matrix = prepared.template_matrix
+    native_norms, norms = prepared.native_norms, prepared.norms
+    peak_values, scaled_peaks = prepared.peak_values, prepared.scaled_peaks
+    valid_start = prepared.valid_start
+    host_peak_indices, host_accepted, host_abort = host_selection
+
+    tkeys = tgroup[0].params.dtype.names
+    result = {key: [] for key in tkeys}
+    veto_info = []
+    if _reference_enabled("live_selection"):
+        selection = prepared.native_selection
+        if selection is None:
+            selection = _live_native_selection_jax(self, tgroup, peak_values,
+                                                   native_norms)
+        native_result, accepted_indices, accepted_norms = selection
         if native_result is False:
             return False, []
-        host_peak_indices = np.asarray(peak_indices)
         norms = norms.at[accepted_indices].set(to_jax(accepted_norms))
         snr, phase, sigmasq = (to_jax(native_result[key]) for key in (
             "snr", "coa_phase", "sigmasq"))
     else:
-        abort_threshold = (
-            jnp.inf if self.snr_abort_threshold is None
-            else float(self.snr_abort_threshold))
-        scaled_peaks, accepted, abort = _live_select_peaks(
-            peak_values, norms, float(self.snr_threshold), abort_threshold)
-        host_peak_indices, host_accepted, host_abort = jax.device_get(
-            (peak_indices, accepted, abort))
         if np.any(host_abort):
             logger.info("We are seeing some *really* high SNRs, let's "
                         "assume they aren't signals and just give up")
@@ -733,7 +861,8 @@ def live_process_batch_jax(self):
 
         l = int(host_peak_indices[idx]) + valid_start
         veto_info.append(_LiveVetoCandidate(
-            peak_values, norms, int(idx), l, htilde, stilde))
+            peak_values, norms, int(idx), l, htilde,
+            stilde))
         if not hasattr(htilde, 'dict_params'):
             htilde.dict_params = {}
             for key in tkeys:
@@ -754,6 +883,269 @@ def live_process_batch_jax(self):
     return result, veto_info
 
 
+@functools.partial(jax.jit, static_argnames=("groups", "metadata_dtypes"))
+def _live_candidate_bank_columns(*values, groups, metadata_dtypes):
+    """Gather a whole bank's candidate columns in one retained dispatch.
+
+    Calculate each group's magnitude, phase and sigma cast before joining;
+    promoting mixed-precision complex inputs first changes their rounding.
+    """
+    selected, end_times = values[-2:]
+    scaled, sigmas = values[:groups], values[groups:2 * groups]
+    metadata = values[2 * groups:-2]
+    return (
+        jnp.concatenate([jnp.abs(value) for value in scaled])[selected],
+        jnp.concatenate([jnp.angle(value) for value in scaled])[selected],
+        jnp.concatenate([value.astype(jnp.float32)
+                         for value in sigmas])[selected],
+        end_times,
+        *(value[selected].astype(dtype)
+          for value, dtype in zip(metadata, metadata_dtypes)),
+    )
+
+
+def _live_candidate_metadata(control, prepared, selected):
+    """Cache bank columns, checking only admitted rows for mutable metadata.
+
+    The legacy lazily-created dict_params snapshot remains authoritative.
+    Unselected rows are checked when they are first admitted, so changing
+    metadata cannot publish a stale value and does not require scanning the
+    entire bank on every block. Caches live only as long as their control.
+    """
+    device = prepared[0].peak_values.device
+    signature = (tuple((id(batch.templates), len(batch.templates))
+                       for batch in prepared), device,
+                 bool(jax.config.jax_enable_x64))
+    cache = getattr(control, "_jax_live_candidate_metadata", None)
+    keys = prepared[0].templates[0].params.dtype.names
+    if not keys or set(keys) & {
+            "snr", "coa_phase", "end_time", "template_id", "sigmasq"}:
+        return None
+
+    admitted = []
+    offset = 0
+    for batch, rows in zip(prepared, selected):
+        for row in rows:
+            template = batch.templates[row]
+            if (template.params.dtype.names != keys
+                    or hasattr(template, "time_offset")):
+                return None
+            if not hasattr(template, "dict_params"):
+                template.dict_params = {key: template.params[key]
+                                        for key in keys}
+            admitted.append((offset + int(row), template))
+        offset += len(batch.templates)
+
+    if (cache is not None and cache["signature"] == signature
+            and cache["keys"] == keys):
+        for row, template in admitted:
+            if (template is not cache["templates"][row]
+                    or template.id != cache["ids"][row]):
+                cache = None
+                break
+            for key, host in cache["numeric_host"].items():
+                value = template.dict_params[key]
+                # Exact NumPy numeric scalars are immutable. Reusing the same
+                # scalar therefore proves its dtype and payload are unchanged;
+                # replacements still take the bitwise validation below.
+                scalars = cache["numeric_scalars"][key]
+                if scalars[row] is not None and value is scalars[row]:
+                    continue
+                if (not isinstance(value, np.generic)
+                        or value.dtype != host.dtype
+                        or value.tobytes() != host[row].tobytes()):
+                    cache = None
+                    break
+                scalars[row] = (value if type(value) is host.dtype.type
+                                else None)
+            if cache is None:
+                break
+        if cache is not None:
+            return cache
+
+    templates = tuple(template for batch in prepared
+                      for template in batch.templates)
+    if any(template.params.dtype.names != keys
+           or hasattr(template, "time_offset")
+           or not hasattr(template, "id")
+           or (hasattr(template, "dict_params")
+               and any(key not in template.dict_params for key in keys))
+           for template in templates):
+        return None
+    ids = [template.id for template in templates]
+    id_dtype = np.dtype(jax.dtypes.canonicalize_dtype(np.uint64))
+    # Uploading unused IDs must not introduce an overflow the serial API
+    # would encounter only if that template were selected.
+    if any(not isinstance(value, (int, np.integer))
+           or not 0 <= value <= np.iinfo(id_dtype).max for value in ids):
+        return None
+    numeric_host, numeric_device, numeric_scalars = {}, {}, {}
+    for key in keys:
+        values = [(template.dict_params[key]
+                   if hasattr(template, "dict_params") else template.params[key])
+                  for template in templates]
+        first = values[0]
+        if (templates[0].params.dtype[key].kind in "biufc"
+                and not (isinstance(first, np.generic)
+                         and all(isinstance(value, np.generic)
+                                 and value.dtype == first.dtype
+                                 for value in values))):
+            return None
+        if (isinstance(first, np.generic) and first.dtype.kind in "biufc"
+                and all(isinstance(value, np.generic)
+                        and value.dtype == first.dtype for value in values)):
+            numeric_host[key] = np.array(values)
+            numeric_device[key] = jnp.asarray(numeric_host[key])
+            numeric_scalars[key] = [
+                value if type(value) is numeric_host[key].dtype.type else None
+                for value in values]
+    cache = dict(signature=signature, templates=templates, ids=ids, keys=keys,
+                 numeric_host=numeric_host, numeric_device=numeric_device,
+                 numeric_scalars=numeric_scalars,
+                 device_ids=jnp.asarray(np.asarray(ids, dtype=id_dtype)))
+    control._jax_live_candidate_metadata = cache
+    return cache
+
+
+def _live_finish_batches_jax(control, prepared, selections):
+    """Prepare and combine CUDA candidates across all duration groups.
+
+    Return None for the existing assembly path where bank metadata cannot
+    safely be cached. Numeric bank columns stay resident; timestamps retain
+    the legacy NumPy float64 calculation and use one compact upload. Strings
+    and Python veto references retain their original selected-row semantics.
+    """
+    from pycbc.vetoes.chisq_jax import (
+        _chisq_candidate_bucket, _live_chisq_executable,
+    )
+
+    if (_reference_enabled("live_selection")
+            or not prepared or prepared[0].peak_values.device.platform != "gpu"
+            or jax.config.jax_numpy_dtype_promotion != "standard"
+            or any(np.any(selection[2]) for selection in selections)):
+        return None
+    selected = [np.flatnonzero(selection[1]) for selection in selections]
+    count = sum(len(rows) for rows in selected)
+    if not count:
+        return None
+    metadata = _live_candidate_metadata(control, prepared, selected)
+    if metadata is None:
+        return None
+
+    indices = np.zeros(_chisq_candidate_bucket(count), dtype=np.int32)
+    times = np.zeros(len(indices), dtype=np.float64)
+    veto_info, host_results = [], []
+    offset, start = 0, 0
+    host_keys = [key for key in metadata["keys"]
+                 if key not in metadata["numeric_device"]]
+    for batch, selection, rows in zip(prepared, selections, selected):
+        stop = start + len(rows)
+        indices[start:stop] = rows + offset
+        times[start:stop] = (float(control.data.start_time)
+                            + selection[0][rows] / control.data.sample_rate)
+        host = {key: [] for key in host_keys}
+        for row in rows:
+            template = batch.templates[row]
+            for key in host_keys:
+                host[key].append(template.dict_params[key])
+            veto_info.append(_LiveVetoCandidate(
+                batch.peak_values, batch.norms, int(row),
+                int(selection[0][row]) + batch.valid_start, template,
+                batch.stilde))
+        host_results.append({key: np.array(value)
+                             for key, value in host.items()})
+        start, offset = stop, offset + len(batch.templates)
+
+    # Empty parameter groups contribute float64 to legacy concatenation,
+    # including otherwise integral columns. Keep that promotion on device.
+    empty = any(not len(rows) for rows in selected)
+    columns = (metadata["device_ids"],
+               *metadata["numeric_device"].values())
+    dtypes = (np.dtype(columns[0].dtype).str, *(
+        np.dtype(jnp.result_type(value.dtype, np.float64)
+                 if empty else value.dtype).str for value in columns[1:]))
+    args = (*(batch.scaled_peaks for batch in prepared),
+            *(batch.native_norms for batch in prepared), *columns, indices,
+            times.astype(jax.dtypes.canonicalize_dtype(np.float64)))
+    cache = _live_veto_executable_cache(control)
+    execute = _live_chisq_executable(
+        _live_candidate_bank_columns, args,
+        dict(groups=len(prepared), metadata_dtypes=dtypes), cache,
+        prepared[0].peak_values.device)
+    outputs = _live_compact_results(execute(*args), count, cache,
+                                    prepared[0].peak_values.device)
+    snr, phase, sigmasq, end_time, template_id, *numeric = outputs
+    host = combine_live_results_jax(host_results) if host_keys else {}
+    result = {key: None for key in metadata["keys"]}
+    result.update(zip(metadata["numeric_device"], numeric))
+    result.update(host)
+    result.update(snr=snr, coa_phase=phase, end_time=end_time,
+                  template_id=template_id, sigmasq=sigmasq)
+    return result, veto_info
+
+
+def live_process_batch_jax(self):
+    """Process one batch, retaining the serial API for JAX CPU and callers."""
+    from pycbc.benchmark import stage_event
+
+    prepared = _live_prepare_batch_jax(self)
+    if prepared is None:
+        return None, None
+    stage_event("filter_peak_collect", "start", groups=1)
+    selection = jax.device_get(prepared.selection)
+    stage_event("filter_peak_collect", "end", groups=1,
+                accepted=int(np.count_nonzero(selection[1])))
+    return _live_finish_batch_jax(self, prepared, selection)
+
+
+def process_live_data_jax(self, data_reader):
+    """Queue CUDA groups before collecting their peak-decision vectors."""
+    from pycbc import scheme
+    from pycbc.benchmark import stage_event
+
+    self.set_data(data_reader)
+    device = getattr(scheme.mgr.state, "jax_device", None)
+    if getattr(device, "platform", None) not in ("cuda", "gpu"):
+        return self.process_all()
+
+    pending = []
+    while self.block_id < len(self.tgroups):
+        pending.append(_live_prepare_batch_jax(self))
+    if not pending:
+        # Preserve the existing empty-bank API, including its assembly error.
+        return self.process_all()
+
+    stage_event("filter_peak_collect", "start", groups=len(pending))
+    selections = jax.device_get(tuple(batch.selection for batch in pending))
+    stage_event("filter_peak_collect", "end", groups=len(pending),
+                accepted=sum(np.count_nonzero(values[1])
+                             for values in selections))
+    results, veto_info = [], []
+    stage_event("filter_candidate_prepare", "start", groups=len(pending))
+    assembled = _live_finish_batches_jax(self, pending, selections)
+    if assembled is None:
+        for batch, selection in zip(pending, selections):
+            result, veto = _live_finish_batch_jax(self, batch, selection)
+            if result is False:
+                self.block_id = batch.group_index + 1
+                stage_event("filter_candidate_prepare", "end", aborted=True)
+                return False
+            results.append(result)
+            veto_info += veto
+    else:
+        result, veto_info = assembled
+
+    stage_event("filter_candidate_prepare", "end", triggers=len(veto_info))
+    stage_event("filter_result_combine", "start", groups=len(results))
+    if assembled is None:
+        result = self.combine_results(results)
+    if self.max_triggers_in_batch:
+        sort = result['snr'].argsort()[::-1][:self.max_triggers_in_batch]
+        for key in result:
+            result[key] = result[key][sort]
+        veto_info = [veto_info[i] for i in sort]
+    stage_event("filter_result_combine", "end", triggers=len(veto_info))
+    return self._process_vetoes(result, veto_info)
 
 
 
@@ -852,9 +1244,10 @@ def live_batch_matched_filter_init_jax(control, templates, maxelements=2**27):
             htilde.cout = control.cout_mem[mid][s:e]
             s += psize
             e += psize
-        control.corr.append(BatchCorrelator(
+        correlator = BatchCorrelator(
             tgroup, [t.cout for t in tgroup], len(tgroup[0]),
-            immutable_templates=True))
+            immutable_templates=True)
+        control.corr.append(correlator)
 
     control.unique_delta_fs = tuple(sorted(
         {group[0].delta_f for group in control.tgroups}, reverse=True))

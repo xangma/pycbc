@@ -140,11 +140,142 @@ def test_cached_generic_norm_dispatch_does_not_grow_per_template(monkeypatch):
     assert counts[1] <= counts[0] + 2
 
 
+def _norm_correlator(templates, immutable=True):
+    from pycbc.filter.matchedfilter import BatchCorrelator
+    from pycbc.types import zeros
+
+    return BatchCorrelator(
+        templates, [zeros(len(template), dtype=np.complex64)
+                    for template in templates], len(templates[0]),
+        immutable_templates=immutable)
 
 
+@pytest.mark.parametrize("device", _jax_devices())
+def test_live_norm_cache_reuses_alternating_detector_psds_and_groups(
+        device, monkeypatch):
+    from pycbc.filter import matchedfilter_jax as module
+
+    with scheme.JAXScheme(device):
+        groups = [_templates(51), _templates(52)[:1]]
+        correlators = [_norm_correlator(group) for group in groups]
+        psds = [FrequencySeries(
+            np.linspace(start, start + 1, 4097, dtype=np.float32),
+            delta_f=.25) for start in (1, 2)]
+        expected = {}
+        for psd_index, psd in enumerate(psds):
+            for group_index, (group, corr) in enumerate(zip(groups, correlators)):
+                native = live_template_norms_jax(
+                    group, psd, template_power=corr._jax_template_power)
+                expected[psd_index, group_index] = (
+                    native, (4.0 * group[0].delta_f) / jax.numpy.sqrt(native))
+
+        original = module.live_template_norms_jax
+        calls = []
+
+        def normalize(*args, **kwargs):
+            calls.append(args)
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(module, "live_template_norms_jax", normalize)
+        loaded = {}
+        for repetition in range(2):
+            for psd_index, psd in enumerate(psds):
+                for group_index, (group, corr) in enumerate(
+                        zip(groups, correlators)):
+                    actual = module._live_cached_template_norms_jax(
+                        corr, group, psd)
+                    for value, reference in zip(
+                            actual, expected[psd_index, group_index]):
+                        assert value.dtype == reference.dtype
+                        np.testing.assert_array_equal(value, reference)
+                    key = psd_index, group_index
+                    if repetition:
+                        assert all(value is previous for value, previous in
+                                   zip(actual, loaded[key]))
+                    else:
+                        loaded[key] = actual
+            assert len(calls) == 4
 
 
+@pytest.mark.parametrize("device", _jax_devices())
+@pytest.mark.parametrize("replacement", ["matrix", "power", "psd_array",
+                                         "psd", "templates"])
+def test_live_norm_cache_invalidates_replaced_source(device, replacement,
+                                                   monkeypatch):
+    from pycbc.filter import matchedfilter_jax as module
+
+    with scheme.JAXScheme(device):
+        templates = _templates(53)
+        corr = _norm_correlator(templates)
+        psd = FrequencySeries(np.ones(4097, np.float32), delta_f=.25)
+        first = module._live_cached_template_norms_jax(corr, templates, psd)
+        if replacement == "matrix":
+            corr._jax_template_matrix = corr._jax_template_matrix * 1
+        elif replacement == "power":
+            corr._jax_template_power = corr._jax_template_power * 2
+        elif replacement == "psd_array":
+            psd *= 2
+        elif replacement == "psd":
+            psd = FrequencySeries(np.full(4097, 2, np.float32), delta_f=.25)
+        else:
+            # A replacement group can retain the identical waveform matrix
+            # while carrying different support metadata. Ownership follows
+            # the correlator's new list, rather than its previous cache entry.
+            templates = _templates(53)
+            templates[0].min_f_lower += 8
+            corr.xs = templates
+        native = live_template_norms_jax(
+            templates, psd, template_matrix=corr._jax_template_matrix,
+            template_power=corr._jax_template_power)
+        expected = (native, (4.0 * templates[0].delta_f)
+                    / jax.numpy.sqrt(native))
+        original = module.live_template_norms_jax
+        calls = []
+
+        def normalize(*args, **kwargs):
+            calls.append(args)
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(module, "live_template_norms_jax", normalize)
+        actual = module._live_cached_template_norms_jax(corr, templates, psd)
+        repeated = module._live_cached_template_norms_jax(corr, templates, psd)
+        assert len(calls) == 1
+        for value, reference, previous, retained in zip(
+                actual, expected, first, repeated):
+            np.testing.assert_array_equal(value, reference)
+            assert value is not previous
+            assert value is retained
 
 
+def test_live_norm_cache_leaves_mutable_callers_uncached():
+    from pycbc.filter import matchedfilter_jax as module
+
+    with scheme.JAXScheme("cpu"):
+        templates = _templates(54)
+        corr = _norm_correlator(templates, immutable=False)
+        psd = FrequencySeries(np.ones(4097, np.float32), delta_f=.25)
+        first = module._live_cached_template_norms_jax(corr, templates, psd)
+        templates[0].min_f_lower += 8
+        expected = live_template_norms_jax(templates, psd)
+        actual = module._live_cached_template_norms_jax(corr, templates, psd)
+        np.testing.assert_array_equal(actual[0], expected)
+        assert np.asarray(actual[0])[0] != np.asarray(first[0])[0]
+        assert not hasattr(psd, "_jax_live_template_norms")
 
 
+def test_live_norm_cache_releases_retired_correlators():
+    import gc
+    import weakref
+    from pycbc.filter import matchedfilter_jax as module
+
+    with scheme.JAXScheme("cpu"):
+        templates = _templates(55)
+        corr = _norm_correlator(templates)
+        psd = FrequencySeries(np.ones(4097, np.float32), delta_f=.25)
+        module._live_cached_template_norms_jax(corr, templates, psd)
+        assert len(psd._jax_live_template_norms) == 1
+        retired = weakref.ref(corr)
+        del corr
+        gc.collect()
+        assert retired() is None
+        assert not psd._jax_live_template_norms

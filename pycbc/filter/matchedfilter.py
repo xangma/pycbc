@@ -1658,6 +1658,9 @@ class LiveBatchMatchedFilter(object):
 
     def process_data(self, data_reader):
         """Process the data for all of the templates"""
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import process_live_data_jax
+            return process_live_data_jax(self, data_reader)
         self.set_data(data_reader)
         return self.process_all()
 

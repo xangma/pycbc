@@ -342,6 +342,7 @@ def _selection_control(peak, sigma, threshold, abort_threshold):
     template.params = np.zeros((), dtype=[])
     template.sigmasq = lambda psd: float(sigma)
     template.out = Array(output)
+    template.cout = Array(np.zeros(8, np.complex64))
     stilde = FrequencySeries(np.ones(5, np.complex64), delta_f=0.25)
     stilde.psd = FrequencySeries(np.ones(5, np.float32), delta_f=0.25)
     reader = SimpleNamespace(
@@ -357,6 +358,7 @@ def _selection_control(peak, sigma, threshold, abort_threshold):
     control.chunk_tsamples = [8]
     control.mids = [0]
     control.out_mem = {0: template.out}
+    control.cout_mem = {0: template.cout}
     control.corr = [SimpleNamespace(execute=lambda data: None)]
     control.ifts = {0: SimpleNamespace(execute=lambda: None)}
     control.snr_threshold = threshold
