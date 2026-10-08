@@ -221,6 +221,7 @@ JAX_REFERENCE_OPERATIONS = frozenset({
     'chisq_accum_bin', 'power_chisq_bins', 'power_chisq_at_points',
     'sg_basis', 'sgchisq', 'time_shift', 'waveform', 'decompress', 'td_taper',
     'fd_taper',
+    "psd_horizon", "psd_horizon_amplitude",
 })
 
 

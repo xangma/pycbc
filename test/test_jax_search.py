@@ -30,11 +30,7 @@ import pycbc
 from pycbc import scheme
 from pycbc.events import cuts, ranking, veto
 from pycbc.filter.matchedfilter import matched_filter, sigmasq
-from pycbc.filter.matchedfilter_jax import (
-    _live_select_peaks,
-    batch_matched_filter_bank,
-    batch_peak_values,
-)
+from pycbc.filter.matchedfilter_jax import _live_select_peaks, batch_matched_filter_bank, batch_peak_values
 from pycbc.strain import detect_loud_glitches
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_jax import is_jax_array
@@ -414,6 +410,10 @@ def test_jax_autogating_detection():
     assert any(abs(t - 16.0) < 1.0 for t in times)
 
 
+
+
+
+
 def test_jax_power_chisq_parity():
     """Compare JAX point chi-square with the original CPU calculation."""
     from pycbc.vetoes.chisq import power_chisq_at_points_from_precomputed
@@ -445,3 +445,5 @@ def test_jax_power_chisq_parity():
         )
 
     np.testing.assert_allclose(jax_chisq, cpu_chisq, rtol=1e-3, atol=1e-3)
+
+

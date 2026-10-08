@@ -309,6 +309,16 @@ def _execute(request):
             result = getattr(utils, operation)(series, **kwargs)
             return (result.numpy(), spacing,
                     None if result._epoch is None else str(result._epoch))
+        elif operation == "psd_horizon":
+            import pycbc
+            from pycbc.waveform.spa_tmplt import spa_distance
+
+            series = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            return spa_distance(series, 1.4, 1.4, **kwargs) * pycbc.DYN_RANGE_FAC
+        elif operation == "psd_horizon_amplitude":
+            from pycbc.waveform.spa_tmplt import spa_tmplt_precondition
+
+            return spa_tmplt_precondition(kwargs.pop("length"), spacing).numpy()
         elif operation == "time_shift":
             from pycbc.waveform.utils import apply_fseries_time_shift
 
