@@ -14,8 +14,8 @@ from pycbc.filter.matchedfilter_jax import (
     JAXMatchedFilterControl, process_batch_inspiral_jax,
 )
 from pycbc.types import Array, FrequencySeries, zeros
-
-
+from pycbc.vetoes.chisq import SingleDetPowerChisq, power_chisq_bins
+from pycbc.vetoes import chisq_jax
 from pycbc.waveform.bank_jax import TemplateBatchList
 from pycbc.waveform.bank import sigma_cached
 
@@ -59,6 +59,38 @@ def test_batched_filter_composes_original_correlation_ifft_and_cluster(count):
 
 
 
+@pytest.mark.parametrize("operation", ["power_chisq_bins", "squared_norm", "divide", "cumsum"])
+def test_source_bin_cache_reaches_selected_stage_after_default_cache(
+        monkeypatch, operation):
+    rng = np.random.default_rng(809)
+    values = (rng.normal(size=(3, 129))
+              + 1j * rng.normal(size=(3, 129))).astype(np.complex64)
+    spectrum = np.linspace(.7, 2.1, 129, dtype=np.float32)
+    with scheme.CPUScheme():
+        expected = [power_chisq_bins(
+            FrequencySeries(row, delta_f=1), 4,
+            FrequencySeries(spectrum, delta_f=1), 7)
+            for row in values[[2, 0]]]
+    with scheme.JAXScheme("cpu"):
+        psd = FrequencySeries(spectrum, delta_f=1)
+        templates = TemplateBatchList([
+            FrequencySeries(row, delta_f=1) for row in values[[2, 0]]])
+        for template in templates:
+            template.f_lower = 7
+            template.params = SimpleNamespace()
+        templates._batch_tensor = jax.numpy.asarray(values)
+        templates._batch_positions = [2, 0]
+        veto = SingleDetPowerChisq("4")
+        chisq_jax.cache_batch_power_chisq_bins_jax(veto, templates, psd)
+
+    def reject_fusion(*args, **kwargs):
+        pytest.fail("Selected original bin stage entered the fused source kernel")
+
+    monkeypatch.setattr(chisq_jax, "_power_chisq_bins_from_source", reject_fusion)
+    with scheme.JAXScheme("cpu", reference_operations=(operation,)):
+        actual = chisq_jax.cache_batch_power_chisq_bins_jax(veto, templates, psd)
+        for got, wanted in zip(actual, expected):
+            np.testing.assert_array_equal(got, wanted)
 
 
 def test_inspiral_batch_preserves_native_normalization_precision():

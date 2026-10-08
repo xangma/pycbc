@@ -912,6 +912,22 @@ def _ordered_cumsum_rows(values, use_gpu_scan):
     return _ordered_cumsum_rows_pallas(values, unroll=16)
 
 
+@functools.partial(
+    jax.jit,
+    static_argnames=("kmax", "num_bins", "delta_f", "use_gpu_scan"),
+)
+def _power_chisq_bins_from_source(
+        h_arr, psd_arr, positions, kmins, *, kmax, num_bins, delta_f,
+        use_gpu_scan=False):
+    """Gather bucketed Live rows and construct their exact cached bin edges.
+
+    The original frequency grid is retained. A fixed zero prefix makes the
+    compiled shape independent of which lower cutoffs survived selection;
+    adding these zeros does not change the ordered power accumulation.
+    """
+    return _power_chisq_bins_varied_support(
+        h_arr[positions], psd_arr, kmins, 0, kmax, num_bins, delta_f,
+        use_gpu_scan)
 
 
 def batch_power_chisq_bins_jax(
@@ -1008,6 +1024,24 @@ def _publish_cached_power_chisq_bins_jax(edges, templates, psd):
         template._bin_cache[psd_id] = edges[row]
 
 
+def _collect_cached_power_chisq_bins_jax(pending):
+    """Collect queued device bin groups once and publish them in launch order."""
+    if not pending:
+        return
+    groups = tuple(pending)
+    pending.clear()
+    try:
+        collected = jax.device_get(tuple(item[0] for item in groups))
+    except Exception:
+        # Preserve earlier successful cache writes if a later device group
+        # fails, as the former sequential collection would have done.
+        for result, templates, psd in groups:
+            edges = np.asarray(jax.device_get(result))[:len(templates)]
+            _publish_cached_power_chisq_bins_jax(edges, templates, psd)
+        raise
+    for result, (_, templates, psd) in zip(collected, groups):
+        edges = np.asarray(result)[:len(templates)]
+        _publish_cached_power_chisq_bins_jax(edges, templates, psd)
 
 
 
@@ -1016,20 +1050,52 @@ def _publish_cached_power_chisq_bins_jax(edges, templates, psd):
 
 
 
-def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd):
+def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd, *,
+                                    pending=None):
     """Populate canonical chi-square bin caches in exact batched groups.
 
     Templates with different support or bin counts remain separate. Analytic
     PSD cumulative vectors retain the native scalar shortcut; all other rows
     use the ordered JAX scan already used by :func:`power_chisq_bins_jax`.
 
+    An optional pending list lets native CUDA Live source groups launch before
+    a shared collection. Deferred calls return ``None``; callers collect the
+    list with :func:`_collect_cached_power_chisq_bins_jax`. Other paths retain
+    synchronous cache publication and the existing returned bin list.
     """
     from collections import defaultdict
     from pycbc.opt import LimitedSizeDict
+    from pycbc.vetoes.chisq import SingleDetPowerChisq
     from pycbc.waveform.bank_jax import TemplateBatchList
 
     _check_bin_reference_cache(psd)
+    native_stages = _bin_references_selected()
     source_tensor = getattr(templates, "_batch_tensor", None)
+    source_positions = getattr(templates, "_batch_positions", None)
+    queued_templates = {
+        id(template) for _, group, _ in (pending or ()) for template in group
+    }
+    if any(id(template) in queued_templates for template in templates):
+        # Repeated identities must observe prior publication and bounded-cache
+        # eviction before this group decides whether its entries are valid.
+        _collect_cached_power_chisq_bins_jax(pending)
+    defer = (
+        pending is not None
+        and not native_stages
+        and type(power_chisq) is SingleDetPowerChisq
+        and power_chisq.parse_option is SingleDetPowerChisq.parse_option
+        and getattr(power_chisq.cached_chisq_bins, "__func__", None)
+        is SingleDetPowerChisq.cached_chisq_bins
+        and source_positions is not None
+        and source_tensor is not None
+        and getattr(getattr(source_tensor, "device", None), "platform", None)
+        in ("cuda", "gpu")
+        and not any(
+            getattr(template, "approximant", None)
+            in getattr(psd, "sigmasq_vec", {}) for template in templates)
+    )
+    if pending is not None and not defer:
+        _collect_cached_power_chisq_bins_jax(pending)
 
     psd_id = id(psd)
     if not hasattr(psd, "_chisq_cached_key"):
@@ -1061,6 +1127,51 @@ def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd):
     for (num_bins, _, _), indices in groups.items():
         grouped = TemplateBatchList([templates[index] for index in indices])
         f_lowers = [getattr(template, "f_lower", None) for template in grouped]
+        if (source_positions is not None and source_tensor is not None
+                and not native_stages):
+            from pycbc.benchmark import stage_event
+            from pycbc.filter.matchedfilter import get_cutoff_indices
+
+            stage_event('filter_veto_bins_prepare', 'start',
+                        synchronize=False, templates=len(indices))
+            delta_f = float(grouped[0].delta_f)
+            n_time = (len(grouped[0]) - 1) * 2
+            bounds = [get_cutoff_indices(flow, None, delta_f, n_time)
+                      for flow in f_lowers]
+            bucket = _chisq_candidate_bucket(len(indices))
+            positions = np.zeros(bucket, dtype=np.int32)
+            kmins = np.zeros(bucket, dtype=np.int32)
+            positions[:len(indices)] = [source_positions[i] for i in indices]
+            kmins[:len(indices)] = [bound[0] for bound in bounds]
+            source = to_jax(source_tensor)
+            args = (source, to_jax(psd), positions, kmins)
+            static_args = dict(
+                kmax=bounds[0][1], num_bins=num_bins, delta_f=delta_f,
+                use_gpu_scan=_use_gpu_ordered_scan(source))
+            cache = getattr(power_chisq, "_jax_live_veto_executables", None)
+            if cache is None:
+                cache = power_chisq._jax_live_veto_executables = {}
+            stage_event('filter_veto_bins_prepare', 'end',
+                        synchronize=False, templates=len(indices),
+                        bucket=bucket)
+            execute = _live_chisq_executable(
+                _power_chisq_bins_from_source, args, static_args, cache,
+                source.device)
+            stage_event('filter_veto_bins_dispatch', 'start',
+                        synchronize=False, templates=len(indices),
+                        bucket=bucket)
+            try:
+                result = execute(*args)
+            finally:
+                stage_event('filter_veto_bins_dispatch', 'end',
+                            synchronize=False, templates=len(indices),
+                            bucket=bucket)
+            if defer:
+                pending.append((result, grouped, psd))
+            else:
+                edges = np.asarray(jax.device_get(result))[:len(indices)]
+                _publish_cached_power_chisq_bins_jax(edges, grouped, psd)
+            continue
         if source_tensor is not None:
             if indices == list(range(len(templates))):
                 grouped._batch_tensor = source_tensor
@@ -1072,6 +1183,8 @@ def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd):
             grouped, num_bins, psd, f_lowers)))
         _publish_cached_power_chisq_bins_jax(edges, grouped, psd)
 
+    if defer:
+        return None
     return [template._bin_cache[psd_id] for template in templates]
 
 
