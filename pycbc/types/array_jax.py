@@ -95,6 +95,29 @@ def _unwrap_data(val):
     return val
 
 
+def _divide(left, right, inplace=False):
+    """Divide on-device by default, or use original NumPy array arithmetic."""
+    left, right = _unwrap_data(left), _unwrap_data(right)
+    if not _reference_enabled("divide"):
+        return left / right
+    if isinstance(left, jax.core.Tracer) or isinstance(right, jax.core.Tracer):
+        raise RuntimeError("CPU division validation cannot run inside jax.jit")
+    reference = left if isinstance(left, jax.Array) else right
+    # NumPy also exposes .device == "cpu"; only JAX storage owns placement.
+    device = reference.device if isinstance(reference, jax.Array) else None
+    # The CPU Array operators delegate directly to ndarray division. Private
+    # writable copies preserve that arithmetic without mutating a NumPy view
+    # into immutable JAX storage, or an aliased denominator.
+    host_left = left if np.isscalar(left) else np.array(left, copy=True)
+    host_right = right if np.isscalar(right) else np.array(right, copy=True)
+    if inplace:
+        host_left /= host_right
+        result = host_left
+    else:
+        result = host_left / host_right
+    return to_jax(result, device=device)
+
+
 class JAXArrayData:
     """JAX storage with write-through, lazily evaluated ordinary slices."""
 
@@ -285,7 +308,7 @@ class JAXArrayData:
         return self
 
     def __itruediv__(self, other):
-        self.set_array(self.array / _unwrap_data(other))
+        self.set_array(_divide(self.array, other, inplace=True))
         return self
 
     __idiv__ = __itruediv__
@@ -309,10 +332,10 @@ class JAXArrayData:
         return self.__mul__(other)
 
     def __truediv__(self, other):
-        return JAXArrayData(self.array / _unwrap_data(other))
+        return JAXArrayData(_divide(self.array, other))
 
     def __rtruediv__(self, other):
-        return JAXArrayData(_unwrap_data(other) / self.array)
+        return JAXArrayData(_divide(other, self.array))
 
     def __neg__(self):
         return JAXArrayData(-self.array)
