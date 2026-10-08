@@ -40,9 +40,23 @@ def start_end_from_segments(segment_file):
     return start + start_ns * 1e-9, end + end_ns * 1e-9
 
 
+def _veto_backend(*values):
+    """Load veto backend for JAX-backed inputs."""
+    from pycbc import scheme
+    from pycbc.types.backend import is_backend
+
+    if any(is_backend(value, "jax") for value in values) or (
+        isinstance(scheme.mgr.state, scheme.JAXScheme)
+    ):
+        from . import veto_jax
+
+        return veto_jax
+    return None
+
+
 def indices_within_times(times, start, end):
     """
-    Return an index array into times that lie within the durations defined by start end arrays
+    Return an index array into times that like within the durations defined by start end arrays
 
     Parameters
     ----------
@@ -58,6 +72,10 @@ def indices_within_times(times, start, end):
     indices: numpy.ndarray
         Array of indices into times
     """
+    backend = _veto_backend(times, start, end)
+    if backend is not None:
+        return backend.indices_within_times(times, start, end)
+
     # coalesce the start/end segments
     start, end = segments_to_start_end(start_end_to_segments(start, end).coalesce())
 
@@ -89,6 +107,10 @@ def indices_outside_times(times, start, end):
     indices: numpy.ndarray
         Array of indices into times
     """
+    backend = _veto_backend(times, start, end)
+    if backend is not None:
+        return backend.indices_outside_times(times, start, end)
+
     exclude = indices_within_times(times, start, end)
     indices = numpy.arange(0, len(times))
     return numpy.delete(indices, exclude)

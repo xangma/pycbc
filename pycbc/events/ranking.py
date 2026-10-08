@@ -7,10 +7,27 @@ import numpy
 logger = logging.getLogger('pycbc.events.ranking')
 
 
+def _ranking_backend(*values):
+    """Load JAX ranking only for its scheme or resident inputs."""
+    from pycbc import scheme
+    from pycbc.types.backend import is_backend
+
+    if isinstance(scheme.mgr.state, scheme.JAXScheme) or any(
+        is_backend(value, "jax") for value in values
+    ):
+        from . import ranking_jax
+        return ranking_jax
+    return None
+
+
 def effsnr(snr, reduced_x2, fac=250.,
            **kwargs):  # pylint:disable=unused-argument
     """Calculate the effective SNR statistic. See (S5y1 paper) for definition.
     """
+    backend = _ranking_backend(snr, reduced_x2)
+    if backend is not None:
+        return backend.effsnr_jax(snr, reduced_x2, fac=fac)
+
     snr = numpy.array(snr, ndmin=1, dtype=numpy.float64)
     rchisq = numpy.array(reduced_x2, ndmin=1, dtype=numpy.float64)
     esnr = snr / (1 + snr ** 2 / fac) ** 0.25 / rchisq ** 0.25
@@ -28,6 +45,10 @@ def newsnr(snr, reduced_x2, q=6., n=2.,
     reduced chi-squared values. See http://arxiv.org/abs/1208.3491 for
     definition. Previous implementation in glue/ligolw/lsctables.py
     """
+    backend = _ranking_backend(snr, reduced_x2)
+    if backend is not None:
+        return backend.newsnr_jax(snr, reduced_x2, q=q, n=n)
+
     nsnr = numpy.array(snr, ndmin=1, dtype=numpy.float64)
     reduced_x2 = numpy.array(reduced_x2, ndmin=1, dtype=numpy.float64)
 
@@ -180,7 +201,12 @@ def get_snr(trigs, **kwargs):  # pylint:disable=unused-argument
     numpy.ndarray
         Array of snr values
     """
-    return numpy.array(trigs['snr'][:], ndmin=1, dtype=numpy.float32)
+    value = trigs['snr'][:]
+    backend = _ranking_backend(value)
+    if backend is not None:
+        import jax.numpy as jnp
+        return backend._event_arrays(value)[0].astype(jnp.float32)
+    return numpy.array(value, ndmin=1, dtype=numpy.float32)
 
 
 def get_newsnr(trigs, **kwargs):
@@ -198,6 +224,10 @@ def get_newsnr(trigs, **kwargs):
     numpy.ndarray
         Array of newsnr values
     """
+    backend = _ranking_backend(*(trigs[name] for name in
+                                 ('snr', 'chisq', 'chisq_dof')))
+    if backend is not None:
+        return backend.get_newsnr_jax(trigs, **kwargs)
     dof = 2. * trigs['chisq_dof'][:] - 2.
     nsnr = newsnr(
         trigs['snr'][:],

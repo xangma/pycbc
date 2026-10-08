@@ -147,6 +147,15 @@ def findchirp_cluster_over_window(times, values, window_length):
     """
     assert window_length > 0, 'Clustering window length is not positive'
 
+    from pycbc import scheme
+    from pycbc.types.backend import is_backend
+    jax_active = isinstance(scheme.mgr.state, scheme.JAXScheme)
+    if jax_active or any(is_backend(value, "jax") for value in (times, values)):
+        from .eventmgr_jax import findchirp_cluster_over_window_jax
+        return findchirp_cluster_over_window_jax(
+            times, values, window_length
+        )
+
     indices = numpy.zeros(len(times), dtype=numpy.int32)
     tlen = len(times)
     absvalues = numpy.asarray(abs(values))

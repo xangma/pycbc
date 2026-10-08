@@ -247,13 +247,19 @@ def apply_trigger_cuts(triggers, trigger_cut_dict, statistic=None):
         as keys, cut_thresholds as values
         made using ingest_cuts_option_group function
 
-
     Returns
     -------
     idx_out: numpy array
         An array of the indices which meet the criteria
         set by the dictionary
     """
+    from pycbc import scheme
+    from pycbc.types.backend import is_backend
+    if (isinstance(scheme.mgr.state, scheme.JAXScheme)
+            or is_backend(triggers['snr'], 'jax')):
+        from pycbc.events.cuts_jax import apply_trigger_cuts_jax
+        return apply_trigger_cuts_jax(triggers, trigger_cut_dict, statistic)
+
     idx_out = np.arange(len(triggers['snr']))
 
     # Loop through the different cuts, and apply them
