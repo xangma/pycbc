@@ -1,0 +1,83 @@
+name: JAX GPU regressions
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: One pytest path or node ID; blank runs the CUDA regressions
+        required: false
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: jax-gpu-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  jax-gpu:
+    runs-on: [self-hosted, linux, gpu]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659
+        with:
+          pixi-version: 0.81.0
+      - name: Require a working JAX CUDA device
+        env:
+          JAX_PLATFORMS: cuda,cpu
+        run: |
+          pixi run -e jax-gpu python - <<'PY'
+          import jax
+          import jax.numpy as jnp
+          from pycbc.scheme import JAXScheme
+          with JAXScheme("cuda:0") as context:
+              device = context.jax_device
+              assert device.platform == "gpu"
+              data = jax.device_put(jnp.arange(8, dtype=jnp.float32), device)
+              result = jax.jit(lambda x: x * x + 1)(data)
+              result.block_until_ready()
+              assert result.devices() == {device}
+              assert int(jax.device_get(result[-1])) == 50
+              print(jax.__version__, device.device_kind)
+          PY
+      - name: Run CUDA regressions
+        env:
+          PYCBC_TEST_SCHEME: jax:cuda:0
+          TEST_SELECTOR: ${{ inputs.tests }}
+          JAX_PLATFORMS: cuda,cpu
+        run: |
+          pixi run -e jax-gpu bash -euo pipefail -c '
+            selectors=(
+              test/test_gwf_*jax*.py
+              test/test_jax_*.py
+              test/test_detector_jax_*.py
+              test/waveform/test_jax_*.py
+            )
+            if [[ -n "${TEST_SELECTOR}" ]]; then
+              pytest "${TEST_SELECTOR}" -ra --junitxml=jax-gpu.xml
+            else
+              pytest "${selectors[@]}" -ra --junitxml=jax-gpu.xml
+            fi
+          '
+      - name: Run an actual multi-detector CUDA publication regression
+        env:
+          PYCBC_TEST_SCHEME: jax:cuda:0
+          JAX_PLATFORMS: cuda,cpu
+        run: |
+          pixi run -e jax-gpu pytest -q --junitxml=jax-gpu-required.xml \
+            test/test_jax_live_resident.py::test_two_detectors_enqueue_before_collection \
+            'test/test_jax_filter_compilation.py::test_bank_reuses_compilation_with_original_normalization_dtype[cuda:0]'
+          pixi run -e jax-gpu python - <<'PY'
+          import xml.etree.ElementTree as ET
+          rows = list(ET.parse("jax-gpu-required.xml").getroot().iter("testcase"))
+          assert len(rows) == 2
+          assert all(row.find("skipped") is None for row in rows)
+          PY
+      - name: Save regression results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: jax-gpu-results
+          path: jax-gpu*.xml

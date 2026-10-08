@@ -1,0 +1,48 @@
+name: JAX CPU regressions
+on: [push, pull_request]
+permissions:
+  contents: read
+concurrency:
+  group: jax-cpu-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  jax-cpu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PYCBC_TEST_SCHEME: jax:cpu
+      JAX_PLATFORMS: cpu
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659
+        with:
+          pixi-version: 0.81.0
+      - name: Require a working JAX CPU device
+        run: |
+          pixi run -e jax-cpu python - <<'PY'
+          import jax
+          import jax.numpy as jnp
+          from pycbc.scheme import JAXScheme
+          with JAXScheme("cpu") as context:
+              data = jax.device_put(jnp.arange(8, dtype=jnp.float32), context.jax_device)
+              result = jax.jit(lambda x: x * x + 1)(data)
+              result.block_until_ready()
+              assert result.devices() == {context.jax_device}
+              assert int(jax.device_get(result[-1])) == 50
+              print(jax.__version__, context.jax_device.device_kind)
+          PY
+      - name: Run CPU regressions
+        run: |
+          pixi run -e jax-cpu pytest -ra --junitxml=jax-cpu.xml \
+            test/test_gwf_*jax*.py \
+            test/test_jax_*.py \
+            test/test_detector_jax_*.py \
+            test/waveform/test_jax_*.py
+      - name: Save regression results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: jax-cpu-results
+          path: jax-cpu.xml

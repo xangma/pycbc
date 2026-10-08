@@ -10,6 +10,7 @@ documentation, develop the code, and create releases:
 
    documentation
    release
+   jax_testing
 
 Developers who are interested in file I/O, data storage, and access should
 read the documentation at:

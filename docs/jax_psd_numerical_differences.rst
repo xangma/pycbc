@@ -9,12 +9,14 @@ and normalization. Inverse-spectrum truncation adds reciprocals, square roots,
 another window and two transforms. Identical physical formulas therefore do
 not guarantee identical finite-precision outputs.
 
-The :download:`PSD comparison notebook <../examples/jax/jax_psd_numerical_differences.ipynb>` uses fixed deterministic
+The :download:`PSD comparison notebook
+<../examples/jax/jax_psd_numerical_differences.ipynb>` uses fixed deterministic
 inputs. It compares original CPU and default JAX results, and asserts that
 selected native routes reproduce CPU dtype, shape, metadata and output bytes.
 Its window, fixed-spectrum and transform controls isolate particular boundaries.
 
-The :download:`standalone psd rounding notebook <../examples/jax/jax_psd_rounding.ipynb>` requires only NumPy and JAX.
+The :download:`standalone psd rounding notebook
+<../examples/jax/jax_psd_rounding.ipynb>` requires only NumPy and JAX.
 It uses small generated inputs to isolate arithmetic and rounding, without
 importing PyCBC or LAL. Use the comparison notebook above to validate the
 actual PyCBC implementations and original routes. See
@@ -135,7 +137,8 @@ dynamic-range scaling. This diagnostic is independent of diffGW template
 generation. Default conditioning and the horizon integral run on the selected
 JAX device.
 
-The :download:`horizon comparison notebook <../examples/jax/jax_live_psd_numerical_differences.ipynb>` compares identical
+The :download:`horizon comparison notebook
+<../examples/jax/jax_live_psd_numerical_differences.ipynb>` compares identical
 deterministic float32 and float64 PSD samples. It records library versions,
 measures each selected route and asserts exact original scalar bytes for the
 whole-stage and combined-stage controls. The shared

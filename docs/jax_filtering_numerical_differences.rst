@@ -5,12 +5,14 @@ JAX conditioning and filtering numerical differences
 
 Conditioning, correlation, normalization and vetoes combine operations whose
 floating-point ordering depends on the implementation. The
-:download:`filtering comparison notebook <../examples/jax/jax_filtering_numerical_differences.ipynb>` fixes input bytes,
+:download:`filtering comparison notebook
+<../examples/jax/jax_filtering_numerical_differences.ipynb>` fixes input bytes,
 precision, grids and calculation options before comparing original CPU and
 default JAX results. Its controlled examples distinguish changed mathematical
 choices from ordinary rounding.
 
-The :download:`standalone filtering rounding notebook <../examples/jax/jax_filtering_rounding.ipynb>` requires only NumPy and JAX.
+The :download:`standalone filtering rounding notebook
+<../examples/jax/jax_filtering_rounding.ipynb>` requires only NumPy and JAX.
 It uses small generated inputs to isolate arithmetic and rounding, without
 importing PyCBC or LAL. Use the comparison notebook above to validate the
 actual PyCBC implementations and original routes. See
@@ -23,7 +25,8 @@ these fixed-input examples.
 Conditioning and whitening
 --------------------------
 
-The :download:`strain comparison notebook <../examples/jax/jax_strain_numerical_differences.ipynb>` generates a temporary
+The :download:`strain comparison notebook
+<../examples/jax/jax_strain_numerical_differences.ipynb>` generates a temporary
 GWF, advances the public strain buffer, and compares conditioning, Welch PSD,
 both truncated PSD grids and the whitened spectrum. It fixes sample bytes,
 precision, spacing, epochs and options. The temporary frame is removed after
