@@ -29,23 +29,40 @@ one parameter given a set of inputs.
 """
 
 import copy
-import numpy
 import logging
+import operator
+
+import numpy
+
+from pycbc.domain_jax import reference as _reference
+
+from pycbc import libutils
+from pycbc.constants import C_SI, G_SI, MSUN_SI, MTSUN_SI, PI, YRJUL_SI
+
+pykerr = libutils.import_optional("pykerr")
+lalsim = libutils.import_optional("lalsimulation")
+
+logger = logging.getLogger("pycbc.conversions")
 
 
-from pycbc.detector import Detector
-import pycbc.cosmology
-from pycbc import neutron_stars as ns
-from pycbc.constants import YRJUL_SI, MSUN_SI, MTSUN_SI, C_SI, G_SI, PI
+def _jax_values(*values):
+    """Dispatch tensor broadcasting to the optional JAX backend."""
+    from pycbc.types.backend import is_backend
 
-from .coordinates import (
-    spherical_to_cartesian as _spherical_to_cartesian,
-    cartesian_to_spherical as _cartesian_to_spherical)
+    if not any(is_backend(value, "jax") for value in values):
+        return None, values
 
-pykerr = pycbc.libutils.import_optional('pykerr')
-lalsim = pycbc.libutils.import_optional('lalsimulation')
+    from pycbc.conversions_jax import broadcast_values
 
-logger = logging.getLogger('pycbc.conversions')
+    return broadcast_values(*values)
+
+
+def _jax_qnm_spline(jax, spin, ell, m, n, reim):
+    """Dispatch QNM interpolation to the JAX conversion backend."""
+    from pycbc.conversions_jax import qnm_spline
+
+    return qnm_spline(pykerr, spin, ell, m, n, reim)
+
 
 #
 # =============================================================================
@@ -55,10 +72,10 @@ logger = logging.getLogger('pycbc.conversions')
 # =============================================================================
 #
 def ensurearray(*args):
-    """Apply numpy's broadcast rules to the given arguments.
+    """Apply array broadcast rules to the given arguments.
 
-    This will ensure that all of the arguments are numpy arrays and that they
-    all have the same shape. See ``numpy.broadcast_arrays`` for more details.
+    NumPy inputs use ``numpy.broadcast_arrays``. If any argument is a JAX array,
+    all arguments are broadcast on that device.
 
     It also returns a boolean indicating whether any of the inputs were
     originally arrays.
@@ -72,10 +89,16 @@ def ensurearray(*args):
     -------
     list :
         A list with length ``N+1`` where ``N`` is the number of given
-        arguments. The first N values are the input arguments as ``ndarrays``s.
-        The last value is a boolean indicating whether any of the
-        inputs was an array.
+        arguments. The first N values are the broadcast inputs. The last value
+        is a boolean indicating whether any input was an array or tensor.
     """
+    jax, values = _jax_values(*args)
+    if jax is not None:
+        input_is_array = any(
+            isinstance(arg, (numpy.ndarray, jax.Array)) for arg in args
+        )
+        return (*values, input_is_array)
+
     input_is_array = any(isinstance(arg, numpy.ndarray) for arg in args)
     args = list(numpy.broadcast_arrays(*args))
     args.append(input_is_array)
@@ -83,8 +106,13 @@ def ensurearray(*args):
 
 
 def formatreturn(arg, input_is_array=False):
-    """If the given argument is a numpy array with shape (1,), just returns
-    that value."""
+    """Return a scalar for a scalar input and preserve array-like results."""
+    jax, _ = _jax_values(arg)
+    if jax is not None:
+        if not input_is_array and arg.size == 1:
+            arg = arg.item()
+        return arg
+
     if not input_is_array and arg.size == 1:
         arg = arg.item()
     return arg
@@ -97,11 +125,13 @@ def formatreturn(arg, input_is_array=False):
 # =============================================================================
 #
 
+@_reference("conversions", "sec_to_year")
 def sec_to_year(sec):
     """ Converts number of seconds to number of years """
     return sec / YRJUL_SI
 
 
+@_reference("conversions", "hypertriangle")
 def hypertriangle(*params, bounds=(0, 1)):
     """
     Apply a hypertriangle map to a series of input parameter values.
@@ -129,6 +159,23 @@ def hypertriangle(*params, bounds=(0, 1)):
     array
         The mapped parameters. Output values are in ascending order.
     """
+    from pycbc.types.backend import is_backend
+
+    has_tensor = any(is_backend(param, "jax") for param in params)
+    if has_tensor:
+        shapes = [
+            tuple(param.shape) if hasattr(param, "shape") else numpy.shape(param)
+            for param in params
+        ]
+        assert all(shape == shapes[0] for shape in shapes), (
+            "All inputs must have the same number of elements"
+        )
+
+    jax, values = _jax_values(*params)
+    if jax is not None:
+        from pycbc.conversions_jax import scale_ordered_params_jax
+        return scale_ordered_params_jax(values, bounds)
+
     # check inputs all have the same shape
     ref_shape = numpy.shape(params[0])
     assert numpy.all([numpy.shape(params[i]) == ref_shape for i in range(len(params))]), \
@@ -169,8 +216,13 @@ def hypertriangle(*params, bounds=(0, 1)):
 #
 # =============================================================================
 #
+@_reference("conversions", "primary_mass")
 def primary_mass(mass1, mass2):
     """Returns the larger of mass1 and mass2 (p = primary)."""
+    jax, values = _jax_values(mass1, mass2)
+    if jax is not None:
+        return jax.numpy.maximum(*values)
+
     mass1, mass2, input_is_array = ensurearray(mass1, mass2)
     if mass1.shape != mass2.shape:
         raise ValueError("mass1 and mass2 must have same shape")
@@ -180,8 +232,13 @@ def primary_mass(mass1, mass2):
     return formatreturn(mp, input_is_array)
 
 
+@_reference("conversions", "secondary_mass")
 def secondary_mass(mass1, mass2):
     """Returns the smaller of mass1 and mass2 (s = secondary)."""
+    jax, values = _jax_values(mass1, mass2)
+    if jax is not None:
+        return jax.numpy.minimum(*values)
+
     mass1, mass2, input_is_array = ensurearray(mass1, mass2)
     if mass1.shape != mass2.shape:
         raise ValueError("mass1 and mass2 must have same shape")
@@ -191,31 +248,37 @@ def secondary_mass(mass1, mass2):
     return formatreturn(ms, input_is_array)
 
 
+@_reference("conversions", "mtotal_from_mass1_mass2")
 def mtotal_from_mass1_mass2(mass1, mass2):
     """Returns the total mass from mass1 and mass2."""
     return mass1 + mass2
 
 
+@_reference("conversions", "q_from_mass1_mass2")
 def q_from_mass1_mass2(mass1, mass2):
     """Returns the mass ratio m1/m2, where m1 >= m2."""
     return primary_mass(mass1, mass2) / secondary_mass(mass1, mass2)
 
 
+@_reference("conversions", "invq_from_mass1_mass2")
 def invq_from_mass1_mass2(mass1, mass2):
     """Returns the inverse mass ratio m2/m1, where m1 >= m2."""
     return secondary_mass(mass1, mass2) / primary_mass(mass1, mass2)
 
 
+@_reference("conversions", "eta_from_mass1_mass2")
 def eta_from_mass1_mass2(mass1, mass2):
     """Returns the symmetric mass ratio from mass1 and mass2."""
     return mass1*mass2 / (mass1 + mass2)**2.
 
 
+@_reference("conversions", "mchirp_from_mass1_mass2")
 def mchirp_from_mass1_mass2(mass1, mass2):
     """Returns the chirp mass from mass1 and mass2."""
     return eta_from_mass1_mass2(mass1, mass2)**(3./5) * (mass1 + mass2)
 
 
+@_reference("conversions", "eccmchirp_from_mass1_mass2_eccentricity")
 def eccmchirp_from_mass1_mass2_eccentricity(mass1, mass2, eccentricity, method='spa_phase'):
     """Returns the effective eccentric chirp mass from mass1, mass2 and eccentricity
 
@@ -241,6 +304,7 @@ def eccmchirp_from_mass1_mass2_eccentricity(mass1, mass2, eccentricity, method='
     return mchirp_eccentric
 
 
+@_reference("conversions", "mass1_from_mtotal_q")
 def mass1_from_mtotal_q(mtotal, q):
     """Returns a component mass from the given total mass and mass ratio.
 
@@ -251,6 +315,7 @@ def mass1_from_mtotal_q(mtotal, q):
     return q*mtotal / (1. + q)
 
 
+@_reference("conversions", "mass2_from_mtotal_q")
 def mass2_from_mtotal_q(mtotal, q):
     """Returns a component mass from the given total mass and mass ratio.
 
@@ -261,6 +326,7 @@ def mass2_from_mtotal_q(mtotal, q):
     return mtotal / (1. + q)
 
 
+@_reference("conversions", "mass1_from_mtotal_eta")
 def mass1_from_mtotal_eta(mtotal, eta):
     """Returns the primary mass from the total mass and symmetric mass
     ratio.
@@ -268,6 +334,7 @@ def mass1_from_mtotal_eta(mtotal, eta):
     return 0.5 * mtotal * (1.0 + (1.0 - 4.0 * eta)**0.5)
 
 
+@_reference("conversions", "mass2_from_mtotal_eta")
 def mass2_from_mtotal_eta(mtotal, eta):
     """Returns the secondary mass from the total mass and symmetric mass
     ratio.
@@ -275,12 +342,14 @@ def mass2_from_mtotal_eta(mtotal, eta):
     return 0.5 * mtotal * (1.0 - (1.0 - 4.0 * eta)**0.5)
 
 
+@_reference("conversions", "mtotal_from_mchirp_eta")
 def mtotal_from_mchirp_eta(mchirp, eta):
     """Returns the total mass from the chirp mass and symmetric mass ratio.
     """
     return mchirp / eta**(3./5.)
 
 
+@_reference("conversions", "mass1_from_mchirp_eta")
 def mass1_from_mchirp_eta(mchirp, eta):
     """Returns the primary mass from the chirp mass and symmetric mass ratio.
     """
@@ -288,6 +357,7 @@ def mass1_from_mchirp_eta(mchirp, eta):
     return mass1_from_mtotal_eta(mtotal, eta)
 
 
+@_reference("conversions", "mass2_from_mchirp_eta")
 def mass2_from_mchirp_eta(mchirp, eta):
     """Returns the primary mass from the chirp mass and symmetric mass ratio.
     """
@@ -317,7 +387,22 @@ def _mass2_from_mchirp_mass1(mchirp, mass1):
     real_root = roots[(abs(roots - roots.real)).argmin()]
     return real_root.real
 
-mass2_from_mchirp_mass1 = numpy.vectorize(_mass2_from_mchirp_mass1)
+_mass2_from_mchirp_mass1_numpy = numpy.vectorize(_mass2_from_mchirp_mass1)
+
+
+def _mass2_from_mchirp_mass1_jax(jax, mchirp, mass1):
+    from pycbc.conversions_jax import mass2_from_mchirp_mass1_jax
+    return mass2_from_mchirp_mass1_jax(mchirp, mass1)
+
+
+@_reference("conversions", "mass2_from_mchirp_mass1")
+def mass2_from_mchirp_mass1(mchirp, mass1):
+    r"""Return the secondary mass from chirp mass and primary mass."""
+    jax, values = _jax_values(mchirp, mass1)
+    if jax is not None:
+        return _mass2_from_mchirp_mass1_jax(jax, *values)
+
+    return _mass2_from_mchirp_mass1_numpy(mchirp, mass1)
 
 
 def _mass_from_knownmass_eta(known_mass, eta, known_is_secondary=False,
@@ -362,9 +447,29 @@ def _mass_from_knownmass_eta(known_mass, eta, known_is_secondary=False,
     else:
         return roots[roots.argmin()]
 
-mass_from_knownmass_eta = numpy.vectorize(_mass_from_knownmass_eta)
+_mass_from_knownmass_eta_numpy = numpy.vectorize(_mass_from_knownmass_eta)
 
 
+def _mass_from_knownmass_eta_jax(jax, known_mass, eta, known_is_secondary=False, force_real=True):
+    from pycbc.conversions_jax import mass_from_knownmass_eta_jax
+    return mass_from_knownmass_eta_jax(known_mass, eta, known_is_secondary=known_is_secondary, force_real=force_real)
+
+
+@_reference("conversions", "mass_from_knownmass_eta")
+def mass_from_knownmass_eta(known_mass, eta, known_is_secondary=False, force_real=True):
+    r"""Return the other component mass from one mass and ``eta``."""
+    jax, values = _jax_values(known_mass, eta)
+    if jax is not None:
+        return _mass_from_knownmass_eta_jax(
+            jax, *values, known_is_secondary=known_is_secondary, force_real=force_real
+        )
+
+    return _mass_from_knownmass_eta_numpy(
+        known_mass, eta, known_is_secondary=known_is_secondary, force_real=force_real
+    )
+
+
+@_reference("conversions", "mass2_from_mass1_eta")
 def mass2_from_mass1_eta(mass1, eta, force_real=True):
     """Returns the secondary mass from the primary mass and symmetric mass
     ratio.
@@ -373,6 +478,7 @@ def mass2_from_mass1_eta(mass1, eta, force_real=True):
                                    force_real=force_real)
 
 
+@_reference("conversions", "mass1_from_mass2_eta")
 def mass1_from_mass2_eta(mass2, eta, force_real=True):
     """Returns the primary mass from the secondary mass and symmetric mass
     ratio.
@@ -381,6 +487,7 @@ def mass1_from_mass2_eta(mass2, eta, force_real=True):
                                    force_real=force_real)
 
 
+@_reference("conversions", "eta_from_q")
 def eta_from_q(q):
     r"""Returns the symmetric mass ratio from the given mass ratio.
 
@@ -394,12 +501,14 @@ def eta_from_q(q):
     return q / (1. + q)**2
 
 
+@_reference("conversions", "mass1_from_mchirp_q")
 def mass1_from_mchirp_q(mchirp, q):
     """Returns the primary mass from the given chirp mass and mass ratio."""
     mass1 = q**(2./5.) * (1.0 + q)**(1./5.) * mchirp
     return mass1
 
 
+@_reference("conversions", "mass2_from_mchirp_q")
 def mass2_from_mchirp_q(mchirp, q):
     """Returns the secondary mass from the given chirp mass and mass ratio."""
     mass2 = q**(-3./5.) * (1.0 + q)**(1./5.) * mchirp
@@ -418,6 +527,7 @@ def _a3(f_lower):
     return numpy.pi / (8. * (numpy.pi * f_lower)**(5./3.))
 
 
+@_reference("conversions", "tau0_from_mtotal_eta")
 def tau0_from_mtotal_eta(mtotal, eta, f_lower):
     r"""Returns :math:`\tau_0` from the total mass, symmetric mass ratio, and
     the given frequency.
@@ -428,6 +538,7 @@ def tau0_from_mtotal_eta(mtotal, eta, f_lower):
     return _a0(f_lower) / (mtotal**(5./3.) * eta)
 
 
+@_reference("conversions", "tau0_from_mchirp")
 def tau0_from_mchirp(mchirp, f_lower):
     r"""Returns :math:`\tau_0` from the chirp mass and the given frequency.
     """
@@ -437,6 +548,7 @@ def tau0_from_mchirp(mchirp, f_lower):
     return _a0(f_lower) / mchirp ** (5./3.)
 
 
+@_reference("conversions", "tau3_from_mtotal_eta")
 def tau3_from_mtotal_eta(mtotal, eta, f_lower):
     r"""Returns :math:`\tau_0` from the total mass, symmetric mass ratio, and
     the given frequency.
@@ -447,6 +559,7 @@ def tau3_from_mtotal_eta(mtotal, eta, f_lower):
     return _a3(f_lower) / (mtotal**(2./3.) * eta)
 
 
+@_reference("conversions", "tau0_from_mass1_mass2")
 def tau0_from_mass1_mass2(mass1, mass2, f_lower):
     r"""Returns :math:`\tau_0` from the component masses and given frequency.
     """
@@ -455,6 +568,7 @@ def tau0_from_mass1_mass2(mass1, mass2, f_lower):
     return tau0_from_mtotal_eta(mtotal, eta, f_lower)
 
 
+@_reference("conversions", "tau3_from_mass1_mass2")
 def tau3_from_mass1_mass2(mass1, mass2, f_lower):
     r"""Returns :math:`\tau_3` from the component masses and given frequency.
     """
@@ -463,6 +577,7 @@ def tau3_from_mass1_mass2(mass1, mass2, f_lower):
     return tau3_from_mtotal_eta(mtotal, eta, f_lower)
 
 
+@_reference("conversions", "mchirp_from_tau0")
 def mchirp_from_tau0(tau0, f_lower):
     r"""Returns chirp mass from :math:`\tau_0` and the given frequency.
     """
@@ -471,6 +586,7 @@ def mchirp_from_tau0(tau0, f_lower):
     return mchirp / MTSUN_SI
 
 
+@_reference("conversions", "mtotal_from_tau0_tau3")
 def mtotal_from_tau0_tau3(tau0, tau3, f_lower,
                           in_seconds=False):
     r"""Returns total mass from :math:`\tau_0, \tau_3`."""
@@ -481,6 +597,7 @@ def mtotal_from_tau0_tau3(tau0, tau3, f_lower,
     return mtotal
 
 
+@_reference("conversions", "eta_from_tau0_tau3")
 def eta_from_tau0_tau3(tau0, tau3, f_lower):
     r"""Returns symmetric mass ratio from :math:`\tau_0, \tau_3`."""
     mtotal = mtotal_from_tau0_tau3(tau0, tau3, f_lower,
@@ -489,6 +606,7 @@ def eta_from_tau0_tau3(tau0, tau3, f_lower):
     return eta
 
 
+@_reference("conversions", "mass1_from_tau0_tau3")
 def mass1_from_tau0_tau3(tau0, tau3, f_lower):
     r"""Returns the primary mass from the given :math:`\tau_0, \tau_3`."""
     mtotal = mtotal_from_tau0_tau3(tau0, tau3, f_lower)
@@ -496,6 +614,7 @@ def mass1_from_tau0_tau3(tau0, tau3, f_lower):
     return mass1_from_mtotal_eta(mtotal, eta)
 
 
+@_reference("conversions", "mass2_from_tau0_tau3")
 def mass2_from_tau0_tau3(tau0, tau3, f_lower):
     r"""Returns the secondary mass from the given :math:`\tau_0, \tau_3`."""
     mtotal = mtotal_from_tau0_tau3(tau0, tau3, f_lower)
@@ -503,6 +622,7 @@ def mass2_from_tau0_tau3(tau0, tau3, f_lower):
     return mass2_from_mtotal_eta(mtotal, eta)
 
 
+@_reference("conversions", "eccmchirp_from_mchirp_eccentricity")
 def eccmchirp_from_mchirp_eccentricity(mchirp, eccentricity, method="spa_phase"):
     """Return the effective eccentric chirp mass: eccmchirp.
 
@@ -658,93 +778,157 @@ def mchirp_from_eccmchirp_eccentricity(eccmchirp, eccentricity, method="spa_phas
 
     return formatreturn(m, input_is_array)
 
+@_reference("conversions", "lambda_tilde")
 def lambda_tilde(mass1, mass2, lambda1, lambda2):
-    """ The effective lambda parameter
+    """The effective lambda parameter
 
     The mass-weighted dominant effective lambda parameter defined in
     https://journals.aps.org/prd/pdf/10.1103/PhysRevD.91.043002
     """
+    jax, values = _jax_values(mass1, mass2, lambda1, lambda2)
+    if jax is not None:
+        m1, m2, lambda1, lambda2 = values
+        jnp = jax.numpy
+        lsum = lambda1 + lambda2
+        ldiff = jnp.where(m1 < m2, lambda2 - lambda1, lambda1 - lambda2)
+        eta = jnp.minimum(eta_from_mass1_mass2(m1, m2), 0.25)
+        p1 = lsum * (1 + 7.0 * eta - 31 * eta**2.0)
+        p2 = jnp.sqrt(1 - 4 * eta) * (1 + 9 * eta - 11 * eta**2.0) * ldiff
+        return 8.0 / 13.0 * (p1 + p2)
+
     m1, m2, lambda1, lambda2, input_is_array = ensurearray(
-        mass1, mass2, lambda1, lambda2)
+        mass1, mass2, lambda1, lambda2
+    )
     lsum = lambda1 + lambda2
     ldiff, _ = ensurearray(lambda1 - lambda2)
     mask = m1 < m2
     ldiff[mask] = -ldiff[mask]
     eta = eta_from_mass1_mass2(m1, m2)
     eta[eta > 0.25] = 0.25 # Account for numerical error, 0.25 is the max
-    p1 = (lsum) * (1 + 7. * eta - 31 * eta ** 2.0)
-    p2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta ** 2.0) * (ldiff)
+    p1 = (lsum) * (1 + 7.0 * eta - 31 * eta**2.0)
+    p2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2.0) * (ldiff)
     return formatreturn(8.0 / 13.0 * (p1 + p2), input_is_array)
 
+
+@_reference("conversions", "delta_lambda_tilde")
 def delta_lambda_tilde(mass1, mass2, lambda1, lambda2):
-    """ Delta lambda tilde parameter defined as
+    """Delta lambda tilde parameter defined as
     equation 15 in
     https://journals.aps.org/prd/pdf/10.1103/PhysRevD.91.043002
     """
+    jax, values = _jax_values(mass1, mass2, lambda1, lambda2)
+    if jax is not None:
+        m1, m2, lambda1, lambda2 = values
+        jnp = jax.numpy
+        lsum = lambda1 + lambda2
+        ldiff = jnp.where(m1 < m2, lambda2 - lambda1, lambda1 - lambda2)
+        eta = eta_from_mass1_mass2(m1, m2)
+        p1 = (
+            jnp.sqrt(1 - 4 * eta)
+            * (1 - (13272 / 1319) * eta + (8944 / 1319) * eta**2)
+            * lsum
+        )
+        p2 = (
+            1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+        ) * ldiff
+        return 1 / 2 * (p1 + p2)
+
     m1, m2, lambda1, lambda2, input_is_array = ensurearray(
-        mass1, mass2, lambda1, lambda2)
+        mass1, mass2, lambda1, lambda2
+    )
     lsum = lambda1 + lambda2
     ldiff, _ = ensurearray(lambda1 - lambda2)
     mask = m1 < m2
     ldiff[mask] = -ldiff[mask]
     eta = eta_from_mass1_mass2(m1, m2)
-    p1 = numpy.sqrt(1 - 4 * eta) * (
-        1 - (13272 / 1319) * eta +
-        (8944 / 1319) * eta ** 2
-    ) * lsum
+    p1 = (
+        numpy.sqrt(1 - 4 * eta)
+        * (1 - (13272 / 1319) * eta + (8944 / 1319) * eta**2)
+        * lsum
+    )
     p2 = (
-        1 - (15910 / 1319) * eta +
-        (32850 / 1319) * eta ** 2 +
-        (3380 / 1319) * eta ** 3
+        1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
     ) * ldiff
     return formatreturn(1 / 2 * (p1 + p2), input_is_array)
 
-def lambda1_from_delta_lambda_tilde_lambda_tilde(delta_lambda_tilde,
-                                                 lambda_tilde,
-                                                 mass1,
-                                                 mass2):
-    """ Returns lambda1 parameter by using delta lambda tilde,
+
+@_reference("conversions", "lambda1_from_delta_lambda_tilde_lambda_tilde")
+def lambda1_from_delta_lambda_tilde_lambda_tilde(
+    delta_lambda_tilde, lambda_tilde, mass1, mass2
+):
+    """Returns lambda1 parameter by using delta lambda tilde,
     lambda tilde, mass1, and mass2.
     """
+    jax, values = _jax_values(mass1, mass2, delta_lambda_tilde, lambda_tilde)
+    if jax is not None:
+        m1, m2, delta_lambda_tilde, lambda_tilde = values
+        jnp = jax.numpy
+        eta = eta_from_mass1_mass2(m1, m2)
+        sqrt_term = jnp.sqrt(1 - 4 * eta)
+        p1 = 1 + 7.0 * eta - 31 * eta**2.0
+        p2 = sqrt_term * (1 + 9 * eta - 11 * eta**2.0)
+        p3 = sqrt_term * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+        p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+        amp = 1 / ((p1 * p4) - (p2 * p3))
+        l_tilde_lambda1 = 13 / 16 * (p3 - p4) * lambda_tilde
+        l_delta_tilde_lambda1 = (p1 - p2) * delta_lambda_tilde
+        return amp * (l_delta_tilde_lambda1 - l_tilde_lambda1)
+
     m1, m2, delta_lambda_tilde, lambda_tilde, input_is_array = ensurearray(
-        mass1, mass2, delta_lambda_tilde, lambda_tilde)
+        mass1, mass2, delta_lambda_tilde, lambda_tilde
+    )
     eta = eta_from_mass1_mass2(m1, m2)
-    p1 = 1 + 7.0*eta - 31*eta**2.0
-    p2 = (1 - 4*eta)**0.5 * (1 + 9*eta - 11*eta**2.0)
-    p3 = (1 - 4*eta)**0.5 * (1 - 13272/1319*eta + 8944/1319*eta**2)
-    p4 = 1 - (15910/1319)*eta + (32850/1319)*eta**2 + (3380/1319)*eta**3
-    amp = 1/((p1*p4)-(p2*p3))
-    l_tilde_lambda1 = 13/16 * (p3-p4) * lambda_tilde
-    l_delta_tilde_lambda1 = (p1-p2) * delta_lambda_tilde
+    p1 = 1 + 7.0 * eta - 31 * eta**2.0
+    p2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2.0)
+    p3 = (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+    p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+    amp = 1 / ((p1 * p4) - (p2 * p3))
+    l_tilde_lambda1 = 13 / 16 * (p3 - p4) * lambda_tilde
+    l_delta_tilde_lambda1 = (p1 - p2) * delta_lambda_tilde
     lambda1 = formatreturn(
-        amp * (l_delta_tilde_lambda1 - l_tilde_lambda1),
-        input_is_array
+        amp * (l_delta_tilde_lambda1 - l_tilde_lambda1), input_is_array
     )
     return lambda1
 
+
+@_reference("conversions", "lambda2_from_delta_lambda_tilde_lambda_tilde")
 def lambda2_from_delta_lambda_tilde_lambda_tilde(
-        delta_lambda_tilde,
-        lambda_tilde,
-        mass1,
-        mass2):
-    """ Returns lambda2 parameter by using delta lambda tilde,
+    delta_lambda_tilde, lambda_tilde, mass1, mass2
+):
+    """Returns lambda2 parameter by using delta lambda tilde,
     lambda tilde, mass1, and mass2.
     """
+    jax, values = _jax_values(mass1, mass2, delta_lambda_tilde, lambda_tilde)
+    if jax is not None:
+        m1, m2, delta_lambda_tilde, lambda_tilde = values
+        jnp = jax.numpy
+        eta = eta_from_mass1_mass2(m1, m2)
+        sqrt_term = jnp.sqrt(1 - 4 * eta)
+        p1 = 1 + 7.0 * eta - 31 * eta**2.0
+        p2 = sqrt_term * (1 + 9 * eta - 11 * eta**2.0)
+        p3 = sqrt_term * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+        p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+        amp = 1 / ((p1 * p4) - (p2 * p3))
+        l_tilde_lambda2 = 13 / 16 * (p3 + p4) * lambda_tilde
+        l_delta_tilde_lambda2 = (p1 + p2) * delta_lambda_tilde
+        return amp * (l_tilde_lambda2 - l_delta_tilde_lambda2)
+
     m1, m2, delta_lambda_tilde, lambda_tilde, input_is_array = ensurearray(
-        mass1, mass2, delta_lambda_tilde, lambda_tilde)
+        mass1, mass2, delta_lambda_tilde, lambda_tilde
+    )
     eta = eta_from_mass1_mass2(m1, m2)
-    p1 = 1 + 7.0*eta - 31*eta**2.0
-    p2 = (1 - 4*eta)**0.5 * (1 + 9*eta - 11*eta**2.0)
-    p3 = (1 - 4*eta)**0.5 * (1 - 13272/1319*eta + 8944/1319*eta**2)
-    p4 = 1 - (15910/1319)*eta + (32850/1319)*eta**2 + (3380/1319)*eta**3
-    amp = 1/((p1*p4)-(p2*p3))
-    l_tilde_lambda2 = 13/16 * (p3+p4) * lambda_tilde
-    l_delta_tilde_lambda2 = (p1+p2) * delta_lambda_tilde
+    p1 = 1 + 7.0 * eta - 31 * eta**2.0
+    p2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2.0)
+    p3 = (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+    p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+    amp = 1 / ((p1 * p4) - (p2 * p3))
+    l_tilde_lambda2 = 13 / 16 * (p3 + p4) * lambda_tilde
+    l_delta_tilde_lambda2 = (p1 + p2) * delta_lambda_tilde
     lambda2 = formatreturn(
-        amp * (l_tilde_lambda2 - l_delta_tilde_lambda2),
-        input_is_array
+        amp * (l_tilde_lambda2 - l_delta_tilde_lambda2), input_is_array
     )
     return lambda2
+
 
 def lambda_from_mass_tov_file(mass, tov_file, distance=0.):
     """Return the lambda parameter(s) corresponding to the input mass(es)
@@ -759,6 +943,7 @@ def lambda_from_mass_tov_file(mass, tov_file, distance=0.):
     return lambdav
 
 
+@_reference("conversions", "ensure_obj1_is_primary")
 def ensure_obj1_is_primary(mass1, mass2, *params):
     """
     Enforce that the object labelled as 1 is the primary.
@@ -785,6 +970,17 @@ def ensure_obj1_is_primary(mass1, mass2, *params):
     # Check params are 2N
     if len(params) % 2 != 0:
         raise ValueError("params must be 2N floats or arrays")
+
+    jax, input_properties = _jax_values(mass1, mass2, *params)
+    if jax is not None:
+        swap = input_properties[0] < input_properties[1]
+        output_properties = []
+        for i in range(0, len(input_properties), 2):
+            primary = jax.numpy.where(swap, input_properties[i + 1], input_properties[i])
+            secondary = jax.numpy.where(swap, input_properties[i], input_properties[i + 1])
+            output_properties.extend((primary, secondary))
+        return output_properties
+
     input_properties, input_is_array = ensurearray((mass1, mass2)+params)
     # Check inputs are all the same length
     shapes = [par.shape for par in input_properties]
@@ -809,6 +1005,7 @@ def ensure_obj1_is_primary(mass1, mass2, *params):
     return output_properties
 
 
+@_reference("conversions", "remnant_mass_from_mass1_mass2_spherical_spin_eos")
 def remnant_mass_from_mass1_mass2_spherical_spin_eos(
         mass1, mass2, spin1_a=0.0, spin1_polar=0.0, eos='2H',
         spin2_a=0.0, spin2_polar=0.0, swap_companions=False,
@@ -859,6 +1056,65 @@ def remnant_mass_from_mass1_mass2_spherical_spin_eos(
     remnant_mass: float
         The remnant mass in solar masses
     """
+    from pycbc import neutron_stars as ns
+
+    tensor_inputs = (mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar)
+    jax, jax_vals = (
+        _jax_values(*tensor_inputs)
+        if ns_bh_mass_boundary is None
+        else _jax_values(*tensor_inputs, ns_bh_mass_boundary)
+    )
+    if jax is not None:
+        jnp = jax.numpy
+        values = jax_vals[:6]
+        boundary = None if ns_bh_mass_boundary is None else jax_vals[6]
+        mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar = values
+        if any(jnp.issubdtype(v.dtype, jnp.complexfloating) for v in values):
+            raise TypeError("Neutron-star remnant inputs must be real-valued")
+        if not bool(jnp.all((spin1_a >= 0) & (spin2_a >= 0))):
+            raise AssertionError("Spin magnitude MUST be null or positive")
+
+        if swap_companions:
+            swap = mass1 < mass2
+            mass1, mass2 = (
+                jnp.where(swap, mass2, mass1),
+                jnp.where(swap, mass1, mass2),
+            )
+            spin1_a, spin2_a = (
+                jnp.where(swap, spin2_a, spin1_a),
+                jnp.where(swap, spin1_a, spin2_a),
+            )
+            spin1_polar, spin2_polar = (
+                jnp.where(swap, spin2_polar, spin1_polar),
+                jnp.where(swap, spin1_polar, spin2_polar),
+            )
+        elif bool(jnp.any(mass2 > mass1)):
+            raise ValueError("Require mass1 >= mass2")
+
+        eta = eta_from_mass1_mass2(mass1, mass2)
+        flat_mass2 = mass2.reshape(-1)
+        if boundary is None:
+            mask = jnp.ones_like(flat_mass2, dtype=bool)
+        else:
+            mask = flat_mass2 <= boundary.reshape(-1)
+        flat_eta = eta.reshape(-1)
+        flat_spin1_a = spin1_a.reshape(-1)
+        flat_spin1_polar = spin1_polar.reshape(-1)
+        ns_compactness, ns_b_mass = ns.initialize_eos(
+            numpy.asarray(flat_mass2[mask]), eos, extrapolate=extrapolate
+        )
+        ns_compactness = jnp.asarray(ns_compactness, dtype=flat_mass2.dtype)
+        ns_b_mass = jnp.asarray(ns_b_mass, dtype=flat_mass2.dtype)
+        active_remnant = ns.foucart18(
+            flat_eta[mask],
+            ns_compactness,
+            ns_b_mass,
+            flat_spin1_a[mask],
+            flat_spin1_polar[mask],
+        )
+        remnant_mass = jnp.zeros_like(flat_mass2).at[mask].set(active_remnant.reshape(-1))
+        return remnant_mass.reshape(mass2.shape)
+
     mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar, \
         input_is_array = \
         ensurearray(mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar)
@@ -872,7 +1128,7 @@ def remnant_mass_from_mass1_mass2_spherical_spin_eos(
     else:
         try:
             if any(mass2 > mass1) and input_is_array:
-                raise ValueError(f'Require mass1 >= mass2')
+                raise ValueError('Require mass1 >= mass2')
         except TypeError:
             if mass2 > mass1 and not input_is_array:
                 raise ValueError(f'Require mass1 >= mass2. {mass1} < {mass2}')
@@ -894,6 +1150,7 @@ def remnant_mass_from_mass1_mass2_spherical_spin_eos(
     return formatreturn(remnant_mass, input_is_array)
 
 
+@_reference("conversions", "remnant_mass_from_mass1_mass2_cartesian_spin_eos")
 def remnant_mass_from_mass1_mass2_cartesian_spin_eos(
         mass1, mass2, spin1x=0.0, spin1y=0.0, spin1z=0.0, eos='2H',
         spin2x=0.0, spin2y=0.0, spin2z=0.0, swap_companions=False,
@@ -948,10 +1205,16 @@ def remnant_mass_from_mass1_mass2_cartesian_spin_eos(
     remnant_mass: float
         The remnant mass in solar masses
     """
-    spin1_a, _, spin1_polar = _cartesian_to_spherical(spin1x, spin1y, spin1z)
+    from pycbc.types.backend import jax_module_for
+    from .coordinates.base import cartesian_to_spherical
+
+    spin1_a, _, spin1_polar = cartesian_to_spherical(spin1x, spin1y, spin1z)
     if swap_companions:
-        spin2_a, _, spin2_polar = _cartesian_to_spherical(spin2x,
-                                                          spin2y, spin2z)
+        spin2_a, _, spin2_polar = cartesian_to_spherical(spin2x, spin2y, spin2z)
+    elif jax_module_for(spin1_a) is not None:
+        import jax.numpy as jnp
+        spin2_a = jnp.zeros_like(spin1_a)
+        spin2_polar = jnp.zeros_like(spin1_a)
     else:
         size = ensurearray(spin1_a)[0].size
         spin2_a = numpy.zeros(size)
@@ -970,11 +1233,13 @@ def remnant_mass_from_mass1_mass2_cartesian_spin_eos(
 #
 # =============================================================================
 #
+@_reference("conversions", "chi_eff")
 def chi_eff(mass1, mass2, spin1z, spin2z):
     """Returns the effective spin from mass1, mass2, spin1z, and spin2z."""
     return (spin1z * mass1 + spin2z * mass2) / (mass1 + mass2)
 
 
+@_reference("conversions", "chi_a")
 def chi_a(mass1, mass2, spin1z, spin2z):
     """ Returns the aligned mass-weighted spin difference from mass1, mass2,
     spin1z, and spin2z.
@@ -982,6 +1247,7 @@ def chi_a(mass1, mass2, spin1z, spin2z):
     return (spin2z * mass2 - spin1z * mass1) / (mass2 + mass1)
 
 
+@_reference("conversions", "chi_p")
 def chi_p(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     """Returns the effective precession spin from mass1, mass2, spin1x,
     spin1y, spin2x, and spin2y.
@@ -991,6 +1257,7 @@ def chi_p(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     return chi_p_from_xi1_xi2(xi1, xi2)
 
 
+@_reference("conversions", "phi_a")
 def phi_a(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     """ Returns the angle between the in-plane perpendicular spins."""
     phi1 = phi_from_spinx_spiny(primary_spin(mass1, mass2, spin1x, spin2x),
@@ -1000,6 +1267,7 @@ def phi_a(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     return (phi1 - phi2) % (2 * numpy.pi)
 
 
+@_reference("conversions", "phi_s")
 def phi_s(spin1x, spin1y, spin2x, spin2y):
     """ Returns the sum of the in-plane perpendicular spins."""
     phi1 = phi_from_spinx_spiny(spin1x, spin1y)
@@ -1007,28 +1275,43 @@ def phi_s(spin1x, spin1y, spin2x, spin2y):
     return (phi1 + phi2) % (2 * numpy.pi)
 
 
+@_reference("conversions", "chi_eff_from_spherical")
 def chi_eff_from_spherical(mass1, mass2, spin1_a, spin1_polar,
                            spin2_a, spin2_polar):
     """Returns the effective spin using spins in spherical coordinates."""
+    jax, values = _jax_values(mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar)
+    if jax is not None:
+        mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar = values
+        spin1z = spin1_a * jax.numpy.cos(spin1_polar)
+        spin2z = spin2_a * jax.numpy.cos(spin2_polar)
+        return chi_eff(mass1, mass2, spin1z, spin2z)
+
     spin1z = spin1_a * numpy.cos(spin1_polar)
     spin2z = spin2_a * numpy.cos(spin2_polar)
     return chi_eff(mass1, mass2, spin1z, spin2z)
 
 
+@_reference("conversions", "chi_p_from_spherical")
 def chi_p_from_spherical(mass1, mass2, spin1_a, spin1_azimuthal, spin1_polar,
                          spin2_a, spin2_azimuthal, spin2_polar):
     """Returns the effective precession spin using spins in spherical
     coordinates.
     """
-    spin1x, spin1y, _ = _spherical_to_cartesian(
-        spin1_a, spin1_azimuthal, spin1_polar)
-    spin2x, spin2y, _ = _spherical_to_cartesian(
-        spin2_a, spin2_azimuthal, spin2_polar)
+    from .coordinates.base import spherical_to_cartesian
+
+    spin1x, spin1y, _ = spherical_to_cartesian(spin1_a, spin1_azimuthal, spin1_polar)
+    spin2x, spin2y, _ = spherical_to_cartesian(spin2_a, spin2_azimuthal, spin2_polar)
     return chi_p(mass1, mass2, spin1x, spin1y, spin2x, spin2y)
 
 
+@_reference("conversions", "primary_spin")
 def primary_spin(mass1, mass2, spin1, spin2):
     """Returns the dimensionless spin of the primary mass."""
+    jax, values = _jax_values(mass1, mass2, spin1, spin2)
+    if jax is not None:
+        mass1, mass2, spin1, spin2 = values
+        return jax.numpy.where(mass1 < mass2, spin2, spin1)
+
     mass1, mass2, spin1, spin2, input_is_array = ensurearray(
         mass1, mass2, spin1, spin2)
     sp = copy.copy(spin1)
@@ -1037,8 +1320,14 @@ def primary_spin(mass1, mass2, spin1, spin2):
     return formatreturn(sp, input_is_array)
 
 
+@_reference("conversions", "secondary_spin")
 def secondary_spin(mass1, mass2, spin1, spin2):
     """Returns the dimensionless spin of the secondary mass."""
+    jax, values = _jax_values(mass1, mass2, spin1, spin2)
+    if jax is not None:
+        mass1, mass2, spin1, spin2 = values
+        return jax.numpy.where(mass1 < mass2, spin1, spin2)
+
     mass1, mass2, spin1, spin2, input_is_array = ensurearray(
         mass1, mass2, spin1, spin2)
     ss = copy.copy(spin2)
@@ -1047,6 +1336,7 @@ def secondary_spin(mass1, mass2, spin1, spin2):
     return formatreturn(ss, input_is_array)
 
 
+@_reference("conversions", "primary_xi")
 def primary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     """Returns the effective precession spin argument for the larger mass.
     """
@@ -1055,6 +1345,7 @@ def primary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     return chi_perp_from_spinx_spiny(spinx, spiny)
 
 
+@_reference("conversions", "secondary_xi")
 def secondary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     """Returns the effective precession spin argument for the smaller mass.
     """
@@ -1063,6 +1354,7 @@ def secondary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     return xi2_from_mass1_mass2_spin2x_spin2y(mass1, mass2, spinx, spiny)
 
 
+@_reference("conversions", "xi1_from_spin1x_spin1y")
 def xi1_from_spin1x_spin1y(spin1x, spin1y):
     """Returns the effective precession spin argument for the larger mass.
     This function assumes it's given spins of the primary mass.
@@ -1070,6 +1362,7 @@ def xi1_from_spin1x_spin1y(spin1x, spin1y):
     return chi_perp_from_spinx_spiny(spin1x, spin1y)
 
 
+@_reference("conversions", "xi2_from_mass1_mass2_spin2x_spin2y")
 def xi2_from_mass1_mass2_spin2x_spin2y(mass1, mass2, spin2x, spin2y):
     """Returns the effective precession spin argument for the smaller mass.
     This function assumes it's given spins of the secondary mass.
@@ -1080,12 +1373,19 @@ def xi2_from_mass1_mass2_spin2x_spin2y(mass1, mass2, spin2x, spin2y):
     return a1 / (q**2 * a2) * chi_perp_from_spinx_spiny(spin2x, spin2y)
 
 
+@_reference("conversions", "chi_perp_from_spinx_spiny")
 def chi_perp_from_spinx_spiny(spinx, spiny):
     """Returns the in-plane spin from the x/y components of the spin.
     """
+    jax, values = _jax_values(spinx, spiny)
+    if jax is not None:
+        spinx, spiny = values
+        return jax.numpy.sqrt(spinx**2 + spiny**2)
+
     return numpy.sqrt(spinx**2 + spiny**2)
 
 
+@_reference("conversions", "chi_perp_from_mass1_mass2_xi2")
 def chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2):
     """Returns the in-plane spin from mass1, mass2, and xi2 for the
     secondary mass.
@@ -1096,9 +1396,14 @@ def chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2):
     return q**2 * a2 / a1 * xi2
 
 
+@_reference("conversions", "chi_p_from_xi1_xi2")
 def chi_p_from_xi1_xi2(xi1, xi2):
     """Returns effective precession spin from xi1 and xi2.
     """
+    jax, values = _jax_values(xi1, xi2)
+    if jax is not None:
+        return jax.numpy.maximum(*values)
+
     xi1, xi2, input_is_array = ensurearray(xi1, xi2)
     chi_p = copy.copy(xi1)
     mask = xi1 < xi2
@@ -1106,6 +1411,7 @@ def chi_p_from_xi1_xi2(xi1, xi2):
     return formatreturn(chi_p, input_is_array)
 
 
+@_reference("conversions", "phi1_from_phi_a_phi_s")
 def phi1_from_phi_a_phi_s(phi_a, phi_s):
     """Returns the angle between the x-component axis and the in-plane
     spin for the primary mass from phi_s and phi_a.
@@ -1113,6 +1419,7 @@ def phi1_from_phi_a_phi_s(phi_a, phi_s):
     return (phi_s + phi_a) / 2.0
 
 
+@_reference("conversions", "phi2_from_phi_a_phi_s")
 def phi2_from_phi_a_phi_s(phi_a, phi_s):
     """Returns the angle between the x-component axis and the in-plane
     spin for the secondary mass from phi_s and phi_a.
@@ -1120,55 +1427,95 @@ def phi2_from_phi_a_phi_s(phi_a, phi_s):
     return (phi_s - phi_a) / 2.0
 
 
+@_reference("conversions", "phi_from_spinx_spiny")
 def phi_from_spinx_spiny(spinx, spiny):
     """Returns the angle between the x-component axis and the in-plane spin.
     """
+    jax, values = _jax_values(spinx, spiny)
+    if jax is not None:
+        spinx, spiny = values
+        phi = jax.numpy.atan2(spiny, spinx)
+        return jax.numpy.remainder(phi, 2 * numpy.pi)
+
     phi = numpy.arctan2(spiny, spinx)
     return phi % (2 * numpy.pi)
 
 
+@_reference("conversions", "spin1z_from_mass1_mass2_chi_eff_chi_a")
 def spin1z_from_mass1_mass2_chi_eff_chi_a(mass1, mass2, chi_eff, chi_a):
     """Returns spin1z.
     """
     return (mass1 + mass2) / (2.0 * mass1) * (chi_eff - chi_a)
 
 
+@_reference("conversions", "spin2z_from_mass1_mass2_chi_eff_chi_a")
 def spin2z_from_mass1_mass2_chi_eff_chi_a(mass1, mass2, chi_eff, chi_a):
     """Returns spin2z.
     """
     return (mass1 + mass2) / (2.0 * mass2) * (chi_eff + chi_a)
 
 
+@_reference("conversions", "spin1x_from_xi1_phi_a_phi_s")
 def spin1x_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s):
     """Returns x-component spin for primary mass.
     """
+    jax, values = _jax_values(xi1, phi_a, phi_s)
+    if jax is not None:
+        xi1, phi_a, phi_s = values
+        phi1 = phi1_from_phi_a_phi_s(phi_a, phi_s)
+        return xi1 * jax.numpy.cos(phi1)
+
     phi1 = phi1_from_phi_a_phi_s(phi_a, phi_s)
     return xi1 * numpy.cos(phi1)
 
 
+@_reference("conversions", "spin1y_from_xi1_phi_a_phi_s")
 def spin1y_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s):
     """Returns y-component spin for primary mass.
     """
+    jax, values = _jax_values(xi1, phi_a, phi_s)
+    if jax is not None:
+        xi1, phi_a, phi_s = values
+        phi1 = phi1_from_phi_a_phi_s(phi_s, phi_a)
+        return xi1 * jax.numpy.sin(phi1)
+
     phi1 = phi1_from_phi_a_phi_s(phi_s, phi_a)
     return xi1 * numpy.sin(phi1)
 
 
+@_reference("conversions", "spin2x_from_mass1_mass2_xi2_phi_a_phi_s")
 def spin2x_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2, xi2, phi_a, phi_s):
     """Returns x-component spin for secondary mass.
     """
+    jax, values = _jax_values(mass1, mass2, xi2, phi_a, phi_s)
+    if jax is not None:
+        mass1, mass2, xi2, phi_a, phi_s = values
+        chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
+        phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
+        return chi_perp * jax.numpy.cos(phi2)
+
     chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
     phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
     return chi_perp * numpy.cos(phi2)
 
 
+@_reference("conversions", "spin2y_from_mass1_mass2_xi2_phi_a_phi_s")
 def spin2y_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2, xi2, phi_a, phi_s):
     """Returns y-component spin for secondary mass.
     """
+    jax, values = _jax_values(mass1, mass2, xi2, phi_a, phi_s)
+    if jax is not None:
+        mass1, mass2, xi2, phi_a, phi_s = values
+        chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
+        phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
+        return chi_perp * jax.numpy.sin(phi2)
+
     chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
     phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
     return chi_perp * numpy.sin(phi2)
 
 
+@_reference("conversions", "dquadmon_from_lambda")
 def dquadmon_from_lambda(lambdav):
     r"""Return the quadrupole moment of a neutron star given its lambda
 
@@ -1181,16 +1528,24 @@ def dquadmon_from_lambda(lambdav):
 
     Where :math:`\bar{Q}` (dimensionless) is the reduced quadrupole moment.
     """
-    ll = numpy.log(lambdav)
-    ai = .194
-    bi = .0936
+    jax, values = _jax_values(lambdav)
+    if jax is not None:
+        (lambdav,) = values
+        ll = jax.numpy.log(lambdav)
+    else:
+        ll = numpy.log(lambdav)
+    ai = 0.194
+    bi = 0.0936
     ci = 0.0474
     di = -4.21 * 10**-3.0
     ei = 1.23 * 10**-4.0
-    ln_quad_moment = ai + bi*ll + ci*ll**2.0 + di*ll**3.0 + ei*ll**4.0
+    ln_quad_moment = ai + bi * ll + ci * ll**2.0 + di * ll**3.0 + ei * ll**4.0
+    if jax is not None:
+        return jax.numpy.exp(ln_quad_moment) - 1
     return numpy.exp(ln_quad_moment) - 1
 
 
+@_reference("conversions", "spin_from_pulsar_freq")
 def spin_from_pulsar_freq(mass, radius, freq):
     """Returns the dimensionless spin of a pulsar.
 
@@ -1218,12 +1573,14 @@ def spin_from_pulsar_freq(mass, radius, freq):
 #
 # =============================================================================
 #
+@_reference("conversions", "chirp_distance")
 def chirp_distance(dist, mchirp, ref_mass=1.4):
     """Returns the chirp distance given the luminosity distance and chirp mass.
     """
     return dist * (2.**(-1./5) * ref_mass / mchirp)**(5./6)
 
 
+@_reference("conversions", "distance_from_chirp_distance_mchirp")
 def distance_from_chirp_distance_mchirp(chirp_distance, mchirp, ref_mass=1.4):
     """Returns the luminosity distance given a chirp distance and chirp mass.
     """
@@ -1231,6 +1588,7 @@ def distance_from_chirp_distance_mchirp(chirp_distance, mchirp, ref_mass=1.4):
 
 
 _detector_cache = {}
+
 def det_tc(detector_name, ra, dec, tc, ref_frame='geocentric', relative=False):
     """Returns the coalescence time of a signal in the given detector.
 
@@ -1253,6 +1611,8 @@ def det_tc(detector_name, ra, dec, tc, ref_frame='geocentric', relative=False):
     float :
         The GPS time of the coalescence in detector `detector_name`.
     """
+    from pycbc.detector import Detector
+
     ref_time = tc
     if relative:
         tc = 0
@@ -1272,8 +1632,9 @@ def det_tc(detector_name, ra, dec, tc, ref_frame='geocentric', relative=False):
         return tc + detector.time_delay_from_detector(other, ra, dec, ref_time)
 
 def optimal_orientation_from_detector(detector_name, tc):
-    """ Low-level function to be called from _optimal_dec_from_detector
+    """Low-level function to be called from _optimal_dec_from_detector
     and _optimal_ra_from_detector"""
+    from pycbc.detector import Detector
 
     d = Detector(detector_name)
     ra, dec = d.optimal_orientation(tc)
@@ -1324,6 +1685,7 @@ def optimal_ra_from_detector(detector_name, tc):
 #
 # =============================================================================
 #
+@_reference("conversions", "snr_from_loglr")
 def snr_from_loglr(loglr):
     """Returns SNR computed from the given log likelihood ratio(s). This is
     defined as `sqrt(2*loglr)`.If the log likelihood ratio is < 0, returns 0.
@@ -1338,16 +1700,25 @@ def snr_from_loglr(loglr):
     array or float
         The SNRs computed from the log likelihood ratios.
     """
+    jax, values = _jax_values(loglr)
+    if jax is not None:
+        (loglr,) = values
+        jnp = jax.numpy
+        valid = loglr >= 0
+        safe_loglr = jnp.where(valid, loglr, 0.0)
+        return jnp.where(valid, jnp.sqrt(2 * safe_loglr), 0.0)
+
     singleval = isinstance(loglr, float)
     if singleval:
         loglr = numpy.array([loglr])
     # temporarily quiet sqrt(-1) warnings
     with numpy.errstate(invalid="ignore"):
-        snrs = numpy.sqrt(2*loglr)
-    snrs[numpy.isnan(snrs)] = 0.
+        snrs = numpy.sqrt(2 * loglr)
+    snrs[numpy.isnan(snrs)] = 0.0
     if singleval:
         snrs = snrs[0]
     return snrs
+
 
 #
 # =============================================================================
@@ -1358,6 +1729,7 @@ def snr_from_loglr(loglr):
 #
 
 
+@_reference("conversions", "get_lm_f0tau")
 def get_lm_f0tau(mass, spin, l, m, n=0, which='both'):
     """Return the f0 and the tau for one or more overtones of an l, m mode.
 
@@ -1387,9 +1759,29 @@ def get_lm_f0tau(mass, spin, l, m, n=0, which='both'):
         Returned if ``which`` is 'both' or 'tau'.
         The damping time of the QNM(s), in seconds.
     """
+    jax, values = _jax_values(mass, spin)
+    if jax is not None:
+        mass, spin = values
+        getf0 = which == 'both' or which == 'f0'
+        gettau = which == 'both' or which == 'tau'
+        out = []
+        mtsun = pykerr.qnm.MTSUN
+        if getf0:
+            reomega = _jax_qnm_spline(jax, spin, l, m, n, "re")
+            if operator.index(m) < 0:
+                reomega = -reomega
+            out.append(reomega / (2 * numpy.pi * mass * mtsun))
+        if gettau:
+            imomega = _jax_qnm_spline(jax, spin, l, m, n, "im")
+            out.append(-mass * mtsun / imomega)
+        if not (getf0 and gettau):
+            out = out[0]
+        return out
+
     # convert to arrays
     mass, spin, l, m, n, input_is_array = ensurearray(
-        mass, spin, l, m, n)
+        mass, spin, l, m, n
+    )
     # we'll ravel the arrays so we can evaluate each parameter combination
     # one at a a time
     getf0 = which == 'both' or which == 'f0'
@@ -1406,6 +1798,7 @@ def get_lm_f0tau(mass, spin, l, m, n=0, which='both'):
     return out
 
 
+@_reference("conversions", "get_lm_f0tau_allmodes")
 def get_lm_f0tau_allmodes(mass, spin, modes):
     """Returns a dictionary of all of the frequencies and damping times for the
     requested modes.
@@ -1444,6 +1837,7 @@ def get_lm_f0tau_allmodes(mass, spin, modes):
     return f0, tau
 
 
+@_reference("conversions", "freq_from_final_mass_spin")
 def freq_from_final_mass_spin(final_mass, final_spin, l=2, m=2, n=0):
     """Returns QNM frequency for the given mass and spin and mode.
 
@@ -1469,6 +1863,7 @@ def freq_from_final_mass_spin(final_mass, final_spin, l=2, m=2, n=0):
     return get_lm_f0tau(final_mass, final_spin, l, m, n=n, which='f0')
 
 
+@_reference("conversions", "tau_from_final_mass_spin")
 def tau_from_final_mass_spin(final_mass, final_spin, l=2, m=2, n=0):
     """Returns QNM damping time for the given mass and spin and mode.
 
@@ -1513,6 +1908,7 @@ _berti_mass_constants = {
     }
 
 
+@_reference("conversions", "final_spin_from_f0_tau")
 def final_spin_from_f0_tau(f0, tau, l=2, m=2):
     """Returns the final spin based on the given frequency and damping time.
 
@@ -1538,9 +1934,15 @@ def final_spin_from_f0_tau(f0, tau, l=2, m=2):
         and damping times give an unphysical result, ``numpy.nan`` will be
         returned.
     """
-    f0, tau, input_is_array = ensurearray(f0, tau)
     # from Berti et al. 2006
-    a, b, c = _berti_spin_constants[l,m]
+    a, b, c = _berti_spin_constants[l, m]
+    jax, values = _jax_values(f0, tau)
+    if jax is not None:
+        f0, tau = values
+        quality = f0 * tau * numpy.pi
+        return 1.0 - jax.numpy.power((quality - a) / b, 1.0 / c)
+
+    f0, tau, input_is_array = ensurearray(f0, tau)
     origshape = f0.shape
     # flatten inputs for storing results
     f0 = f0.ravel()
@@ -1549,7 +1951,7 @@ def final_spin_from_f0_tau(f0, tau, l=2, m=2):
     for ii in range(spins.size):
         Q = f0[ii] * tau[ii] * numpy.pi
         try:
-            s = 1. - ((Q-a)/b)**(1./c)
+            s = 1.0 - ((Q - a) / b) ** (1.0 / c)
         except ValueError:
             s = numpy.nan
         spins[ii] = s
@@ -1557,6 +1959,7 @@ def final_spin_from_f0_tau(f0, tau, l=2, m=2):
     return formatreturn(spins, input_is_array)
 
 
+@_reference("conversions", "final_mass_from_f0_tau")
 def final_mass_from_f0_tau(f0, tau, l=2, m=2):
     """Returns the final mass (in solar masses) based on the given frequency
     and damping time.
@@ -1584,10 +1987,18 @@ def final_mass_from_f0_tau(f0, tau, l=2, m=2):
         returned.
     """
     # from Berti et al. 2006
-    spin = final_spin_from_f0_tau(f0, tau, l=l, m=m)
-    a, b, c = _berti_mass_constants[l,m]
-    return (a + b*(1-spin)**c)/(2*numpy.pi*f0*MTSUN_SI)
+    a, b, c = _berti_mass_constants[l, m]
+    jax, values = _jax_values(f0, tau)
+    if jax is not None:
+        f0, tau = values
+        spin = final_spin_from_f0_tau(f0, tau, l=l, m=m)
+        return (a + b * jax.numpy.power(1.0 - spin, c)) / (2 * numpy.pi * f0 * MTSUN_SI)
 
+    spin = final_spin_from_f0_tau(f0, tau, l=l, m=m)
+    return (a + b * (1 - spin) ** c) / (2 * numpy.pi * f0 * MTSUN_SI)
+
+
+@_reference("conversions", "freqlmn_from_other_lmn")
 def freqlmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
     """Returns the QNM frequency (in Hz) of a chosen new (l,m) mode from the
     given current (l,m) mode.
@@ -1615,6 +2026,16 @@ def freqlmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
         correspond to an unphysical Kerr black hole mass and/or spin,
         ``numpy.nan`` will be returned.
     """
+    jax, values = _jax_values(f0, tau)
+    if jax is not None:
+        f0, tau = values
+        jnp = jax.numpy
+        mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        mass = jnp.where(mass < 0, jnp.nan, mass)
+        spin = jnp.where(jnp.abs(spin) > 0.9996, jnp.nan, spin)
+        return freq_from_final_mass_spin(mass, spin, l=new_l, m=new_m)
+
     mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
     spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
     mass, spin, input_is_array = ensurearray(mass, spin)
@@ -1626,6 +2047,7 @@ def freqlmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
     return formatreturn(new_f0, input_is_array)
 
 
+@_reference("conversions", "taulmn_from_other_lmn")
 def taulmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
     """Returns the QNM damping time (in seconds) of a chosen new (l,m) mode
     from the given current (l,m) mode.
@@ -1653,6 +2075,16 @@ def taulmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
         correspond to an unphysical Kerr black hole mass and/or spin,
         ``numpy.nan`` will be returned.
     """
+    jax, values = _jax_values(f0, tau)
+    if jax is not None:
+        f0, tau = values
+        jnp = jax.numpy
+        mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        mass = jnp.where(mass < 0, jnp.nan, mass)
+        spin = jnp.where(jnp.abs(spin) > 0.9996, jnp.nan, spin)
+        return tau_from_final_mass_spin(mass, spin, l=new_l, m=new_m)
+
     mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
     spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
     mass, spin, input_is_array = ensurearray(mass, spin)
@@ -1754,7 +2186,6 @@ def get_final_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
     return (formatreturn(final_mass, input_is_array),
             formatreturn(final_spin, input_is_array))
 
-
 def final_mass_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
                             spin2x=0., spin2y=0., spin2z=0.,
                             approximant='SEOBNRv4PHM', f_ref=-1):
@@ -1803,7 +2234,6 @@ def final_mass_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
     return get_final_from_initial(mass1, mass2, spin1x, spin1y, spin1z,
                                   spin2x, spin2y, spin2z, approximant,
                                   f_ref=f_ref)[0]
-
 
 def final_spin_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
                             spin2x=0., spin2y=0., spin2z=0.,
@@ -1863,6 +2293,7 @@ def final_spin_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
 # =============================================================================
 #
 
+@_reference("conversions", "velocity_to_frequency")
 def velocity_to_frequency(v, M):
     """ Calculate the gravitational-wave frequency from the
     total mass and invariant velocity.
@@ -1881,6 +2312,7 @@ def velocity_to_frequency(v, M):
     """
     return v**(3.0) / (M * MTSUN_SI * PI)
 
+@_reference("conversions", "frequency_to_velocity")
 def frequency_to_velocity(f, M):
     """ Calculate the invariant velocity from the total
     mass and gravitational-wave frequency.
@@ -1900,6 +2332,7 @@ def frequency_to_velocity(f, M):
     return (PI * M * MTSUN_SI * f)**(1.0/3.0)
 
 
+@_reference("conversions", "f_schwarzchild_isco")
 def f_schwarzchild_isco(M):
     """
     Innermost stable circular orbit (ISCO) for a test particle
@@ -1926,6 +2359,7 @@ def f_schwarzchild_isco(M):
 # ============================================================================
 #
 
+@_reference("conversions", "nltides_coefs")
 def nltides_coefs(amplitude, n, m1, m2):
     """Calculate the coefficents needed to compute the
     shift in t(f) and phi(f) due to non-linear tides.
@@ -1950,6 +2384,9 @@ def nltides_coefs(amplitude, n, m1, m2):
     phi_of_f_factor: float
         The constant factor needed to compute phi(f)
     """
+    jax, values = _jax_values(amplitude, n, m1, m2)
+    if jax is not None:
+        amplitude, n, m1, m2 = values
 
     # Use 100.0 Hz as a reference frequency
     f_ref = 100.0
@@ -1959,15 +2396,15 @@ def nltides_coefs(amplitude, n, m1, m2):
     mc *= MSUN_SI
 
     # Calculate constants in phasing
-    a = (96./5.) * \
-        (G_SI * PI * mc * f_ref / C_SI**3.)**(5./3.)
-    b = 6. * amplitude
-    t_of_f_factor = -1./(PI*f_ref) * b/(a*a * (n-4.))
-    phi_of_f_factor = -2.*b / (a*a * (n-3.))
+    a = (96.0 / 5.0) * (G_SI * PI * mc * f_ref / C_SI**3.0) ** (5.0 / 3.0)
+    b = 6.0 * amplitude
+    t_of_f_factor = -1.0 / (PI * f_ref) * b / (a * a * (n - 4.0))
+    phi_of_f_factor = -2.0 * b / (a * a * (n - 3.0))
 
     return f_ref, t_of_f_factor, phi_of_f_factor
 
 
+@_reference("conversions", "nltides_gw_phase_difference")
 def nltides_gw_phase_difference(f, f0, amplitude, n, m1, m2):
     """Calculate the gravitational-wave phase shift bwtween
     f and f_coalescence = infinity due to non-linear tides.
@@ -1994,22 +2431,31 @@ def nltides_gw_phase_difference(f, f0, amplitude, n, m1, m2):
     delta_phi: float or numpy.array
         Phase in radians
     """
+    jax, values = _jax_values(f, f0, amplitude, n, m1, m2)
+    if jax is not None:
+        f, f0, amplitude, n, m1, m2 = values
+        f_ref, _, phi_of_f_factor = nltides_coefs(amplitude, n, m1, m2)
+        active_frequency = jax.numpy.where(f <= f0, f0, f)
+        return -phi_of_f_factor * (active_frequency / f_ref) ** (n - 3.0)
+
     f, f0, amplitude, n, m1, m2, input_is_array = ensurearray(
-        f, f0, amplitude, n, m1, m2)
+        f, f0, amplitude, n, m1, m2
+    )
 
     delta_phi = numpy.zeros(m1.shape)
 
     f_ref, _, phi_of_f_factor = nltides_coefs(amplitude, n, m1, m2)
 
     mask = f <= f0
-    delta_phi[mask] = - phi_of_f_factor[mask] * (f0[mask]/f_ref)**(n[mask]-3.)
+    delta_phi[mask] = -phi_of_f_factor[mask] * (f0[mask] / f_ref) ** (n[mask] - 3.0)
 
     mask = f > f0
-    delta_phi[mask] = - phi_of_f_factor[mask] * (f[mask]/f_ref)**(n[mask]-3.)
+    delta_phi[mask] = -phi_of_f_factor[mask] * (f[mask] / f_ref) ** (n[mask] - 3.0)
 
     return formatreturn(delta_phi, input_is_array)
 
 
+@_reference("conversions", "nltides_gw_phase_diff_isco")
 def nltides_gw_phase_diff_isco(f_low, f0, amplitude, n, m1, m2):
     """Calculate the gravitational-wave phase shift bwtween
     f_low and f_isco due to non-linear tides.
@@ -2036,18 +2482,25 @@ def nltides_gw_phase_diff_isco(f_low, f0, amplitude, n, m1, m2):
     delta_phi: float or numpy.array
         Phase in radians
     """
+    jax, values = _jax_values(f_low, f0, amplitude, n, m1, m2)
+    if jax is not None:
+        f_low, f0, amplitude, n, m1, m2 = values
+        phi_l = nltides_gw_phase_difference(f_low, f0, amplitude, n, m1, m2)
+        f_isco = f_schwarzchild_isco(m1 + m2)
+        phi_i = nltides_gw_phase_difference(f_isco, f0, amplitude, n, m1, m2)
+        return phi_i - phi_l
+
     f0, amplitude, n, m1, m2, input_is_array = ensurearray(
-        f0, amplitude, n, m1, m2)
+        f0, amplitude, n, m1, m2
+    )
 
     f_low = numpy.zeros(m1.shape) + f_low
 
-    phi_l = nltides_gw_phase_difference(
-                f_low, f0, amplitude, n, m1, m2)
+    phi_l = nltides_gw_phase_difference(f_low, f0, amplitude, n, m1, m2)
 
-    f_isco = f_schwarzchild_isco(m1+m2)
+    f_isco = f_schwarzchild_isco(m1 + m2)
 
-    phi_i = nltides_gw_phase_difference(
-                f_isco, f0, amplitude, n, m1, m2)
+    phi_i = nltides_gw_phase_difference(f_isco, f0, amplitude, n, m1, m2)
 
     return formatreturn(phi_i - phi_l, input_is_array)
 

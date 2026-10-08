@@ -32,6 +32,7 @@ from functools import wraps
 import logging
 from .libutils import get_ctypes_library
 from .pool import use_mpi
+from .domain_jax import DOMAIN_REFERENCE_OPERATIONS
 
 logger = logging.getLogger('pycbc.scheme')
 
@@ -206,7 +207,7 @@ class NumpyScheme(CPUScheme):
     pass
 
 
-JAX_REFERENCE_OPERATIONS = frozenset({
+JAX_REFERENCE_OPERATIONS = DOMAIN_REFERENCE_OPERATIONS | frozenset({
     'gate_data', 'detect_loud_glitches', 'newsnr', 'effsnr',
     'findchirp_cluster',
     'live_selection', 'live_output_selection', 'event_chisq_threshold', 'event_newsnr_threshold',
