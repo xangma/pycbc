@@ -43,6 +43,7 @@ These guides describe the supported device calculations and their original-imple
 
    jax_fft
    jax_filtering
+   jax_gwf
 
 Searches
 --------
