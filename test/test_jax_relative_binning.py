@@ -1,22 +1,14 @@
 """Focused tests for the JAX relative-binning kernels and dispatch."""
 
-
 import numpy
-
-
 import pytest
 
-
 jax = pytest.importorskip("jax")
-
-
-import jax.numpy as jnp
-
+import jax.numpy as jnp  # noqa: E402
 
 jax.config.update("jax_enable_x64", True)
 
-
-from pycbc.inference.models import relbin_jax
+from pycbc.inference.models import relbin_jax  # noqa: E402
 
 
 @pytest.fixture
@@ -241,6 +233,25 @@ def test_summary_product_keeps_batch_dimensions():
     grad = jax.grad(loss)(first)
     assert grad is not None
     assert grad.shape == first.shape
+
+
+def test_time_series_wrapper_preserves_storage_and_metadata():
+    from pycbc import scheme
+    from pycbc.inference.models.relative_jax import _time_series_from_values
+    from pycbc.types.backend import backend_array
+
+    values = jnp.ones(8, dtype=jnp.float64)
+    context = scheme.JAXScheme()
+    try:
+        with context:
+            series = _time_series_from_values(values, 0.25, 123.5)
+            arr = backend_array(series, "jax")
+            assert arr is not None
+            assert series.delta_t == 0.25
+            assert float(series.start_time) == 123.5
+    finally:
+        del context
+        scheme.Scheme._single = None
 
 
 def test_likelihood_parts_jit_compile():

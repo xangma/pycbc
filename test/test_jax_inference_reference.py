@@ -1,39 +1,19 @@
 """Original numerical boundaries for device-resident inference."""
 
-
 import pickle
-
-
 import types
 
-
 import numpy as np
-
-
 import pytest
 
-
 jax = pytest.importorskip("jax")
-
-
 import jax.numpy as jnp
 
-
 from pycbc.scheme import CPUScheme, JAXScheme
-
-
 from pycbc.types import Array, FrequencySeries
-
-
 from pycbc.inference.models.gaussian_noise import GaussianNoise
-
-
 from pycbc.inference.models.gaussian_noise_jax import JAXGaussianNoise
-
-
 from pycbc.inference.models import relbin_jax, tools_jax
-
-
 from pycbc.inference.models.tools import marginalize_likelihood
 
 
@@ -608,6 +588,101 @@ for controls in ((),('inner','inference_sampling','inference_interpolant')):
     assert result.returncode == 0, result.stderr
 
 
+def _relative_dominant_model(active):
+    from pycbc.inference.models.relbin import RelativeTimeDom
+    from pycbc.inference.models.relative_jax import JAXRelativeTimeDom
+
+    rng = np.random.default_rng(205)
+    wave = lambda: rng.normal(size=3) + 1j * rng.normal(size=3)
+    values = dict(
+        hp=wave(),
+        hc=wave(),
+        h00=wave(),
+        a0=wave()[:2],
+        a1=wave()[:2],
+        b0=np.ones(2),
+        b1=np.full(2, 0.1),
+    )
+    model = object.__new__(JAXRelativeTimeDom if active else RelativeTimeDom)
+    model.sample_rate = 1000.0
+    model.tstart = {"H1": -0.01}
+    model.end_time = {"H1": 0.0}
+    model.ta = {"H1": 0.0}
+    model.num_samples = {"H1": 8}
+    model.fedges = {"H1": np.asarray([20.0, 80.0, 200.0])}
+    model.h00_sparse = {"H1": values["h00"]}
+    model.sdat = {"H1": {key: values[key] for key in ("a0", "a1", "b0", "b1")}}
+    if active:
+        model._get_jax_likelihood_data = lambda ifo, hp: tuple(
+            jnp.asarray(v)
+            for v in (
+                model.fedges[ifo],
+                model.h00_sparse[ifo],
+                values["a0"],
+                values["a1"],
+                values["b0"],
+                values["b1"],
+            )
+        )
+    wfs = {
+        "H1": tuple(
+            jnp.asarray(values[key]) if active else values[key] for key in ("hp", "hc")
+        )
+    }
+    return model, wfs
+
+
+def test_actual_relative_dominant_snr_controls_compose(inference_device):
+    outputs = []
+    for context in (
+        CPUScheme(),
+        JAXScheme(
+            inference_device,
+            reference_operations=("relbin_snr", "relbin_snr_normalization", "divide"),
+        ),
+    ):
+        with context:
+            model, wfs = _relative_dominant_model(isinstance(context, JAXScheme))
+            result = model.get_snr(wfs)["H1"]
+            outputs.append((_bytes(result.numpy()), result.delta_t, str(result._epoch)))
+    assert outputs[0] == outputs[1]
+
+
+def test_actual_relative_dominant_likelihood_controls_compose(inference_device):
+    outputs = []
+    controls = (
+        "relbin_snr",
+        "relbin_snr_normalization",
+        "relbin_likelihood",
+        "inference_projection",
+        "inference_time_interpolation",
+        "divide",
+    )
+    for context in (
+        CPUScheme(),
+        JAXScheme(inference_device, reference_operations=controls),
+    ):
+        with context:
+            model, wfs = _relative_dominant_model(isinstance(context, JAXScheme))
+            model._current_params = dict(
+                inclination=0.41, polarization=0.31, tc=-0.007, ra=1.0, dec=0.2
+            )
+            model.marginalize_vector_params = {}
+            model.vsamples = 1
+            model.get_waveforms = lambda *args, **kwargs: wfs
+            # Hold the proposed parameters fixed while testing the actual likelihood terms.
+            model.snr_draw = lambda **kwargs: None
+            model.precalc_antenna_factors = True
+            model.get_precalc_antenna_factors = lambda ifo: (0.35687123, 0.673249, 0.0)
+            model.return_sh_hh = True
+            model.marginalize_loglr = lambda sh, hh: np.real(sh) - 0.5 * hh
+            model._data = {"H1": None}
+            model._static_params = {}
+            model.waveform_transforms = None
+            outputs.append(tuple(_bytes(value) for value in model._loglr()))
+    assert outputs[0] == outputs[1]
+
+
 def test_original_time_interpolation_keeps_extrapolation_option():
     from pycbc.types import TimeSeries
     from pycbc.inference.models.marginalized_gaussian_noise_jax import _time_value
@@ -617,3 +692,62 @@ def test_original_time_interpolation_keeps_extrapolation_option():
             np.asarray([1.0 + 2j, 3.0 + 4j]), delta_t=0.125, epoch=100.0
         )
         assert complex(_time_value(samples, 103.0, extrapolate=0.0j)) == 0.0j
+
+
+def test_original_relative_polarization_projection_is_independent(inference_device):
+    rng = np.random.default_rng(81)
+    fp, fc = rng.normal(size=(2, 100))
+    pol = rng.uniform(0.0, 2 * np.pi, 100)
+    inc = rng.uniform(0.0, np.pi, 100)
+    phase = np.exp(-2j * pol)
+    rotated = (fp + 1j * fc) * phase
+    cosine = np.cos(inc)
+    plus = 0.5 * (1 + cosine * cosine)
+    expected = rotated.real * plus + 1j * rotated.imag * cosine
+    with JAXScheme(inference_device, reference_operations=("inference_projection",)):
+        like = jnp.ones(100, jnp.complex128)
+        actual_phase = relbin_jax.polarization_phase(jnp.asarray(pol), like)
+        real, imag = relbin_jax.polarized_antenna_response(
+            jnp.asarray(fp), jnp.asarray(fc), actual_phase, like
+        )
+        actual = relbin_jax.dominant_mode_projection(
+            jnp.asarray(fp), jnp.asarray(fc), jnp.asarray(pol), jnp.asarray(inc), like
+        )
+    assert _bytes(actual_phase) == _bytes(phase)
+    assert _bytes(real + 1j * imag) == _bytes(rotated)
+    assert _bytes(actual) == _bytes(expected)
+
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_phase_reconstruction_sampling_control_restores_original_grid(
+    dtype, inference_device
+):
+    from pycbc.inference.models.proposals_jax import _phase_reconstruction_values
+
+    sh = np.asarray(1.234567 + 0.4321j, dtype=dtype)
+    hh = np.asarray(0.72, dtype=sh.real.dtype)
+    phase = np.linspace(0, 2 * np.pi, 17)
+    expected = (np.exp(-2j * phase) * sh).real + hh
+    with JAXScheme(inference_device):
+        default_phase, _ = _phase_reconstruction_values(
+            jnp.asarray(sh), jnp.asarray(hh), 17
+        )
+        assert default_phase.dtype == phase.dtype
+    with JAXScheme(inference_device, reference_operations=("inference_sampling",)):
+        actual_phase, actual = _phase_reconstruction_values(
+            jnp.asarray(sh), jnp.asarray(hh), 17
+        )
+    assert _bytes(actual_phase) == _bytes(phase)
+    assert _bytes(actual) == _bytes(expected)
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_sampling_control_restores_reconstruction_weights(dtype, inference_device):
+    from pycbc.inference.models.proposals_jax import _weighted_loglr
+
+    rng = np.random.default_rng(881)
+    values = rng.normal(size=100).astype(dtype)
+    weights = rng.uniform(0.1, 1.0, 100).astype(dtype)
+    with JAXScheme(inference_device, reference_operations=("inference_sampling",)):
+        actual = _weighted_loglr(jnp.asarray(values), weights)
+    assert _bytes(actual) == _bytes(values + np.log(weights))

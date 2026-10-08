@@ -1,45 +1,32 @@
 """JAX relative-binning model orchestration."""
 
-
 import itertools
-
-
 import logging
-
-
 import numpy
-
-
 from pycbc.detector import Detector
-
-
 from pycbc.types import Array, TimeSeries
-
-
 from pycbc.types.backend import wrap_backend_array
-
-
-from pycbc.waveform import fd_det_sequence, get_fd_det_waveform_sequence, get_fd_waveform_sequence
-
-
+from pycbc.waveform import (
+    fd_det_sequence,
+    get_fd_det_waveform_sequence,
+    get_fd_waveform_sequence,
+)
 from .gaussian_noise import catch_waveform_error
-
-
-from .relbin_cpu import likelihood_parts_det, likelihood_parts_multi_v, likelihood_parts_v, likelihood_parts_vector, likelihood_parts_vectorp, likelihood_parts_vectort
-
-
+from .relbin_cpu import (
+    likelihood_parts_det,
+    likelihood_parts_multi_v,
+    likelihood_parts_v,
+    likelihood_parts_vector,
+    likelihood_parts_vectorp,
+    likelihood_parts_vectort,
+    snr_predictor,
+    snr_predictor_dom,
+)
 from .proposals_jax import _jax_array, _threshold_extent
 
-
-from .relbin import Relative, setup_bins
-
-
+from .relbin import Relative, RelativeTime, RelativeTimeDom, setup_bins
 from .gaussian_noise_jax import JAXBaseGaussianNoise
-
-
 from .proposals_jax import JAXDistMarg
-
-
 from pycbc.waveform.generator_jax import _radiation_parameters
 
 
@@ -75,6 +62,23 @@ def _prepare_reference_data(waveform, data, size, offset, delta_f, time_shift):
     frequencies = numpy.arange(size, dtype=numpy.float64) * delta_f
     shift = numpy.exp(-2.0j * numpy.pi * frequencies * time_shift)
     return numpy.array(waveform), data * numpy.conjugate(shift)
+
+
+def _normalize_dom_snr(sh, hh):
+    """Normalize dominant-mode SNRs at the original NumPy boundary."""
+    from pycbc.types.array_jax import _divide, _reference_enabled, to_jax
+
+    raw = _jax_array(sh)
+    if raw is None:
+        return abs(sh[2:-2]) / hh**0.5
+    if _reference_enabled("relbin_snr_normalization"):
+        import jax
+
+        if isinstance(raw, jax.core.Tracer):
+            raise RuntimeError("Native SNR normalization cannot run inside jax.jit")
+        result = numpy.abs(numpy.asarray(raw)[2:-2]) / float(numpy.asarray(hh)) ** 0.5
+        return to_jax(result, device=raw.device)
+    return _divide(abs(raw[2:-2]), hh**0.5)
 
 
 def _uniform_frequency_grid(series):
@@ -733,3 +737,245 @@ class JAXRelative(Relative, JAXDistMarg, JAXBaseGaussianNoise):
                 d = abs(numpy.diff(r / abs(r).min(), n=2)).max()
             dmax = d if dmax < d else dmax
         return dmax
+
+
+class JAXRelativeTime(RelativeTime, JAXRelative):
+    """JAX implementation of :class:`RelativeTime`."""
+
+    def get_snr(self, wfs):
+        """Return hp/hc maximized SNR time series"""
+        delta_t = 1.0 / self.sample_rate
+        snrs = {}
+        for ifo in wfs:
+            sdat = self.sdat[ifo]
+            dtc = self.tstart[ifo] - self.end_time[ifo] - self.ta[ifo]
+            hp, hc = wfs[ifo]
+            jax_data = self._get_jax_likelihood_data(ifo, hp)
+            if jax_data is not None:
+                from .relbin_jax import snr_predictor as jax_predictor
+
+                freqs, h00, a0, a1, b0, b1 = jax_data
+                snr = jax_predictor(
+                    freqs,
+                    dtc - delta_t * 2.0,
+                    delta_t,
+                    self.num_samples[ifo] + 4,
+                    hp,
+                    hc,
+                    h00,
+                    a0,
+                    a1,
+                    b0,
+                    b1,
+                )
+            else:
+                hp, hc = _numpy_value(hp), _numpy_value(hc)
+                snr = snr_predictor(
+                    self.fedges[ifo],
+                    dtc - delta_t * 2.0,
+                    delta_t,
+                    self.num_samples[ifo] + 4,
+                    hp,
+                    hc,
+                    self.h00_sparse[ifo],
+                    sdat["a0"],
+                    sdat["a1"],
+                    sdat["b0"],
+                    sdat["b1"],
+                )
+            snrs[ifo] = _time_series_from_values(
+                snr, delta_t, self.tstart[ifo] - delta_t * 2.0
+            )
+        return snrs
+
+    @catch_waveform_error
+    def _loglr(self):
+        r"""Computes the log likelihood ratio,
+
+        .. math::
+
+            \log \mathcal{L}(\Theta) = \sum_i
+                \left<h_i(\Theta)|d_i\right> -
+                \frac{1}{2}\left<h_i(\Theta)|h_i(\Theta)\right>,
+
+        at the current parameter values :math:`\Theta`.
+
+        Returns
+        -------
+        float
+            The value of the log likelihood ratio.
+        """
+        # get model params
+        p = self.current_params
+        wfs = self.get_waveforms(p, keep_backend=True)
+        lik = self.likelihood_function
+        norm = 0.0
+        filt = 0j
+
+        self.snr_draw(wfs)
+        p = self.current_params
+
+        for ifo in self.data:
+            filter_i, norm_i, _ = self._polarization_likelihood_parts(
+                ifo, p, wfs[ifo], lik
+            )
+            filt += filter_i
+            norm += norm_i
+        loglr = self.marginalize_loglr(filt, norm)
+        return loglr
+
+
+class JAXRelativeTimeDom(RelativeTimeDom, JAXRelativeTime):
+    """JAX implementation of :class:`RelativeTimeDom`."""
+
+    def get_snr(self, wfs):
+        """Return hp/hc maximized SNR time series"""
+        delta_t = 1.0 / self.sample_rate
+        snrs = {}
+        self.sh = {}
+        self.hh = {}
+        for ifo in wfs:
+            sdat = self.sdat[ifo]
+            dtc = self.tstart[ifo] - self.end_time[ifo] - self.ta[ifo]
+            hp = wfs[ifo][0]
+            jax_data = self._get_jax_likelihood_data(ifo, hp)
+            if jax_data is not None:
+                from .relbin_jax import snr_predictor_dom as jax_predictor
+
+                freqs, h00, a0, a1, b0, b1 = jax_data
+                sh, hh = jax_predictor(
+                    freqs,
+                    dtc - delta_t * 2.0,
+                    delta_t,
+                    self.num_samples[ifo] + 4,
+                    hp,
+                    h00,
+                    a0,
+                    a1,
+                    b0,
+                    b1,
+                )
+            else:
+                hp = _numpy_value(hp)
+                sh, hh = snr_predictor_dom(
+                    self.fedges[ifo],
+                    dtc - delta_t * 2.0,
+                    delta_t,
+                    self.num_samples[ifo] + 4,
+                    hp,
+                    self.h00_sparse[ifo],
+                    sdat["a0"],
+                    sdat["a1"],
+                    sdat["b0"],
+                    sdat["b1"],
+                )
+            snr = _time_series_from_values(
+                _normalize_dom_snr(sh, hh), delta_t, self.tstart[ifo]
+            )
+            self.sh[ifo] = _time_series_from_values(
+                sh, delta_t, self.tstart[ifo] - delta_t * 2.0
+            )
+            self.hh[ifo] = hh
+            snrs[ifo] = snr
+
+        return snrs
+
+    @catch_waveform_error
+    def _loglr(self):
+        r"""Computes the log likelihood ratio,
+        or inner product <s|h> and <h|h> if `self.return_sh_hh` is True.
+
+        .. math::
+
+            \log \mathcal{L}(\Theta) = \sum_i
+                \left<h_i(\Theta)|d_i\right> -
+                \frac{1}{2}\left<h_i(\Theta)|h_i(\Theta)\right>,
+
+        at the current parameter values :math:`\Theta`.
+
+        Returns
+        -------
+        float
+            The value of the log likelihood ratio.
+        or
+        tuple
+            The inner product (<s|h>, <h|h>).
+        """
+        # calculate <d-h|d-h> = <h|h> - 2<h|d> + <d|d> up to a constant
+        p = self.current_params
+
+        p2 = p.copy()
+        p2.pop("inclination")
+        wfs = self.get_waveforms(p2, keep_backend=True)
+
+        sh_total = hh_total = 0
+
+        snrs = self.get_snr(wfs)
+        self.snr_draw(snrs=snrs)
+
+        for ifo in self.sh:
+            if self.precalc_antenna_factors:
+                fp, fc, dt = self.get_precalc_antenna_factors(ifo)
+            else:
+                sh_series_arr = _jax_array(self.sh[ifo])
+                if sh_series_arr is not None:
+                    from .relbin_jax import detector_response
+
+                    fp, fc, dt = detector_response(
+                        self.det[ifo], p["ra"], p["dec"], p["tc"], sh_series_arr
+                    )
+                else:
+                    dt = self.det[ifo].time_delay_from_earth_center(
+                        p["ra"], p["dec"], p["tc"]
+                    )
+                    fp, fc = self.det[ifo].antenna_pattern(
+                        p["ra"], p["dec"], 0, p["tc"]
+                    )
+            dts = p["tc"] + dt
+            from .marginalized_gaussian_noise_jax import _time_value
+
+            sh = _time_value(self.sh[ifo], dts, extrapolate=0.0j)
+            sh_arr = _jax_array(sh)
+            if sh_arr is not None:
+                from .relbin_jax import dominant_mode_projection
+
+                htf = dominant_mode_projection(
+                    fp, fc, p["polarization"], p["inclination"], sh_arr
+                )
+            else:
+                ic = numpy.cos(p["inclination"])
+                ip = 0.5 * (1.0 + ic * ic)
+                pol_phase = numpy.exp(-2.0j * p["polarization"])
+                f = (fp + 1.0j * fc) * pol_phase
+                # This includes complex conjugation already because the
+                # stored inner products were hp* x data.
+                htf = f.real * ip + 1.0j * f.imag * ic
+            from pycbc.types.array_jax import _reference_enabled
+
+            if _reference_enabled("relbin_likelihood"):
+                import jax
+
+                # Restore the original post-kernel polarization products.
+                if any(isinstance(value, jax.core.Tracer) for value in (sh, htf)):
+                    raise RuntimeError("Native likelihood cannot run inside jax.jit")
+                sh = numpy.asarray(sh)
+                htf = numpy.asarray(htf)
+                hh = numpy.asarray(self.hh[ifo])
+                sh = sh[()] if sh.ndim == 0 else sh
+                htf = htf[()] if htf.ndim == 0 else htf
+                hh = hh[()] if hh.ndim == 0 else hh
+            else:
+                hh = self.hh[ifo]
+            sh_total += sh * htf
+            hh_total += hh * abs(htf) ** 2.0
+
+        loglr = self.marginalize_loglr(sh_total, hh_total)
+        if self.return_sh_hh:
+            sh_arr = _jax_array(sh_total)
+            if sh_arr is not None and sh_arr.ndim == 0:
+                sh_total = sh_total.item()
+                hh_total = hh_total.item()
+            results = (sh_total, hh_total)
+        else:
+            results = loglr
+        return results

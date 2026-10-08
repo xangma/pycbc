@@ -74,6 +74,7 @@ Models and parameters
 
    jax_domain
    jax_detector
+   jax_inference
 
 Validation and performance
 --------------------------
