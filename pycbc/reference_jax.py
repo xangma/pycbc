@@ -238,6 +238,21 @@ def _execute(request):
             from pycbc.waveform.sinegauss import fd_sine_gaussian
 
             result = fd_sine_gaussian(**kwargs)
+        elif operation == "decompress":
+            from pycbc.waveform.compress import fd_decompress
+
+            output = (None if values is None else FrequencySeries(
+                values, delta_f=spacing, epoch=epoch))
+            result = fd_decompress(out=output, **kwargs)
+        elif operation in ("td_taper", "fd_taper"):
+            from pycbc.waveform import utils
+
+            series = (TimeSeries(values, delta_t=spacing, epoch=epoch)
+                      if operation == "td_taper" else
+                      FrequencySeries(values, delta_f=spacing, epoch=epoch))
+            result = getattr(utils, operation)(series, **kwargs)
+            return (result.numpy(), spacing,
+                    None if result._epoch is None else str(result._epoch))
         elif operation == "time_shift":
             from pycbc.waveform.utils import apply_fseries_time_shift
 
