@@ -31,7 +31,7 @@ from pycbc.inference.models.gaussian_noise import GaussianNoise
 from pycbc.inference.models.gaussian_noise_jax import JAXGaussianNoise
 
 
-from pycbc.inference.models import tools_jax
+from pycbc.inference.models import relbin_jax, tools_jax
 
 
 from pycbc.inference.models.tools import marginalize_likelihood
@@ -84,6 +84,36 @@ def test_weighting_and_inner_controls_compose_exactly(dtype, inference_device):
             jnp.asarray(h), jnp.asarray(d), jnp.asarray(w)
         )
     assert tuple(map(_bytes, actual)) == tuple(map(_bytes, expected))
+
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_default_physical_complex_division_is_finite(dtype):
+    value = jnp.asarray([1e-23 + 2e-23j], dtype=dtype)
+    real, imag = relbin_jax._cdiv(value.real, value.imag, value.real, value.imag)
+    np.testing.assert_allclose(np.asarray(real + 1j * imag), [1 + 0j], atol=2e-7)
+
+
+def test_summary_uses_local_bins_and_original_route_is_exact():
+    values = np.asarray([1e16 + 0j, 1 + 0j], dtype=np.complex128)
+    h1 = np.ones(2, dtype=np.complex128)
+    psd = np.ones(2)
+    freqs = np.asarray([0.0, 1.0])
+    bins = np.asarray([[1, 2]], dtype=np.int64)
+    with JAXScheme():
+        current = relbin_jax.summary_product(
+            jnp.asarray(h1),
+            jnp.asarray(values),
+            jnp.asarray(psd),
+            jnp.asarray(freqs),
+            bins,
+            1.0,
+        )
+    assert complex(current[0][0]) == 4 + 0j
+    with JAXScheme(reference_operations=("relbin_summary",)):
+        reference = relbin_jax.summary_product(
+            jnp.asarray(h1), jnp.asarray(values), psd, freqs, bins, 1.0
+        )
+    assert tuple(map(_bytes, reference)) == tuple(map(_bytes, current))
 
 
 @pytest.mark.parametrize("phase", [False, True])
@@ -164,6 +194,96 @@ def test_factory_preserves_explicit_custom_model_and_generator_overrides():
         pickle.loads(pickle.dumps(object.__new__(JAXGaussianNoise))).__class__
         is JAXGaussianNoise
     )
+
+
+def _relative_arguments(name):
+    rng = np.random.default_rng(205)
+    f = np.asarray([20.0, 80.0, 200.0])
+    wave = lambda: rng.normal(size=3) + 1j * rng.normal(size=3)
+    result = dict(freqs=f, hp=wave(), h00=wave(), a0=wave()[:2], a1=wave()[:2])
+    if "multi" in name:
+        result.update(hp2=wave(), h002=wave(), dtc=0.001, dtc2=-0.002)
+    else:
+        result.update(b0=np.ones(2), b1=np.full(2, 0.1))
+    if name.startswith("snr_predictor"):
+        result.update(tstart=-0.01, delta_t=0.001, num_samples=4)
+        if name == "snr_predictor":
+            result["hc"] = wave()
+    elif "det" in name:
+        result.setdefault("dtc", 0.001)
+    else:
+        result.update(hc=wave(), fp=0.7, fc=0.2, dtc=0.001)
+        if "multi" in name:
+            result.update(hc2=wave(), fp2=0.3, fc2=-0.5)
+        if "_v" in name:
+            result.update(fp=np.full(3, 0.7), fc=np.full(3, 0.2), dtc=np.full(3, 0.001))
+            if "multi" in name:
+                result.update(
+                    fp2=np.full(3, 0.3), fc2=np.full(3, -0.5), dtc2=np.full(3, -0.002)
+                )
+        if "time" in name:
+            result.update(
+                times=np.linspace(-0.001, 0.001, 3),
+                dtc=np.asarray([0.002, 0.003, 0.004]),
+            )
+        if "pol" in name:
+            result["pol_phase"] = np.exp(-2j * np.asarray([0.1, 0.2, 0.3]))
+    return result
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "likelihood_parts",
+        "likelihood_parts_det",
+        "likelihood_parts_v",
+        "likelihood_parts_v_pol",
+        "likelihood_parts_v_time",
+        "likelihood_parts_v_pol_time",
+        "likelihood_parts_multi",
+        "likelihood_parts_multi_v",
+        "likelihood_parts_det_multi",
+        "snr_predictor",
+        "snr_predictor_dom",
+    ],
+)
+def test_original_relative_kernels_are_independently_exact(name):
+    from pycbc.inference.models import relbin_cpu
+
+    arguments = _relative_arguments(name)
+    expected = getattr(relbin_cpu, name)(**arguments)
+    selected = "relbin_snr" if name.startswith("snr") else "relbin_likelihood"
+    with JAXScheme(reference_operations=(selected,)):
+        adapted = {
+            key: jnp.asarray(value) if np.ndim(value) else value
+            for key, value in arguments.items()
+        }
+        if "det" in name:
+            adapted["channel"] = adapted.pop("hp")
+            if "multi" in name:
+                adapted["channel2"] = adapted.pop("hp2")
+        actual = getattr(relbin_jax, name)(**adapted)
+    if isinstance(expected, tuple):
+        assert tuple(map(_bytes, actual)) == tuple(map(_bytes, expected))
+    else:
+        assert _bytes(actual) == _bytes(expected)
+
+
+def test_original_relative_scalar_route_preserves_batched_samples():
+    from pycbc.inference.models import relbin_cpu
+
+    arguments = _relative_arguments("likelihood_parts")
+    arguments.update(
+        fp=np.asarray([0.2, 0.4, 0.8]),
+        fc=np.asarray([0.1, 0.3, 0.2]),
+        dtc=np.asarray([0.0, 0.001, 0.002]),
+    )
+    expected = relbin_cpu.likelihood_parts_vector(**arguments)
+    with JAXScheme(reference_operations=("relbin_likelihood",)):
+        actual = relbin_jax.likelihood_parts(
+            **{k: jnp.asarray(v) for k, v in arguments.items()}
+        )
+    assert tuple(map(_bytes, actual)) == tuple(map(_bytes, expected))
 
 
 def test_original_sampling_preserves_rng_stream_and_indices():
@@ -348,6 +468,29 @@ def test_actual_jax_model_pickles_and_keeps_class_identity():
         assert restored.data["H1"]._scheme.jax_reference_operations == frozenset(
             {"inner"}
         )
+
+
+def test_summary_sum_control_uses_original_ndarray_reduction(monkeypatch):
+    from pycbc.inference.models.relbin import Relative
+
+    rng = np.random.default_rng(205)
+    left = rng.normal(size=19) + 1j * rng.normal(size=19)
+    right = rng.normal(size=19) + 1j * rng.normal(size=19)
+    bins = np.asarray([[1, 8], [8, 17]])
+    psd = np.ones(19)
+    freq = np.arange(19, dtype=np.float64)
+    state = types.SimpleNamespace(psds={"D": psd}, df={"D": 1.0}, f={"D": freq})
+    expected = Relative.summary_product(state, left, right, bins, "D")
+
+    def reject(*args, **kwargs):
+        raise AssertionError("device reduction bypassed selected sum")
+
+    with JAXScheme(reference_operations=("sum", "divide")):
+        monkeypatch.setattr(jnp, "sum", reject)
+        actual = relbin_jax.summary_product(
+            jnp.asarray(left), jnp.asarray(right), psd, freq, bins, 1.0
+        )
+    assert tuple(map(_bytes, actual)) == tuple(map(_bytes, expected))
 
 
 def test_spline_gradient_before_compilation_preserves_evaluator():
