@@ -18,17 +18,16 @@
 
 import sys
 import os
-import copy
 import logging
 import argparse
 import numpy
 import time
-from pycbc.pool import BroadcastPool as Pool
 
 import pycbc
 from pycbc import vetoes, psd, waveform, strain, scheme, fft, DYN_RANGE_FAC, events
 from pycbc.vetoes.sgchisq import SingleDetSGChisq
-from pycbc.filter import MatchedFilterControl, qtransform
+from pycbc.filter.matchedfilter_jax import JAXMatchedFilterControl as MatchedFilterControl
+from pycbc.filter import qtransform
 from pycbc.types import zeros, float32, complex64
 import pycbc.opt
 import pycbc.inject
@@ -186,8 +185,14 @@ parser.add_argument(
     default=False,
     help='Use compressed waveforms from the bank file (if available).'
 )
-parser.add_argument("--waveform-decompression-method", action='store', default=None,
-                    help='Method to be used decompress waveforms from the bank file.')
+parser.add_argument(
+    "--waveform-decompression-method",
+    action='store',
+    default=None,
+    help='Method to decompress waveforms from the bank file: '
+         '"inline_linear" (host Cython C++ reference) or '
+         '"device_linear" (on-device JAX GPU decompression).'
+)
 parser.add_argument("--checkpoint-interval", type=int,
                     help="Save results to checkpoint file every X seconds. "
                          "Default is no checkpointing.")
@@ -206,12 +211,17 @@ parser.add_argument("--multiprocessing-nprocesses", type=int,
                          "Used in conjunction with the option"
                          "--finalize-events-template-rate which should be set"
                          "to a multiple of the number of processes.")
+parser.add_argument("--batch-size", "--tile-size", type=int, default=None,
+                    dest="batch_size",
+                    help="Number of templates to filter in a batch. If not set, "
+                         "defaults to 64 for JAX CUDA and 16 for JAX CPU.")
 
 # Add options groups
 psd.insert_psd_option_group(parser)
 strain.insert_strain_option_group(parser)
 strain.StrainSegments.insert_segment_option_group(parser)
 scheme.insert_processing_option_group(parser)
+parser.set_defaults(processing_scheme="jax:cpu")
 fft.insert_fft_option_group(parser)
 pycbc.opt.insert_optimization_option_group(parser)
 pycbc.inject.insert_injfilterrejector_option_group(parser)
@@ -231,81 +241,21 @@ pycbc.init_logging(opt.verbose)
 fft.from_cli(opt)
 inj_filter_rejector = pycbc.inject.InjFilterRejector.from_cli(opt)
 ctx = scheme.from_cli(opt)
-if isinstance(ctx, scheme.JAXScheme):
-    parser.error("Use pycbc_inspiral_jax for a JAX processing scheme")
+if not isinstance(ctx, scheme.JAXScheme):
+    parser.error("pycbc_inspiral_jax requires a JAX processing scheme")
 
-gwstrain = strain.from_cli(opt, dyn_range_fac=DYN_RANGE_FAC,
-                           inj_filter_rejector=inj_filter_rejector)
 
-strain_segments = strain.StrainSegments.from_cli(opt, gwstrain)
+from pycbc.events.eventmgr_jax import JAXEventManager
+event_manager_class = JAXEventManager
+from pycbc.filter.inspiral_jax import batch_size_from_cli, prepare_data
+batch_size = batch_size_from_cli(opt, ctx, parser)
+gwstrain, strain_segments = prepare_data(
+    opt, ctx, DYN_RANGE_FAC, inj_filter_rejector)
 
-def template_triggers(t_num):
-    """ Get the triggers for a specific template
-    """
-    template = None
-    tparam = None
-    out_vals_all = []
-    for s_num, stilde in enumerate(segments):
-        # Filter check checks the 'inj_filter_rejector' options to
-        # determine whether
-        # to filter this template/segment if injections are present.
-        if not inj_filter_rejector.template_segment_checker(
-                bank, t_num, stilde):
-            continue
-        if template is None:
-            template = bank[t_num]
-            tparam = template.params
-
-        if opt.update_progress:
-            update_progress((t_num + (s_num / float(len(segments))) ) / len(bank),
-                            opt.update_progress, opt.update_progress_file)
-        logging.info("Filtering template %d/%d segment %d/%d" %
-                     (t_num + 1, len(bank), s_num + 1, len(segments)))
-
-        sigmasq = template.sigmasq(stilde.psd)
-        snr, norm, corr, idx, snrv = \
-           matched_filter.matched_filter_and_cluster(s_num,
-                                                     sigmasq,
-                                                     cluster_window,
-                                                     epoch=stilde._epoch)
-        if not len(idx):
-            continue
-
-        out_vals = out_vals_ref.copy()
-        out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = \
-              bank_chisq.values(template, stilde.psd, stilde, snrv, norm,
-                                idx+stilde.analyze.start)
-
-        out_vals['chisq'], out_vals['chisq_dof'] = \
-              power_chisq.values(corr, snrv, norm, stilde.psd,
-                                 idx+stilde.analyze.start, template)
-
-        out_vals['sg_chisq'] = sg_chisq.values(stilde, template, stilde.psd,
-                                      snrv, norm,
-                                      out_vals['chisq'],
-                                      out_vals['chisq_dof'],
-                                      idx+stilde.analyze.start)
-
-        out_vals['cont_chisq'], _ = \
-              autochisq.values(snr, idx+stilde.analyze.start, template,
-                               stilde.psd, norm, stilde=stilde,
-                               low_frequency_cutoff=flow)
-
-        idx += stilde.cumulative_index
-
-        out_vals['time_index'] = idx
-        out_vals['snr'] = snrv * norm
-        out_vals['sigmasq'] = numpy.zeros(len(snrv), dtype=float32) + sigmasq
-        if opt.psdvar_short_segment is not None:
-            out_vals['psd_var_val'] = \
-                        pycbc.psd.find_trigger_value(psd_var,
-                                      out_vals['time_index'],
-                                      opt.gps_start_time, opt.sample_rate)
-        #print(idx, out_vals['time_index'])
-
-        out_vals_all.append(copy.deepcopy(out_vals))
-        #print(out_vals_all)
-    return out_vals_all, tparam
+flow = opt.low_frequency_cutoff
+flen = strain_segments.freq_len
+tlen = strain_segments.time_len
+delta_f = strain_segments.delta_f
 
 with ctx:
     if opt.fft_backends == 'fftw':
@@ -324,16 +274,12 @@ with ctx:
         if opt.fftw_input_double_wisdom_file is not None:
             fft.fftw.import_double_wisdom_from_filename(opt.fftw_input_double_wisdom_file)
 
-    flow = opt.low_frequency_cutoff
-    flen = strain_segments.freq_len
-    tlen = strain_segments.time_len
-    delta_f = strain_segments.delta_f
-
-
     logging.info("Making frequency-domain data segments")
     segments = strain_segments.fourier_segments()
-    psd.associate_psds_to_segments(opt, segments, gwstrain, flen, delta_f,
-                  flow, dyn_range_factor=DYN_RANGE_FAC, precision='single')
+    psd.associate_psds_to_segments(
+        opt, segments, gwstrain, flen, delta_f, flow,
+        dyn_range_factor=DYN_RANGE_FAC, precision='single')
+
 
     # storage for values and types to be passed to event manager
     out_types = {
@@ -353,7 +299,7 @@ with ctx:
 
     if len(strain_segments.segment_slices) == 0:
         logging.info("--filter-inj-only specified and no injections in analysis time")
-        event_mgr = events.EventManager(
+        event_mgr = event_manager_class(
               opt, names, [out_types[n] for n in names], psd=None,
               gating_info=gwstrain.gating_info)
         event_mgr.finalize_template_events()
@@ -384,10 +330,10 @@ with ctx:
     tnum_start = 0
     if (opt.checkpoint_interval and os.path.isfile(checkpoint_file)):
         try:
-            tnum_start, event_mgr = events.EventManager.restore_state(checkpoint_file)
+            tnum_start, event_mgr = event_manager_class.restore_state(checkpoint_file)
             checkpoint_exists = True
         except Exception as e:
-            if args.require_valid_checkpoint:
+            if opt.require_valid_checkpoint:
                 logging.info("Failed to load checkpoint file")
                 raise(e)
 
@@ -395,11 +341,12 @@ with ctx:
             logging.info(e)
 
     if not checkpoint_exists:
-        event_mgr = events.EventManager(
+        event_mgr = event_manager_class(
             opt, names, [out_types[n] for n in names], psd=segments[0].psd,
             gating_info=gwstrain.gating_info, q_trans=q_trans)
 
-    template_mem = zeros(tlen, dtype = complex64)
+    # The scalar control uses this scratch buffer for selected reference stages.
+    template_mem = zeros(tlen, dtype=complex64)
     cluster_window = int(opt.cluster_window * gwstrain.sample_rate)
 
     if opt.cluster_window == 0.0:
@@ -407,12 +354,7 @@ with ctx:
     else:
         use_cluster = True
 
-    if hasattr(ctx, "num_threads"):
-            ncores = ctx.num_threads
-    else:
-            ncores = 1
-    if opt.multiprocessing_nprocesses:
-        ncores *= opt.multiprocessing_nprocesses
+    ncores = getattr(ctx, "num_threads", 1)
 
 
     matched_filter = MatchedFilterControl(opt.low_frequency_cutoff, None,
@@ -438,6 +380,7 @@ with ctx:
                                  reverse_template=opt.autochi_reverse_template,
                                  take_maximum_value=opt.autochi_max_valued,
                                  maximal_value_dof=opt.autochi_max_valued_dof)
+    matched_filter.need_snr_series = bool(autochisq.do)
 
     logging.info("Overwhitening frequency-domain data segments")
     for seg in segments:
@@ -448,10 +391,11 @@ with ctx:
         low_frequency_cutoff=None if opt.enable_bank_start_frequency else flow,
         dtype=complex64, phase_order=opt.order,
         taper=opt.taper_template, approximant=opt.approximant,
-        out=template_mem, max_template_length=opt.max_template_length,
+        out=None, max_template_length=opt.max_template_length,
         enable_compressed_waveforms=True if opt.use_compressed_waveforms else False,
         waveform_decompression_method=
         opt.waveform_decompression_method if opt.use_compressed_waveforms else None)
+
 
     sg_chisq = SingleDetSGChisq.from_cli(opt, bank, opt.chisq_bins)
 
@@ -459,31 +403,102 @@ with ctx:
     bank.template_thinning(inj_filter_rejector)
     logging.info("Template bank size after thinning: %s", len(bank))
 
+    if hasattr(matched_filter, "batched_matched_filter_and_cluster"):
+        try:
+            logging.info("Warming up JAX JIT compilation during setup")
+            _warmup_indices = list(range(min(batch_size, len(bank))))
+            if hasattr(bank, "get_batch"):
+                _warmup_batch = bank.get_batch(_warmup_indices)
+            else:
+                _warmup_batch = [bank[i] for i in _warmup_indices]
+            from pycbc.filter.matchedfilter_jax import live_template_norms_jax
+            _warmup_sig = live_template_norms_jax(
+                _warmup_batch, segments[0].psd,
+                template_matrix=getattr(_warmup_batch, '_batch_tensor', None))
+            _warmup_results = matched_filter.batched_matched_filter_and_cluster(
+                0, _warmup_batch, _warmup_sig, cluster_window,
+                epoch=segments[0]._epoch
+            )
+            if power_chisq.do:
+                # Warm the actual dispatch with cropped correlations and real
+                # candidates. CPU paths need no speculative GPU kernel warm-up.
+                from pycbc.vetoes.chisq_jax import (
+                    batch_power_chisq_jax,
+                    cache_batch_power_chisq_bins_jax,
+                )
+                _warmup_psd = segments[0].psd
+                cache_batch_power_chisq_bins_jax(
+                    power_chisq, _warmup_batch, _warmup_psd
+                )
+                _warmup_corr = next(
+                    (res[2]._batch_tensor for res in _warmup_results
+                     if res[2] is not None
+                     and getattr(res[2], "_batch_tensor", None) is not None),
+                    None,
+                )
+                batch_power_chisq_jax(
+                    _warmup_corr, _warmup_results, _warmup_batch,
+                    _warmup_psd, segments[0].analyze.start,
+                    snr_threshold=power_chisq.snr_threshold,
+                    power_chisq=power_chisq,
+                )
+                del _warmup_corr, _warmup_psd
+            del _warmup_batch, _warmup_sig, _warmup_results
+            # Resume starts at a different bank partition; drop the warmup cache.
+            reuse_warmup = tnum_start == 0
+            if not reuse_warmup:
+                if hasattr(bank, "clear_batch_cache"):
+                    bank.clear_batch_cache(_warmup_indices)
+                if hasattr(matched_filter, "clear_batch_cache"):
+                    matched_filter.clear_batch_cache()
+            import gc
+            gc.collect()
+        except Exception as _exc:
+            logging.warning("JAX JIT warmup pass skipped: %s", _exc)
+
     tsetup = time.time() - tstart
     tcheckpoint = time.time()
 
     tanalyze = list(range(tnum_start, len(bank)))
-    n = opt.finalize_events_template_rate
-    n = 1 if n is None else n
-    tchunks = [tanalyze[i:i + n] for i in range(0, len(tanalyze), n)]
-
-    mmap = map
-    if opt.multiprocessing_nprocesses:
-        mmap = Pool(opt.multiprocessing_nprocesses).map
+    n = opt.finalize_events_template_rate or len(tanalyze)
+    tchunks = [tanalyze[i:i + n] for i in range(0, len(tanalyze), n)] if tanalyze else []
 
     for tchunk in tchunks:
-        data = list(mmap(template_triggers, tchunk))
+        tbatches = [tchunk[i:i + batch_size] for i in range(0, len(tchunk), batch_size)]
+        from pycbc.filter.matchedfilter_jax import process_batch_inspiral_jax
+        prefetch_target = (
+            tbatches[1]
+            if (
+                len(tbatches) > 1
+                and hasattr(bank, "_template_cache")
+                and all(i in bank._template_cache for i in tbatches[0])
+            )
+            else (tbatches[0] if tbatches else None)
+        )
+        if prefetch_target is not None and hasattr(bank, "prefetch_batch_jax"):
+            bank.prefetch_batch_jax(
+                prefetch_target,
+                power_chisq=power_chisq if power_chisq.do else None,
+                psd=segments[0].psd,
+            )
+        for b_idx, batch_tnums in enumerate(tbatches):
+            next_batch = tbatches[b_idx + 1] if b_idx + 1 < len(tbatches) else None
+            process_batch_inspiral_jax(
+                event_mgr,
+                bank,
+                batch_tnums,
+                segments,
+                matched_filter,
+                power_chisq,
+                cluster_window,
+                next_batch_tnums=next_batch,
+                bank_chisq=bank_chisq,
+                autochisq=autochisq,
+                sg_chisq=sg_chisq,
+                inj_filter_rejector=inj_filter_rejector,
+                opt=opt,
+            )
 
-        for elem in data:
-            out_vals_all, tparam = elem
-            if len(out_vals_all) > 0:
-                event_mgr.new_template(tmplt=tparam)
-
-                for edata in out_vals_all:
-                    event_mgr.add_template_events(names, [edata[n] for n in names])
-
-                event_mgr.cluster_template_events("time_index", "snr", cluster_window)
-                event_mgr.finalize_template_events()
 
         if opt.finalize_events_template_rate is not None:
             event_mgr.consolidate_events(opt, gwstrain=gwstrain)
@@ -498,16 +513,18 @@ with ctx:
             event_mgr.save_state(max(tchunk), opt.output + '.checkpoint')
             sys.exit(opt.checkpoint_exit_code)
 
-event_mgr.consolidate_events(opt, gwstrain=gwstrain)
-event_mgr.finalize_events()
-logging.info("Outputting %s triggers" % str(len(event_mgr.events)))
 
-tstop = time.time()
-run_time = tstop - tstart
-event_mgr.save_performance(ncores, len(segments), len(bank), run_time, tsetup)
+with ctx:
+    event_mgr.consolidate_events(opt, gwstrain=gwstrain)
+    event_mgr.finalize_events()
+    logging.info("Outputting %s triggers" % str(event_mgr.num_events))
 
-logging.info("Writing out triggers")
-event_mgr.write_events(opt.output)
+    tstop = time.time()
+    run_time = tstop - tstart
+    event_mgr.save_performance(ncores, len(segments), len(bank), run_time, tsetup)
+
+    logging.info("Writing out triggers")
+    event_mgr.write_events(opt.output)
 
 if opt.fft_backends == 'fftw':
     if opt.fftw_output_float_wisdom_file:

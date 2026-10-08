@@ -1,7 +1,7 @@
 """Mode dispatch and pure-JAX recurrence coverage for JAX chi-square."""
 
 import os
-
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -12,7 +12,7 @@ import jax.numpy as jnp
 from pycbc import scheme
 from pycbc.vetoes import chisq_jax
 from pycbc.vetoes.chisq_jax import _compatible_shift_sum as compat_shift_sum
-
+from pycbc.waveform.bank_jax import TemplateBatchList
 
 
 @pytest.fixture(autouse=True)
@@ -291,8 +291,83 @@ def test_cpu_batch_mode_handles_empty_and_thresholded_points(dtype):
     np.testing.assert_array_equal(got[1][0], [0.0])
 
 
+@pytest.mark.parametrize("mode", ["cpu-compatible", "direct-phase"])
+def test_batch_bin_cache_tracks_psd(mode):
+    row = _row(np.complex64, n=15, seed=17)[None, :]
+    psd1, psd2 = object(), object()
+    template = SimpleNamespace(_bin_cache={
+        id(psd1): np.array([1, 4, 9, 16], dtype=np.uint32),
+        id(psd2): np.array([1, 7, 12, 16], dtype=np.uint32),
+    })
+    templates = TemplateBatchList([template])
+    results = [(None, 1., SimpleNamespace(_kmin=1, _tlen=32),
+                np.array([2, 6], dtype=np.uint32), np.zeros(2, np.complex64))]
+    with scheme.JAXScheme(device="cpu", chisq_mode=mode):
+        first = chisq_jax.batch_power_chisq_jax(
+            row, results, templates, psd1, 0)[0][0]
+        second = chisq_jax.batch_power_chisq_jax(
+            row, results, templates, psd2, 0)[0][0]
+        expected = chisq_jax.batch_power_chisq_jax(
+            row, results, TemplateBatchList([template]), psd2, 0)[0][0]
+        assert not np.array_equal(first, expected)
+        np.testing.assert_array_equal(second, expected)
+        restored = chisq_jax.batch_power_chisq_jax(
+            row, results, templates, psd1, 0)[0][0]
+        np.testing.assert_array_equal(restored, first)
 
 
+@pytest.mark.parametrize("mode", ["cpu-compatible", "direct-phase"])
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_batch_gpu_dispatch_honors_mode(monkeypatch, mode, dtype, device):
+    """Use actual CUDA if available and simulate its selection on CPU hosts."""
+    if device == "cuda":
+        try:
+            jax.devices("cuda")
+        except RuntimeError:
+            pytest.skip("CUDA JAX device unavailable")
+    row = _row(dtype, n=173, seed=17)[None, :]
+    bins = np.array([37, 69, 141, 210], dtype=np.uint32)
+    psd = object()
+    template = SimpleNamespace(_bin_cache={id(psd): bins})
+    points = np.array([3, 3071], dtype=np.uint32)
+    results = [(None, 1., SimpleNamespace(_kmin=37, _tlen=4096),
+                points, np.zeros(2, dtype=dtype))]
+    calls = []
+    original = chisq_jax._compatible_shift_sum
+
+    def compatible(*args, **kwargs):
+        calls.append("cpu-compatible")
+        return original(*args, **kwargs)
+
+    original_direct = chisq_jax._batched_points_chisq_core
+
+    def direct(*args, **kwargs):
+        calls.append("direct-phase")
+        result = original_direct(*args, **kwargs)
+        assert result.dtype == np.empty((), dtype=dtype).real.dtype
+        return result
+
+    monkeypatch.setattr(chisq_jax, "_compatible_shift_sum", compatible)
+    monkeypatch.setattr(chisq_jax, "_batched_points_chisq_core", direct)
+    monkeypatch.setattr(
+        chisq_jax, "_point_chisq_cpu_compatible",
+        lambda *a, **k: pytest.fail("CUDA dispatch used native CPU fallback"),
+    )
+    with scheme.JAXScheme(device=device, chisq_mode=mode):
+        got = chisq_jax.batch_power_chisq_jax(
+            row, results, TemplateBatchList([template]), psd, 0)[0][0]
+    assert calls == [mode]
+    assert isinstance(got, np.ndarray)
+    assert got.dtype == np.empty((), dtype=dtype).real.dtype
+    # Both modes must use their selected scalar point arithmetic.
+    with scheme.JAXScheme(device=device, chisq_mode=mode):
+        expected = chisq_jax.shift_sum(
+            SimpleNamespace(_batch_tensor=jnp.asarray(row), _batch_pos=0,
+                            _kmin=37, _tlen=4096), points, bins)
+    tolerance = 1e-5 if dtype == np.complex64 else 1e-12
+    np.testing.assert_allclose(got, np.asarray(expected) * 3,
+                               rtol=tolerance, atol=tolerance)
 
 
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))

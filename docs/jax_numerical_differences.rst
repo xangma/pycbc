@@ -69,7 +69,8 @@ links an executed notebook with fixed inputs and exact original-route checks.
      - :doc:`jax_waveform`: diffGW convention mapping, phase arithmetic,
        bank decompression and tapers.
 
-Select names through ``JAXScheme(reference_operations=(...))``. Multiple names compose;
+Select names through ``JAXScheme(reference_operations=(...))`` or the
+application option ``--jax-reference-operations``. Multiple names compose;
 select every differing upstream calculation for an exact complete comparison.
 Unselected stages remain on their default JAX paths. Whole-stage and finer
 controls are documented beside the relevant API.

@@ -58,11 +58,12 @@ The waveform guide describes supported generation and numerical validation.
 Searches
 --------
 
-The library guide describes device arrays for batched filtering, events and coincidences.
+Use ``pycbc_inspiral_jax`` for JAX Inspiral searches; the library guide describes batched filtering and events.
 
 .. toctree::
    :maxdepth: 1
 
+   jax_commands
    jax_search
 
 Validation and performance

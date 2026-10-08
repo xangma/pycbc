@@ -950,6 +950,12 @@ def batch_power_chisq_bins_jax(
     )
 
 
+def _publish_cached_power_chisq_bins_jax(edges, templates, psd):
+    """Publish completed bin rows with the established identity cache keys."""
+    psd_id = id(psd)
+    for row, template in enumerate(templates):
+        psd._chisq_cached_key[id(template.params)] = True
+        template._bin_cache[psd_id] = edges[row]
 
 
 
@@ -960,6 +966,63 @@ def batch_power_chisq_bins_jax(
 
 
 
+def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd):
+    """Populate canonical chi-square bin caches in exact batched groups.
+
+    Templates with different support or bin counts remain separate. Analytic
+    PSD cumulative vectors retain the native scalar shortcut; all other rows
+    use the ordered JAX scan already used by :func:`power_chisq_bins_jax`.
+
+    """
+    from collections import defaultdict
+    from pycbc.opt import LimitedSizeDict
+    from pycbc.waveform.bank_jax import TemplateBatchList
+
+    _check_bin_reference_cache(psd)
+    source_tensor = getattr(templates, "_batch_tensor", None)
+
+    psd_id = id(psd)
+    if not hasattr(psd, "_chisq_cached_key"):
+        psd._chisq_cached_key = {}
+
+    groups = defaultdict(list)
+    for index, template in enumerate(templates):
+        if not hasattr(template, "_bin_cache"):
+            template._bin_cache = LimitedSizeDict(size_limit=2**2)
+        cache_valid = (
+            psd_id in template._bin_cache
+            and id(template.params) in psd._chisq_cached_key
+        )
+        if cache_valid:
+            continue
+
+        # Retain the established analytic cumulative-vector shortcut.
+        if (
+            hasattr(psd, "sigmasq_vec")
+            and getattr(template, "approximant", None) in psd.sigmasq_vec
+        ):
+            power_chisq.cached_chisq_bins(template, psd)
+            continue
+
+        num_bins = int(power_chisq.parse_option(template, power_chisq.num_bins))
+        key = (num_bins, len(template), float(template.delta_f))
+        groups[key].append(index)
+
+    for (num_bins, _, _), indices in groups.items():
+        grouped = TemplateBatchList([templates[index] for index in indices])
+        f_lowers = [getattr(template, "f_lower", None) for template in grouped]
+        if source_tensor is not None:
+            if indices == list(range(len(templates))):
+                grouped._batch_tensor = source_tensor
+            else:
+                grouped._batch_tensor = to_jax(source_tensor)[
+                    jnp.asarray(indices, dtype=jnp.int32)
+                ]
+        edges = np.asarray(jax.device_get(batch_power_chisq_bins_jax(
+            grouped, num_bins, psd, f_lowers)))
+        _publish_cached_power_chisq_bins_jax(edges, grouped, psd)
+
+    return [template._bin_cache[psd_id] for template in templates]
 
 
 def batch_power_chisq_jax(
