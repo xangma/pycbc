@@ -31,6 +31,7 @@ establish every supported parameter, workload or complete-search decision.
    jax_psd_numerical_differences
    jax_filtering_numerical_differences
    jax_search_numerical_differences
+   jax_domain_numerical_differences
 
 Independent calculations
 ------------------------
@@ -68,6 +69,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - Waveforms
      - :doc:`jax_waveform`: diffGW convention mapping, phase arithmetic,
        bank decompression and tapers.
+   * - Domains
+     - :doc:`jax_domain_numerical_differences`: conversion grouping,
+       interpolation, roots and transform expressions.
 
 Select names through ``JAXScheme(reference_operations=(...))`` or the
 application option ``--jax-reference-operations``. Multiple names compose;
