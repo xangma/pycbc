@@ -129,6 +129,15 @@ def _execute(request):
             )
             return (result.numpy(), result.delta_t,
                     None if result._epoch is None else str(result._epoch))
+        elif operation in ("gate_data", "detect_loud_glitches"):
+            from pycbc.strain import strain
+
+            series = TimeSeries(values, delta_t=spacing, epoch=epoch)
+            result = getattr(strain, operation)(series, **kwargs)
+            if operation == "detect_loud_glitches":
+                return result
+            return (result.numpy(), result.delta_t,
+                    None if result._epoch is None else str(result._epoch))
         elif operation in ("newsnr", "effsnr"):
             from pycbc.events import ranking
 
