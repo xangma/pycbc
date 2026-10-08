@@ -16,20 +16,64 @@
 This modules provides classes and functions for transforming parameters.
 """
 
-import os
 import logging
+import os
+
 import numpy
 
-from pycbc import conversions
-from pycbc import coordinates
-from pycbc import cosmology
-from pycbc.io import record
-from pycbc.waveform import parameters
-from pycbc.boundaries import Bounds
-from pycbc import VARARGS_DELIM
-from pycbc.pnutils import jframe_to_l0frame
+from pycbc.domain_jax import reference as _reference
 
-logger = logging.getLogger('pycbc.transforms')
+from pycbc import VARARGS_DELIM, conversions, coordinates, cosmology
+from pycbc.boundaries import Bounds
+from pycbc.io import record
+from pycbc.pnutils import jframe_to_l0frame
+from pycbc.transforms_jax import (
+    _EXPRESSION_UNSUPPORTED,
+    components_from_mass_order_jax as _components_from_mass_order,
+    evaluate_raw_expression as _evaluate_raw_expression,
+    interp_lambda_from_tov_jax as _interp_lambda_from_tov_jax,
+    scalar_tov_reference as _scalar_tov_reference,
+    scalar_logit_jacobian_reference as _scalar_logit_jacobian_reference,
+)
+from pycbc.types.backend import (
+    jax_module_for as _jax_module_for,
+)
+from pycbc.waveform import parameters
+
+logger = logging.getLogger("pycbc.transforms")
+
+
+def _log(value):
+    """Evaluate a logarithm with the backend of a raw tensor input."""
+    if _jax_module_for(value) is not None:
+        import jax.numpy as jnp
+
+        return jnp.log(value)
+    return numpy.log(value)
+
+
+def _exp(value):
+    """Evaluate an exponential with the backend of a raw tensor input."""
+    if _jax_module_for(value) is not None:
+        import jax.numpy as jnp
+
+        return jnp.exp(value)
+    return numpy.exp(value)
+
+
+def _all_in_bounds(value, bounds):
+    """Validate concrete values; compiled callers must satisfy the bounds."""
+    isin = bounds.__contains__(value)
+    jax = _jax_module_for(isin)
+    if jax is not None:
+        import jax.numpy as jnp
+
+        if isinstance(isin, jax.core.Tracer):
+            return True
+        return bool(jnp.all(isin))
+    if isinstance(isin, numpy.ndarray):
+        return bool(isin.all())
+    return bool(isin)
 
 
 class BaseTransform(object):
@@ -209,10 +253,20 @@ class CustomTransform(BaseTransform):
         self.outputs = set(output_args)
         self.transform_functions = transform_functions
         self._jacobian = jacobian
+        self._code_cache = {}
         # we'll create a scratch FieldArray space to do transforms on
         # we'll default to length 1; this will be changed if a map is passed
         # with more than one value in it
         self._createscratch()
+
+    def _evaluate_expression(self, expression, maps):
+        """Evaluate an audited expression without staging tensors on host."""
+        return _evaluate_raw_expression(
+            expression,
+            maps,
+            self.inputs,
+            self._code_cache,
+        )
 
     def _createscratch(self, shape=1):
         """Creates a scratch FieldArray to use for transforms."""
@@ -251,6 +305,7 @@ class CustomTransform(BaseTransform):
             getslice = slice(None, None)
         return getslice
 
+    @_reference("transforms", "CustomTransform.transform")
     def transform(self, maps):
         """Applies the transform functions to the given maps object.
 
@@ -267,6 +322,15 @@ class CustomTransform(BaseTransform):
         """
         if self.transform_functions is None:
             raise NotImplementedError("no transform function(s) provided")
+        out = {}
+        for param, expression in self.transform_functions.items():
+            value = self._evaluate_expression(expression, maps)
+            if value is _EXPRESSION_UNSUPPORTED:
+                break
+            out[param] = value
+        else:
+            return self.format_output(maps, out)
+
         # copy values to scratch
         self._copytoscratch(maps)
         # ensure that we return the same data type in each dict
@@ -278,9 +342,14 @@ class CustomTransform(BaseTransform):
         }
         return self.format_output(maps, out)
 
+    @_reference("transforms", "CustomTransform.jacobian")
     def jacobian(self, maps):
         if self._jacobian is None:
             raise NotImplementedError("no jacobian provided")
+        out = self._evaluate_expression(self._jacobian, maps)
+        if out is not _EXPRESSION_UNSUPPORTED:
+            return out
+
         # copy values to scratch
         self._copytoscratch(maps)
         out = self._scratch[self._jacobian]
@@ -346,6 +415,7 @@ class CustomTransformMultiOutputs(CustomTransform):
         super(CustomTransformMultiOutputs, self).__init__(
             input_args, output_args, transform_functions, jacobian)
 
+    @_reference("transforms", "CustomTransformMultiOutputs.transform")
     def transform(self, maps):
         """Applies the transform functions to the given maps object.
         Parameters
@@ -446,6 +516,7 @@ class MchirpQToMass1Mass2(BaseTransform):
         self._outputs = [self.mass1_param, self.mass2_param]
         super(MchirpQToMass1Mass2, self).__init__()
 
+    @_reference("transforms", "MchirpQToMass1Mass2.transform")
     def transform(self, maps):
         """This function transforms from chirp mass and mass ratio to component
         masses.
@@ -480,6 +551,7 @@ class MchirpQToMass1Mass2(BaseTransform):
         )
         return self.format_output(maps, out)
 
+    @_reference("transforms", "MchirpQToMass1Mass2.inverse_transform")
     def inverse_transform(self, maps):
         """This function transforms from component masses to chirp mass and
         mass ratio.
@@ -512,6 +584,7 @@ class MchirpQToMass1Mass2(BaseTransform):
         out[self.q_param] = m1 / m2
         return self.format_output(maps, out)
 
+    @_reference("transforms", "MchirpQToMass1Mass2.jacobian")
     def jacobian(self, maps):
         """Returns the Jacobian for transforming mchirp and q to mass1 and
         mass2.
@@ -520,6 +593,7 @@ class MchirpQToMass1Mass2(BaseTransform):
         q = maps[self.q_param]
         return mchirp * ((1.0 + q) / q ** 3.0) ** (2.0 / 5)
 
+    @_reference("transforms", "MchirpQToMass1Mass2.inverse_jacobian")
     def inverse_jacobian(self, maps):
         """Returns the Jacobian for transforming mass1 and mass2 to
         mchirp and q.
@@ -536,6 +610,7 @@ class MchirpEtaToMass1Mass2(BaseTransform):
     _inputs = [parameters.mchirp, parameters.eta]
     _outputs = [parameters.mass1, parameters.mass2]
 
+    @_reference("transforms", "MchirpEtaToMass1Mass2.transform")
     def transform(self, maps):
         """This function transforms from chirp mass and symmetric mass ratio to
         component masses.
@@ -570,6 +645,7 @@ class MchirpEtaToMass1Mass2(BaseTransform):
         )
         return self.format_output(maps, out)
 
+    @_reference("transforms", "MchirpEtaToMass1Mass2.inverse_transform")
     def inverse_transform(self, maps):
         """This function transforms from component masses to chirp mass and
         symmetric mass ratio.
@@ -602,6 +678,7 @@ class MchirpEtaToMass1Mass2(BaseTransform):
         out[parameters.eta] = conversions.eta_from_mass1_mass2(m1, m2)
         return self.format_output(maps, out)
 
+    @_reference("transforms", "MchirpEtaToMass1Mass2.jacobian")
     def jacobian(self, maps):
         """Returns the Jacobian for transforming mchirp and eta to mass1 and
         mass2.
@@ -612,6 +689,7 @@ class MchirpEtaToMass1Mass2(BaseTransform):
         m2 = conversions.mass2_from_mchirp_eta(mchirp, eta)
         return mchirp * (m1 - m2) / (m1 + m2) ** 3
 
+    @_reference("transforms", "MchirpEtaToMass1Mass2.inverse_jacobian")
     def inverse_jacobian(self, maps):
         """Returns the Jacobian for transforming mass1 and mass2 to
         mchirp and eta.
@@ -635,6 +713,7 @@ class ChirpDistanceToDistance(BaseTransform):
         self.outputs = set(self._outputs)
         self.ref_mass = ref_mass
 
+    @_reference("transforms", "ChirpDistanceToDistance.transform")
     def transform(self, maps):
         """This function transforms from chirp distance to luminosity distance,
         given the chirp mass.
@@ -667,6 +746,7 @@ class ChirpDistanceToDistance(BaseTransform):
         )
         return self.format_output(maps, out)
 
+    @_reference("transforms", "ChirpDistanceToDistance.inverse_transform")
     def inverse_transform(self, maps):
         """This function transforms from luminosity distance to chirp distance,
         given the chirp mass.
@@ -697,6 +777,7 @@ class ChirpDistanceToDistance(BaseTransform):
         )
         return self.format_output(maps, out)
 
+    @_reference("transforms", "ChirpDistanceToDistance.jacobian")
     def jacobian(self, maps):
         """Returns the Jacobian for transforming chirp distance to
         luminosity distance, given the chirp mass.
@@ -705,6 +786,7 @@ class ChirpDistanceToDistance(BaseTransform):
         mchirp = maps["mchirp"]
         return (2.0 ** (-1.0 / 5) * self.ref_mass / mchirp) ** (-5.0 / 6)
 
+    @_reference("transforms", "ChirpDistanceToDistance.inverse_jacobian")
     def inverse_jacobian(self, maps):
         """Returns the Jacobian for transforming luminosity distance to
         chirp distance, given the chirp mass.
@@ -813,6 +895,7 @@ class SphericalToCartesian(BaseTransform):
         self._outputs = [self.x, self.y, self.z]
         super(SphericalToCartesian, self).__init__()
 
+    @_reference("transforms", "SphericalToCartesian.transform")
     def transform(self, maps):
         """This function transforms from spherical to cartesian spins.
 
@@ -847,6 +930,7 @@ class SphericalToCartesian(BaseTransform):
         out = {self.x: x, self.y: y, self.z: z}
         return self.format_output(maps, out)
 
+    @_reference("transforms", "SphericalToCartesian.inverse_transform")
     def inverse_transform(self, maps):
         """This function transforms from cartesian to spherical spins.
 
@@ -928,6 +1012,7 @@ class DistanceToRedshift(BaseTransform):
     _inputs = [parameters.distance]
     _outputs = [parameters.redshift]
 
+    @_reference("transforms", "DistanceToRedshift.transform")
     def transform(self, maps):
         """This function transforms from distance to redshift.
 
@@ -967,6 +1052,7 @@ class AlignedMassSpinToCartesianSpin(BaseTransform):
         parameters.spin2z,
     ]
 
+    @_reference("transforms", "AlignedMassSpinToCartesianSpin.transform")
     def transform(self, maps):
         """This function transforms from aligned mass-weighted spins to
         cartesian spins aligned along the z-axis.
@@ -992,6 +1078,7 @@ class AlignedMassSpinToCartesianSpin(BaseTransform):
         )
         return self.format_output(maps, out)
 
+    @_reference("transforms", "AlignedMassSpinToCartesianSpin.inverse_transform")
     def inverse_transform(self, maps):
         """This function transforms from component masses and cartesian spins
         to mass-weighted spin parameters aligned with the angular momentum.
@@ -1033,6 +1120,7 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
         parameters.spin2y,
     ]
 
+    @_reference("transforms", "PrecessionMassSpinToCartesianSpin.transform")
     def transform(self, maps):
         """This function transforms from mass-weighted spins to caretsian spins
         in the x-y plane.
@@ -1076,37 +1164,61 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             m_p, m_s, xi_s, maps["phi_a"], maps["phi_s"]
         )
 
-        # map parameters from primary/secondary to indices
-        out = {}
-        if isinstance(m_p, numpy.ndarray):
-            mass1, mass2 = map(numpy.array, [maps["mass1"], maps["mass2"]])
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out[parameters.spin1x] = numpy.concatenate(
-                (spinx_p[mask_mass1_gte_mass2], spinx_s[mask_mass1_lt_mass2])
+        if any(_jax_module_for(maps[name]) is not None
+               for name in ("mass1", "mass2", "xi1", "xi2", "phi_a", "phi_s")):
+            array_mode = (isinstance(m_p, numpy.ndarray)
+                          or _jax_module_for(m_p) is not None)
+            spin1x, spin2x = _components_from_mass_order(
+                spinx_p, spinx_s, maps["mass1"], maps["mass2"],
+                array_mode,
             )
-            out[parameters.spin1y] = numpy.concatenate(
-                (spiny_p[mask_mass1_gte_mass2], spiny_s[mask_mass1_lt_mass2])
+            spin1y, spin2y = _components_from_mass_order(
+                spiny_p, spiny_s, maps["mass1"], maps["mass2"],
+                array_mode,
             )
-            out[parameters.spin2x] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-            out[parameters.spin2y] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out[parameters.spin1x] = spinx_p
-            out[parameters.spin1y] = spiny_p
-            out[parameters.spin2x] = spinx_s
-            out[parameters.spin2y] = spiny_s
+            if array_mode:
+                # Preserve the original vector assignment, including its
+                # use of the x components for component two's y output.
+                spin2y = spin2x
+            out = {
+                parameters.spin1x: spin1x,
+                parameters.spin1y: spin1y,
+                parameters.spin2x: spin2x,
+                parameters.spin2y: spin2y,
+            }
         else:
-            out[parameters.spin1x] = spinx_s
-            out[parameters.spin1y] = spiny_s
-            out[parameters.spin2x] = spinx_p
-            out[parameters.spin2y] = spiny_p
+            # map parameters from primary/secondary to indices
+            out = {}
+            if isinstance(m_p, numpy.ndarray):
+                mass1, mass2 = map(numpy.array, [maps["mass1"], maps["mass2"]])
+                mask_mass1_gte_mass2 = mass1 >= mass2
+                mask_mass1_lt_mass2 = mass1 < mass2
+                out[parameters.spin1x] = numpy.concatenate(
+                    (spinx_p[mask_mass1_gte_mass2], spinx_s[mask_mass1_lt_mass2])
+                )
+                out[parameters.spin1y] = numpy.concatenate(
+                    (spiny_p[mask_mass1_gte_mass2], spiny_s[mask_mass1_lt_mass2])
+                )
+                out[parameters.spin2x] = numpy.concatenate(
+                    (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
+                )
+                out[parameters.spin2y] = numpy.concatenate(
+                    (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
+                )
+            elif maps["mass1"] > maps["mass2"]:
+                out[parameters.spin1x] = spinx_p
+                out[parameters.spin1y] = spiny_p
+                out[parameters.spin2x] = spinx_s
+                out[parameters.spin2y] = spiny_s
+            else:
+                out[parameters.spin1x] = spinx_s
+                out[parameters.spin1y] = spiny_s
+                out[parameters.spin2x] = spinx_p
+                out[parameters.spin2y] = spiny_p
 
         return self.format_output(maps, out)
 
+    @_reference("transforms", "PrecessionMassSpinToCartesianSpin.inverse_transform")
     def inverse_transform(self, maps):
         """This function transforms from component masses and cartesian spins to
         mass-weighted spin parameters perpendicular with the angular momentum.
@@ -1155,25 +1267,40 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             maps[parameters.spin2y],
         )
 
-        # map parameters from primary/secondary to indices
-        if isinstance(xi1, numpy.ndarray):
-            mass1, mass2 = map(
-                numpy.array, [maps[parameters.mass1], maps[parameters.mass2]]
+        if any(_jax_module_for(maps[name]) is not None
+               for name in ("mass1", "mass2", "spin1x", "spin1y", "spin2x", "spin2y")):
+            # map parameters from primary/secondary to component indices
+            out["xi1"], out["xi2"] = _components_from_mass_order(
+                xi1,
+                xi2,
+                maps[parameters.mass1],
+                maps[parameters.mass2],
+                xi1.ndim > 0,
             )
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out["xi1"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-            out["xi2"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out["xi1"] = xi1
-            out["xi2"] = xi2
+            if xi1.ndim > 0:
+                # The original vector inverse assigns both outputs from
+                # the same concatenation; changing that is outside JAX.
+                out["xi2"] = out["xi1"]
         else:
-            out["xi1"] = xi2
-            out["xi2"] = xi1
+            # map parameters from primary/secondary to indices
+            if isinstance(xi1, numpy.ndarray):
+                mass1, mass2 = map(
+                    numpy.array, [maps[parameters.mass1], maps[parameters.mass2]]
+                )
+                mask_mass1_gte_mass2 = mass1 >= mass2
+                mask_mass1_lt_mass2 = mass1 < mass2
+                out["xi1"] = numpy.concatenate(
+                    (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
+                )
+                out["xi2"] = numpy.concatenate(
+                    (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
+                )
+            elif maps["mass1"] > maps["mass2"]:
+                out["xi1"] = xi1
+                out["xi2"] = xi2
+            else:
+                out["xi1"] = xi2
+                out["xi2"] = xi1
 
         return self.format_output(maps, out)
 
@@ -1192,6 +1319,7 @@ class CartesianSpinToChiP(BaseTransform):
     ]
     _outputs = ["chi_p"]
 
+    @_reference("transforms", "CartesianSpinToChiP.transform")
     def transform(self, maps):
         """This function transforms from component masses and caretsian spins
         to chi_p.
@@ -1316,6 +1444,7 @@ class LambdaFromTOVFile(BaseTransform):
         dtype = [(fname, float) for fname in file_columns]
         data = numpy.loadtxt(self._mass_lambda_file, dtype=dtype)
         self._data = data
+        self._jax_data_cache = {}
         super(LambdaFromTOVFile, self).__init__()
 
     @property
@@ -1379,6 +1508,41 @@ class LambdaFromTOVFile(BaseTransform):
             lambdav = numpy.interp(m_src, mass_data, lambda_data)
         return lambdav
 
+    def _jax_tov_data(self, reference):
+        """Return the static interpolation table for JAX."""
+        import jax
+        import jax.numpy as jnp
+
+        dtype = (
+            reference.dtype
+            if hasattr(reference, "dtype")
+            and jnp.issubdtype(reference.dtype, jnp.floating)
+            else jnp.float64
+        )
+        sharding = getattr(reference, "sharding", None)
+        key = (dtype, sharding)
+        try:
+            return self._jax_data_cache[key]
+        except KeyError:
+            pass
+
+        with jax.ensure_compile_time_eval():
+            tables = (
+                jnp.asarray(numpy.asarray(self.mass_data).reshape(-1), dtype=dtype),
+                jnp.asarray(numpy.asarray(self.lambda_data).reshape(-1), dtype=dtype),
+            )
+            if sharding is not None:
+                tables = tuple(jax.device_put(table, sharding) for table in tables)
+        self._jax_data_cache[key] = tables
+        return tables
+
+    def _lambda_from_tov_jax(self, m_src):
+        """Interpolate Lambda without moving JAX array masses to the host."""
+        mass_data, lambda_data = self._jax_tov_data(m_src)
+        return _interp_lambda_from_tov_jax(m_src, mass_data, lambda_data)
+
+    @_reference("transforms", "LambdaFromTOVFile.transform",
+                host_function=_scalar_tov_reference)
     def transform(self, maps):
         """Computes the transformation of mass to Lambda.
 
@@ -1412,11 +1576,15 @@ class LambdaFromTOVFile(BaseTransform):
             shift = 1.0 / (1.0 + cosmology.redshift(abs(d)))
         else:
             shift = 1.0
-        out = {
-            self._lambda_param: self.lambda_from_tov_data(
+        jax, jax_vals = conversions._jax_values(m, shift)
+        if jax is not None:
+            m_src = jax_vals[0] * jax_vals[1]
+            lambdav = self._lambda_from_tov_jax(m_src)
+        else:
+            lambdav = self.lambda_from_tov_data(
                 m * shift, self._data["mass"], self._data["lambda"]
             )
-        }
+        out = {self._lambda_param: lambdav}
         return self.format_output(maps, out)
 
     @classmethod
@@ -1534,6 +1702,8 @@ class LambdaFromMultipleTOVFiles(BaseTransform):
                 eos = None
         return eos
 
+    @_reference("transforms", "LambdaFromMultipleTOVFiles.transform",
+                host_function=_scalar_tov_reference)
     def transform(self, maps):
         """Transforms mass value and eos index into a lambda value"""
         m = maps[self._mass_param]
@@ -1988,6 +2158,7 @@ class Log(BaseTransform):
         """Returns the output parameter."""
         return self._outputvar
 
+    @_reference("transforms", "Log.transform")
     def transform(self, maps):
         r"""Computes :math:`\log(x)`.
 
@@ -2004,9 +2175,10 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         x = maps[self._inputvar]
-        out = {self._outputvar: numpy.log(x)}
+        out = {self._outputvar: _log(x)}
         return self.format_output(maps, out)
 
+    @_reference("transforms", "Log.inverse_transform")
     def inverse_transform(self, maps):
         r"""Computes :math:`y = e^{x}`.
 
@@ -2023,9 +2195,10 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         y = maps[self._outputvar]
-        out = {self._inputvar: numpy.exp(y)}
+        out = {self._inputvar: _exp(y)}
         return self.format_output(maps, out)
 
+    @_reference("transforms", "Log.jacobian")
     def jacobian(self, maps):
         r"""Computes the Jacobian of :math:`y = \log(x)`.
 
@@ -2049,6 +2222,7 @@ class Log(BaseTransform):
         x = maps[self._inputvar]
         return 1.0 / x
 
+    @_reference("transforms", "Log.inverse_jacobian")
     def inverse_jacobian(self, maps):
         r"""Computes the Jacobian of :math:`y = e^{x}`.
 
@@ -2070,7 +2244,7 @@ class Log(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        return numpy.exp(x)
+        return _exp(x)
 
 
 class Logit(BaseTransform):
@@ -2122,6 +2296,7 @@ class Logit(BaseTransform):
         return self._bounds
 
     @staticmethod
+    @_reference("transforms", "Logit.logit")
     def logit(x, a=0.0, b=1.0):
         r"""Computes the logit function with domain :math:`x \in (a, b)`.
 
@@ -2148,9 +2323,10 @@ class Logit(BaseTransform):
         float
             The logit of x.
         """
-        return numpy.log(x - a) - numpy.log(b - x)
+        return _log(x - a) - _log(b - x)
 
     @staticmethod
+    @_reference("transforms", "Logit.logistic")
     def logistic(x, a=0.0, b=1.0):
         r"""Computes the logistic function with range :math:`\in (a, b)`.
 
@@ -2179,9 +2355,10 @@ class Logit(BaseTransform):
         float
             The logistic of x.
         """
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return (a + b * expx) / (1.0 + expx)
 
+    @_reference("transforms", "Logit.transform")
     def transform(self, maps):
         r"""Computes :math:`\mathrm{logit}(x; a, b)`.
 
@@ -2201,14 +2378,12 @@ class Logit(BaseTransform):
         """
         x = maps[self._inputvar]
         # check that x is in bounds
-        isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray):
-            isin = isin.all()
-        if not isin:
+        if not _all_in_bounds(x, self._bounds):
             raise ValueError("one or more values are not in bounds")
         out = {self._outputvar: self.logit(x, self._a, self._b)}
         return self.format_output(maps, out)
 
+    @_reference("transforms", "Logit.inverse_transform")
     def inverse_transform(self, maps):
         r"""Computes :math:`y = \mathrm{logistic}(x; a,b)`.
 
@@ -2230,6 +2405,8 @@ class Logit(BaseTransform):
         out = {self._inputvar: self.logistic(y, self._a, self._b)}
         return self.format_output(maps, out)
 
+    @_reference("transforms", "Logit.jacobian",
+                host_function=_scalar_logit_jacobian_reference)
     def jacobian(self, maps):
         r"""Computes the Jacobian of :math:`y = \mathrm{logit}(x; a,b)`.
 
@@ -2255,12 +2432,16 @@ class Logit(BaseTransform):
         x = maps[self._inputvar]
         # check that x is in bounds
         isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray) and not isin.all():
+        if _jax_module_for(isin) is not None:
+            if not _all_in_bounds(x, self._bounds):
+                raise ValueError("one or more values are not in bounds")
+        elif isinstance(isin, numpy.ndarray) and not isin.all():
             raise ValueError("one or more values are not in bounds")
         elif not isin:
             raise ValueError("{} is not in bounds".format(x))
         return (self._b - self._a) / ((x - self._a) * (self._b - x))
 
+    @_reference("transforms", "Logit.inverse_jacobian")
     def inverse_jacobian(self, maps):
         r"""Computes the Jacobian of :math:`y = \mathrm{logistic}(x; a,b)`.
 
@@ -2284,7 +2465,7 @@ class Logit(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return expx * (self._b - self._a) / (1.0 + expx) ** 2.0
 
     @classmethod
