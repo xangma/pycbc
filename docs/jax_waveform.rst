@@ -50,6 +50,13 @@ its first requested frequency. This maps the original meaning of
            spin1z=0.1, spin2z=-0.2, distance=100,
            delta_f=2, f_lower=20, f_final=128)
 
+JAX ``FilterBank`` batches use diffGW by default. ``LiveFilterBank`` retains
+its original per-template frequency resolution and groups equal grids within
+bounded generation batches. Unsupported requests raise instead of changing
+the model. In particular, ``SPAtmplt`` is not an alias for ``TaylorF2``.
+Bank cache eviction releases bank ownership; templates already returned to a
+caller remain valid.
+
 Decompression and tapers
 ------------------------
 
