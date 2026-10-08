@@ -10,7 +10,7 @@ import jax.numpy as jnp
 from pycbc import scheme
 from pycbc.types import FrequencySeries
 from pycbc.vetoes import chisq_jax
-from pycbc.vetoes.chisq import power_chisq_bins
+from pycbc.vetoes.chisq import power_chisq_bins, SingleDetPowerChisq
 
 
 @pytest.fixture(autouse=True)
@@ -198,6 +198,38 @@ def test_gpu_ordered_bin_scan_matches_numpy_exactly():
     np.testing.assert_array_equal(np.asarray(got), expected)
 
 
+def test_batch_bin_cache_matches_standard_backend_across_support_groups(
+        monkeypatch):
+    from pycbc.waveform.bank_jax import TemplateBatchList
+
+    nfreq = 4097
+    psd = FrequencySeries(np.linspace(1.0, 2.0, nfreq, dtype=np.float32),
+                          delta_f=0.25)
+    base = np.linspace(0.1, 1.0, nfreq, dtype=np.float32).astype(np.complex64)
+    templates = []
+    for flow, scale in ((20.0, 1.0), (30.0, 1.7), (20.0, 0.6)):
+        template = FrequencySeries(base * scale, delta_f=0.25)
+        template.f_lower = flow
+        template.approximant = "IMRPhenomD"
+        template.params = SimpleNamespace(num_bins=8)
+        templates.append(template)
+    batch = TemplateBatchList(templates)
+    batch._batch_tensor = jnp.stack([jnp.asarray(t) for t in templates])
+    batch._host_batch_tensor = np.stack([np.asarray(t) for t in templates])
+    veto = SingleDetPowerChisq("params.num_bins")
+
+    with scheme.CPUScheme():
+        expected = [power_chisq_bins(t, 8, psd, t.f_lower)
+                    for t in templates]
+    # Host bank staging is not an alternate numerical implementation.
+    batch._host_batch_tensor[:] = np.nan
+
+    with scheme.JAXScheme():
+        got = chisq_jax.cache_batch_power_chisq_bins_jax(veto, batch, psd)
+
+    for actual, reference in zip(got, expected):
+        np.testing.assert_array_equal(actual, reference)
+    assert all(id(t.params) in psd._chisq_cached_key for t in templates)
 
 
 @pytest.mark.parametrize("entry", ["single", "row", "batch", "public"])
@@ -227,3 +259,30 @@ def test_point_chisq_rejects_disabled_x64(monkeypatch, entry):
     assert jax.config.jax_enable_x64
 
 
+def test_batch_revalidates_bins_after_template_parameters_change():
+    psd = FrequencySeries(np.ones(33, dtype=np.float32), delta_f=1)
+    tmpl = FrequencySeries(np.ones(33, dtype=np.complex64), delta_f=1)
+    tmpl.f_lower = 1
+    tmpl.approximant = "IMRPhenomD"
+    old_params = SimpleNamespace(num_bins=2)
+    tmpl.params = old_params
+    veto = SingleDetPowerChisq("params.num_bins")
+    with scheme.CPUScheme():
+        assert len(veto.cached_chisq_bins(tmpl, psd)) == 3
+        # Reusing the buffer must refresh both bin boundaries and the degrees
+        # of freedom, even though the PSD and its identity are unchanged.
+        tmpl.params = SimpleNamespace(num_bins=4)
+        corr = SimpleNamespace(_kmin=0, _tlen=64)
+        points = np.array([3], dtype=np.int32)
+        results = [(None, 1., corr, points, np.array([1+0j], np.complex64))]
+        got = chisq_jax.batch_power_chisq_jax(
+            np.ones((1, 64), np.complex64), results, [tmpl], psd, 0,
+            power_chisq=veto
+        )
+    bins = tmpl._bin_cache[id(psd)]
+    assert len(bins) == 5
+    np.testing.assert_array_equal(got[0][1], [6])
+    expected = 4*_point_power_oracle(
+        np.ones(64, np.complex64), points.astype(np.int64), bins, 0, 64
+    ) - 1
+    np.testing.assert_allclose(got[0][0], expected, rtol=2e-5)
