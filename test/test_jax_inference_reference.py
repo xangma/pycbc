@@ -470,6 +470,72 @@ def test_actual_jax_model_pickles_and_keeps_class_identity():
         )
 
 
+def test_relative_reference_preparation_and_full_model_are_exact(inference_device):
+    from pycbc.inference.models.relbin import Relative
+    from pycbc.inference.models.relbin_jax import prepare_reference_data
+
+    epoch = 1126259460.0
+    delay = 0.007123456789
+    values = np.random.default_rng(12).normal(size=17) + 1j * np.random.default_rng(
+        13
+    ).normal(size=17)
+    frequencies = np.arange(17) * 2.0
+    with CPUScheme():
+        original = FrequencySeries(values, delta_f=2.0, epoch=epoch) * np.conjugate(
+            np.exp(-2j * np.pi * frequencies * delay)
+        )
+    with JAXScheme(inference_device, reference_operations=("time_shift",)):
+        series = FrequencySeries(values, delta_f=2.0, epoch=epoch)
+        _, prepared = prepare_reference_data(series, series, 17, 0, 2.0, delay)
+    assert _bytes(prepared.numpy()) == _bytes(original.numpy())
+    static = dict(
+        approximant="TaylorF2",
+        mass1=30.0,
+        mass2=20.0,
+        distance=500.0,
+        inclination=0.4,
+        f_lower=20.0,
+        coa_phase=0.2,
+        tc=epoch + 0.2,
+        ra=1.1,
+        dec=-0.3,
+        polarization=0.2,
+    )
+    controls = (
+        "detector.Detector.antenna_pattern",
+        "detector.Detector.time_delay_from_location",
+        "waveform",
+        "time_shift",
+        "inference_whitening",
+        "inference_inner",
+        "relbin_summary",
+        "relbin_likelihood",
+        "relbin_snr",
+        "inference_marginalization",
+    )
+    results = []
+    for context in (
+        CPUScheme(),
+        JAXScheme(inference_device, reference_operations=controls),
+    ):
+        with context:
+            data = FrequencySeries(
+                np.full(129, 1e-23 + 1e-23j, np.complex128), delta_f=2.0, epoch=epoch
+            )
+            psd = FrequencySeries(np.full(129, 1e-46), delta_f=2.0)
+            model = Relative(
+                (),
+                {"H1": data},
+                {"H1": 20.0},
+                psds={"H1": psd},
+                static_params=static,
+                fiducial_params=static,
+            )
+            model.update()
+            results.append(_bytes(model.loglr))
+    assert results[0] == results[1]
+
+
 def test_summary_sum_control_uses_original_ndarray_reduction(monkeypatch):
     from pycbc.inference.models.relbin import Relative
 
