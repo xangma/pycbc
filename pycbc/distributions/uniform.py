@@ -111,6 +111,10 @@ class Uniform(bounded.BoundedDist):
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
+        jax, _ = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            return bounded._jax_where(kwargs, self.__contains__(kwargs),
+                                      self._norm, 0.0)
         if kwargs in self:
             return self._norm
         else:
@@ -121,6 +125,10 @@ class Uniform(bounded.BoundedDist):
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
+        jax, _ = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            return bounded._jax_where(kwargs, self.__contains__(kwargs),
+                                      self._lognorm, -numpy.inf)
         if kwargs in self:
             return self._lognorm
         else:

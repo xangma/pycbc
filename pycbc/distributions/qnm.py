@@ -143,7 +143,17 @@ class UniformF0Tau(uniform.Uniform):
         self._norm = numpy.exp(self._lognorm)
 
     def __contains__(self, params):
+        jax, _ = bounded._jax_module_and_reference(
+            params.values()) if isinstance(params, dict) else (None, None)
+        if jax is not None:
+            result = bounded._prior_native(
+                self, "BoundedDist.contains",
+                lambda **row: self.__contains__(row), scalar=True, **params)
+            if result is not bounded.REFERENCE_UNSELECTED:
+                return result
         isin = super(UniformF0Tau, self).__contains__(params)
+        if jax is not None:
+            return isin & self._constraints(params)
         if isin:
             isin &= self._constraints(params)
         return isin
