@@ -5,22 +5,12 @@ JAX-backed value. Keeping the import here avoids making JAX a dependency
 of the NumPy inference path.
 """
 
-
 import jax.numpy as jnp
-
-
 import jax.scipy.special as jsp
-
-
 import numpy
 
-
 import jax
-
-
 from pycbc.types.backend import backend_array
-
-
 from pycbc.types.array_jax import _reference_enabled, _cpu_reference, _divide, to_jax
 
 
@@ -485,6 +475,33 @@ def marginalize_likelihood(
     if return_peak:
         return vloglr, maxv, maxl
     return vloglr
+
+
+def batched_project_detector_strain(hp, hc, fp, fc, dt, delta_f, batch_size):
+    """Validate a detector-frame batch and reuse its projection boundary."""
+    from pycbc.waveform.utils_jax import fused_detector_strain_fd_jax
+
+    hp = _jax_array(hp)
+    if hp is None:
+        raise TypeError("a JAX-backed waveform is required")
+    if hp.ndim != 1 or _to_jax(hc, hp).ndim != 1:
+        raise ValueError(
+            "batched likelihood waveform parameters must be scalar; only detector-frame extrinsics may be batched"
+        )
+    device = None if isinstance(hp, jax.core.Tracer) else hp.device
+    values = []
+    for name, value in (("fplus", fp), ("fcross", fc), ("tc", dt)):
+        arr = to_jax(value, dtype=hp.real.dtype, device=device)
+        if arr.ndim == 0 or arr.shape == (1,):
+            arr = jnp.broadcast_to(arr, (batch_size,))
+        elif arr.shape != (batch_size,):
+            raise ValueError(
+                f"Batched detector-frame parameter {name!r} must be scalar or have length {batch_size}"
+            )
+        values.append(arr)
+    return fused_detector_strain_fd_jax(
+        hp, _to_jax(hc, hp), [values[0]], [values[1]], [values[2]], delta_f
+    )[0]
 
 
 def whiten_template(values, weight):
