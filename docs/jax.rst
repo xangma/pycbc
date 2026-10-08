@@ -66,6 +66,14 @@ Use ``pycbc_inspiral_jax`` and ``pycbc_live_jax`` for JAX searches. The original
    jax_commands
    jax_search
 
+Models and parameters
+---------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   jax_domain
+
 Validation and performance
 --------------------------
 
