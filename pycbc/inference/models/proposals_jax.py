@@ -18,6 +18,34 @@ def _jax_tools(*values):
     return tools_jax
 
 
+def _backend_tools(*values):
+    """Load the matching backend module (JAX) if present."""
+    return _jax_tools(*values)
+
+
+def _inner(left, right):
+    """Return an inner product without scalarizing backend reductions."""
+    backend = _backend_tools(left, right)
+    if backend is not None and all(is_backend(value, "jax") for value in (left, right)):
+        return backend.inner(left, right)
+    return left.inner(right)
+
+
+def _real_inner(left, right):
+    """Return a real inner product without scalarizing backend reductions."""
+    backend = _backend_tools(left, right)
+    if backend is not None and all(is_backend(value, "jax") for value in (left, right)):
+        return backend.real_inner(left, right)
+    return _inner(left, right).real
+
+
+def _fused_inner_hd_hh(h, d, weight=None):
+    """Use the JAX implementation without adding a separate CPU algorithm."""
+    from .tools_jax import fused_inner_hd_hh
+
+    return fused_inner_hd_hh(h, d, weight)
+
+
 def _marginalize_likelihood_jax(
     sh,
     hh,

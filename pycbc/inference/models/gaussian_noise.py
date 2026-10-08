@@ -134,6 +134,15 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         model to raise a ``FailedWaveformError``.
     """
 
+    def __new__(cls, *args, **kwargs):
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from .dispatch_jax import implementation
+            target = implementation(cls)
+            if target is not None:
+                return object.__new__(target)
+        return object.__new__(cls)
+
     def __init__(self, variable_params, data, low_frequency_cutoff, psds=None,
                  high_frequency_cutoff=None, normalize=False,
                  static_params=None, ignore_failed_waveforms=False,
