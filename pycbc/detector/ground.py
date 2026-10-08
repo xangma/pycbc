@@ -40,6 +40,8 @@ from astropy.units.si import sday, meter
 
 import pycbc.libutils
 from pycbc.types import TimeSeries
+from pycbc.types.backend import jax_module_for
+from pycbc.domain_jax import reference as _reference
 from pycbc.types.config import InterpolatingConfigParser
 from pycbc.time import gmst_accurate
 
@@ -47,6 +49,24 @@ logger = logging.getLogger('pycbc.detector')
 
 # Response functions are modelled after those in lalsuite and as also
 # presented in https://arxiv.org/pdf/gr-qc/0008066.pdf
+
+def _detector_backend(values):
+    """Load the optional detector backend only for JAX inputs."""
+    if not any(jax_module_for(value) is not None for value in values):
+        return None
+    from pycbc.detector import ground_jax
+    return ground_jax
+
+
+def _antenna_reference(function, *args, **kwargs):
+    from pycbc.detector.ground_jax import antenna_reference
+    return antenna_reference(function, *args, **kwargs)
+
+
+def _distance_reference(function, *args, **kwargs):
+    from pycbc.detector.ground_jax import distance_reference
+    return distance_reference(function, *args, **kwargs)
+
 
 def get_available_detectors():
     """ List the available detectors """
@@ -108,7 +128,7 @@ def add_detector_on_earth(name, longitude, latitude,
     resp = np.array([[-1, 0, 0], [0, 0, 0], [0, 0, 0]])
     rm2 = rotation_matrix(-longitude * units.rad, 'z')
     rm1 = rotation_matrix(-1.0 * (np.pi / 2.0 - latitude) * units.rad, 'y')
-    
+
     # Calculate response in earth centered coordinates
     # by rotation of response in coordinates aligned
     # with the detector arms
@@ -144,11 +164,15 @@ def add_detector_on_earth(name, longitude, latitude,
 
 # Notation matches
 # Eq 4 of https://link.aps.org/accepted/10.1103/PhysRevD.96.084004
+@_reference("detector", "single_arm_frequency_response")
 def single_arm_frequency_response(f, n, arm_length):
     """ The relative amplitude factor of the arm response due to
     signal delay. This is relevant where the long-wavelength
     approximation no longer applies)
     """
+    backend = _detector_backend((f, n, arm_length))
+    if backend is not None:
+        return backend.single_arm_frequency_response(f, n, arm_length)
     n = np.clip(n, -0.999, 0.999)
     phase = arm_length / constants.c.value * 2.0j * np.pi * f
     a = 1.0 / 4.0 / phase
@@ -248,7 +272,7 @@ class Detector(object):
         using a slower but higher precision method.
         """
         self.name = str(detector_name)
-        
+
         lal_detectors = [pfx for pfx, name in get_available_lal_detectors()]
         if detector_name in _ground_detectors:
             self.info = _ground_detectors[detector_name]
@@ -300,6 +324,7 @@ class Detector(object):
         self._lal = r
         return r
 
+    @_reference("detector", "Detector.gmst_estimate")
     def gmst_estimate(self, gps_time):
         if self.reference_time is None:
             return gmst_accurate(gps_time)
@@ -324,6 +349,7 @@ class Detector(object):
         d = self.location - det.location
         return float(d.dot(d)**0.5 / constants.c.value)
 
+    @_reference("detector", "Detector.antenna_pattern", _antenna_reference)
     def antenna_pattern(self, right_ascension, declination, polarization, t_gps,
                         frequency=0,
                         polarization_type='tensor'):
@@ -347,6 +373,10 @@ class Detector(object):
         fcross(default) or fy or fl : float or numpy.ndarray
             The cross or vector-y or longitudnal polarization factor for this sky location / orientation
         """
+        backend = _detector_backend((right_ascension, declination, polarization, t_gps, frequency))
+        if backend is not None:
+            return backend.antenna_pattern(self, right_ascension, declination, polarization,
+                                           t_gps, frequency, polarization_type)
         if isinstance(t_gps, lal.LIGOTimeGPS):
             t_gps = float(t_gps)
         gha = self.gmst_estimate(t_gps) - right_ascension
@@ -423,6 +453,8 @@ class Detector(object):
                 fl = (z * dz).sum()
             return fb, fl
 
+
+
     def time_delay_from_earth_center(self, right_ascension, declination, t_gps):
         """Return the time delay from the earth center
         """
@@ -431,6 +463,7 @@ class Detector(object):
                                              declination,
                                              t_gps)
 
+    @_reference("detector", "Detector.time_delay_from_location")
     def time_delay_from_location(self, other_location, right_ascension,
                                  declination, t_gps):
         """Return the time delay from the given location to detector for
@@ -455,6 +488,9 @@ class Detector(object):
         float
             The arrival time difference between the detectors.
         """
+        backend = _detector_backend((right_ascension, declination, t_gps, other_location))
+        if backend is not None:
+            return backend.time_delay_from_location(self, other_location, right_ascension, declination, t_gps)
         ra_angle = self.gmst_estimate(t_gps) - right_ascension
         cosd = cos(declination)
 
@@ -495,10 +531,11 @@ class Detector(object):
                                              right_ascension,
                                              declination,
                                              t_gps)
-    
+
+    @_reference("detector", "Detector.arrival_time")
     def arrival_time(self, ref_tc, ra, dec, ref_frame='geocentric'):
         """Compute the arrival time in this detector.
-        
+
         Parameters
         ----------
         ref_tc : {float, lal.LIGOTimeGPS}
@@ -510,10 +547,10 @@ class Detector(object):
         ref_frame : str (optional)
             The detector to convert from, in which ref_tc is sampled. Default
             'geocentric'.
-            
+
         Returns
         -------
-        float : 
+        float :
             The coalescence time converted to the current detector frame.
         """
         if ref_frame == 'geocentric':
@@ -649,6 +686,7 @@ class Detector(object):
                         np.float32(loc.z)])*conv
         return loc
 
+    @_reference("detector", "Detector.effective_distance", _distance_reference)
     def effective_distance(self, distance, ra, dec, pol, time, inclination):
         """ Distance scaled to account for amplitude factors
 
@@ -677,6 +715,9 @@ class Detector(object):
         eff_dist: float
             The effective distance of the source
         """
+        backend = _detector_backend((distance, ra, dec, pol, time, inclination))
+        if backend is not None:
+            return backend.effective_distance(self, distance, ra, dec, pol, time, inclination)
         fp, fc = self.antenna_pattern(ra, dec, pol, time)
         ic = np.cos(inclination)
         ip = 0.5 * (1. + ic * ic)
@@ -734,3 +775,5 @@ __all__ = [
     'load_detector_config',
     '_ground_detectors',
 ]
+
+
