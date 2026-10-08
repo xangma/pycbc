@@ -11,9 +11,98 @@ import math
 
 import jax
 import jax.numpy as jnp
+from jax.scipy.special import i0
 
 from pycbc.types import FrequencySeries
 from pycbc.types.array_jax import JAXArrayData, _reference_enabled
+from pycbc.types.backend import backend_array
+
+
+def _jax_kaiser_window(data, length, beta):
+    """Return SciPy's periodic Kaiser window for JAX backend."""
+    dtype = data.real.dtype
+    if length <= 1:
+        return jnp.ones(length, dtype=dtype)
+
+    position = jnp.arange(length, dtype=dtype)
+    radius = 2 * position / length - 1
+    argument = float(beta) * jnp.sqrt(jnp.clip(1 - radius * radius, 0.0))
+    normalization = i0(jnp.asarray(float(beta), dtype=dtype))
+    return i0(argument) / normalization
+
+
+def td_taper_jax(out, start, end, beta=8, side="left"):
+    """Applies a taper to the given TimeSeries using JAX."""
+    out = out.copy()
+    if _reference_enabled("td_taper"):
+        import numpy as np
+        from pycbc import scheme
+        from pycbc.reference_jax import cpu_reference
+        values, _, _ = cpu_reference(
+            "td_taper", np.asarray(out), spacing=out.delta_t, epoch=out._epoch,
+            start=start, end=end, beta=beta, side=side)
+        out._data.set_array(jax.device_put(values, scheme.mgr.state.jax_device))
+        return out
+    data = backend_array(out, "jax")
+    if data is None:
+        raise TypeError("Expected JAX-backed TimeSeries")
+    width = end - start
+    winlen = 2 * int(width / out.delta_t)
+    xmin = int((start - out.start_time) / out.delta_t)
+    xmax = xmin + winlen // 2
+
+    window = _jax_kaiser_window(data, winlen, beta)
+    target = data
+    if side == "left":
+        part = target[xmin:xmax] * window[: winlen // 2]
+        target = target.at[xmin:xmax].set(part)
+        if xmin > 0:
+            target = target.at[:xmin].set(0.0)
+    elif side == "right":
+        part = target[xmin:xmax] * window[winlen // 2 :]
+        target = target.at[xmin:xmax].set(part)
+        if xmax < len(out):
+            target = target.at[xmax:].set(0.0)
+    else:
+        raise ValueError(f"unrecognized side argument {side}")
+    out._data.set_array(target)
+    return out
+
+
+def fd_taper_jax(out, start, end, beta=8, side="left"):
+    """Applies a taper to the given FrequencySeries using JAX."""
+    out = out.copy()
+    if _reference_enabled("fd_taper"):
+        import numpy as np
+        from pycbc import scheme
+        from pycbc.reference_jax import cpu_reference
+        values, _, _ = cpu_reference(
+            "fd_taper", np.asarray(out), spacing=out.delta_f, epoch=out._epoch,
+            start=start, end=end, beta=beta, side=side)
+        out._data.set_array(jax.device_put(values, scheme.mgr.state.jax_device))
+        return out
+    data = backend_array(out, "jax")
+    if data is None:
+        raise TypeError("Expected JAX-backed FrequencySeries")
+    width = end - start
+    winlen = 2 * int(width / out.delta_f)
+    kmin = int(start / out.delta_f)
+    kmax = kmin + winlen // 2
+
+    window = _jax_kaiser_window(data, winlen, beta)
+    target = data
+    if side == "left":
+        part = target[kmin:kmax] * window[: winlen // 2]
+        target = target.at[kmin:kmax].set(part)
+        target = target.at[:kmin].set(0.0)
+    elif side == "right":
+        part = target[kmin:kmax] * window[winlen // 2 :]
+        target = target.at[kmin:kmax].set(part)
+        target = target.at[kmax:].set(0.0)
+    else:
+        raise ValueError(f"unrecognized side argument {side}")
+    out._data.set_array(target)
+    return out
 
 
 def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
