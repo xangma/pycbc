@@ -60,6 +60,11 @@ from pycbc.filter.matchedfilter_jax import (
 from pycbc.types import Array, FrequencySeries, TimeSeries, zeros
 from pycbc.types.array_jax import JAXArrayData
 from pycbc.types.backend import is_backend
+from pycbc.vetoes import (
+    chisq_accum_bin,
+    power_chisq_at_points_from_precomputed,
+)
+
 jax.config.update("jax_enable_x64", True)
 jnp = jax.numpy
 
@@ -357,6 +362,49 @@ def test_threshold_and_cluster_parity():
         cvals_fn, clocs_fn = jax_threshold_cluster(ts, thresh, window)
         np.testing.assert_array_equal(clocs_cpu, clocs_fn)
         np.testing.assert_allclose(cvals_cpu, cvals_fn)
+
+
+def test_chisq_accum_bin_parity():
+    """Verify chisq_accum_bin under JAXScheme matches CPU."""
+    np.random.seed(70)
+    n = 2048
+    q_data = np.random.randn(n).astype(np.complex64)
+    q = Array(q_data, dtype=np.complex64)
+
+    z_cpu = zeros(n, dtype=np.float32)
+    chisq_accum_bin(z_cpu, q)
+
+    with _jax_context():
+        z_jax = zeros(n, dtype=np.float32)
+        chisq_accum_bin(z_jax, q)
+
+    np.testing.assert_allclose(z_cpu.numpy(), z_jax.numpy(), rtol=1e-6)
+
+
+def test_power_chisq_at_points_parity():
+    """Verify power_chisq_at_points_from_precomputed matches CPU to < 1e-7."""
+    n = 2048
+    np.random.seed(80)
+    corr_data = np.random.randn(n) + 1j * np.random.randn(n)
+    corr = FrequencySeries(corr_data, delta_f=1.0)
+    bins = np.array([10, 50, 150, 400, 800, 1000], dtype=np.uint32)
+    points = np.array([2, 25, 100, 350, 750, 1500], dtype=np.uint32)
+    snr = np.random.randn(len(points)) + 1j * np.random.randn(len(points))
+    snr_norm = 0.75
+
+    cpu_chisq = power_chisq_at_points_from_precomputed(
+        corr, snr, snr_norm, bins, points
+    )
+
+    with _jax_context():
+        jax_chisq = power_chisq_at_points_from_precomputed(
+            corr, snr, snr_norm, bins, points
+        )
+
+    rel_diff = np.max(
+        np.abs(cpu_chisq - jax_chisq) / np.abs(cpu_chisq)
+    )
+    assert rel_diff < 1e-7
 
 
 def test_autocorrelation_acf_and_acl():

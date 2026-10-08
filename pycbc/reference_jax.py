@@ -129,6 +129,21 @@ def _execute(request):
             )
             return (result.numpy(), result.delta_t,
                     None if result._epoch is None else str(result._epoch))
+        elif operation == "power_chisq_bins":
+            from pycbc.vetoes.chisq import power_chisq_bins
+
+            psd = FrequencySeries(kwargs.pop("psd"), delta_f=spacing)
+            template = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            return power_chisq_bins(template, psd=psd, **kwargs)
+        elif operation == "power_chisq_at_points":
+            from pycbc.vetoes.chisq import (
+                power_chisq_at_points_from_precomputed,
+            )
+
+            correlation = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            return power_chisq_at_points_from_precomputed(
+                correlation, **kwargs
+            )
         else:
             raise ValueError("Unknown CPU validation operation")
         return (

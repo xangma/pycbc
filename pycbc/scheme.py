@@ -213,6 +213,8 @@ JAX_REFERENCE_OPERATIONS = frozenset({
     'analytical_psd', 'highpass', 'lowpass', 'lfilter', 'fir_zero_filter',
     'resample', 'firwin', 'correlate', 'divide', 'autocorrelation',
     'autocorrelation_mean', 'autocorrelation_variance', 'threshold_cluster',
+    'shift_sum', 'chisq_accum_bin', 'power_chisq_bins',
+    'power_chisq_at_points',
 })
 
 
