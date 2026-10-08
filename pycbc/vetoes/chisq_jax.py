@@ -18,10 +18,10 @@
 
 import functools
 from types import SimpleNamespace
-
+import ast
 from collections import OrderedDict
 import threading
-
+import weakref
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -1044,10 +1044,131 @@ def _collect_cached_power_chisq_bins_jax(pending):
         _publish_cached_power_chisq_bins_jax(edges, templates, psd)
 
 
+@functools.partial(jax.jit, static_argnames=("num_bins", "kmin", "kmax"))
+def _resident_bins_from_sigmasq(cumulative, *, num_bins, kmin, kmax):
+    """Preserve the analytic cumulative-vector shortcut on its device."""
+    edges = jnp.arange(num_bins, dtype=jnp.float64) * cumulative[kmax - 1]
+    edges = edges / num_bins
+    bins = jnp.searchsorted(cumulative[kmin:kmax], edges, side="right") + kmin
+    return jnp.concatenate((bins, jnp.asarray([kmax], bins.dtype)))
 
 
+@functools.lru_cache(maxsize=32)
+def _constant_live_num_bins(option):
+    """Avoid evaluating template-independent literals for every bank row."""
+    try:
+        value = ast.literal_eval(option)
+    except (ValueError, SyntaxError, TypeError):
+        return None
+    if type(value) in (int, float, bool):
+        return int(value)
+    return None
 
 
+def resident_power_chisq_bins_jax(power_chisq, templates, psd, template_matrix):
+    """Return immutable device bin groups without publishing host bin caches.
+
+    Each group is ``(template_positions, bin_edges, base_k, n_time)``. Positions
+    are static host geometry; bin edges stay on the input matrix device and
+    use absolute frequency indices. PSD/template values are dynamic inputs.
+    Replacing either immutable array invalidates the bounded numerical cache.
+    Unsupported custom bin producers return ``None`` for the established path.
+    """
+    from collections import defaultdict
+    from pycbc.filter.matchedfilter import get_cutoff_indices
+    from pycbc.vetoes.chisq import SingleDetPowerChisq
+
+    if (_bin_references_selected()
+            or type(power_chisq) is not SingleDetPowerChisq
+            or power_chisq.parse_option is not SingleDetPowerChisq.parse_option
+            or getattr(power_chisq.cached_chisq_bins, "__func__", None)
+            is not SingleDetPowerChisq.cached_chisq_bins):
+        return None
+    if not templates:
+        return ()
+    _ensure_x64()
+    source = to_jax(template_matrix)
+    if source.ndim != 2 or source.shape[0] != len(templates):
+        raise ValueError("Resident bin matrix requires one row per template")
+    psd_values = to_jax(psd, device=source.device)
+    groups = defaultdict(list)
+    geometry = []
+    cumulative_sources = {}
+    constant_bins = _constant_live_num_bins(power_chisq.num_bins)
+    for position, template in enumerate(templates):
+        delta_f = float(template.delta_f)
+        n_time = ((len(template) - 1) * 2 if not hasattr(template, "cout")
+                  else len(template.cout))
+        base_k = int(template.f_lower / delta_f)
+        num_bins = (constant_bins if constant_bins is not None else
+                    int(power_chisq.parse_option(template, power_chisq.num_bins)))
+        cumulative = getattr(psd, "sigmasq_vec", {}).get(
+            getattr(template, "approximant", None))
+        if cumulative is None:
+            kmin, kmax = get_cutoff_indices(
+                template.f_lower, None, delta_f, (len(template) - 1) * 2)
+            cumulative_id = None
+        else:
+            kmin, kmax = int(template.f_lower / psd.delta_f), template.end_idx
+            cumulative_id = id(cumulative)
+            cumulative_sources[cumulative_id] = cumulative
+        group_key = (num_bins, len(template), delta_f, base_k, n_time,
+                     kmin, kmax, cumulative_id)
+        geometry.append((id(template), id(template.params), group_key))
+        groups[group_key].append(position)
+    key = (id(psd), id(psd_values), tuple(geometry))
+    sources = getattr(power_chisq, "_jax_resident_bin_groups", None)
+    if sources is None:
+        sources = power_chisq._jax_resident_bin_groups = {}
+    # Each original duration matrix needs its own PSD history. A single global
+    # four-entry cache would thrash across six duration grids and two detectors.
+    for source_id, (reference, _) in tuple(sources.items()):
+        if reference() is None:
+            sources.pop(source_id)
+    source_id = id(source)
+    if source_id not in sources:
+        sources[source_id] = (weakref.ref(source), OrderedDict())
+    cache = sources[source_id][1]
+    # NumPy cumulative vectors are mutable; never reuse their numerical edges.
+    cacheable = all(isinstance(vector, jax.Array)
+                    for vector in cumulative_sources.values())
+    if cacheable and key in cache:
+        entry = cache.pop(key)
+        cache[key] = entry
+        return entry[-1]
+    executable_cache = getattr(power_chisq, "_jax_live_veto_executables", None)
+    if executable_cache is None:
+        executable_cache = power_chisq._jax_live_veto_executables = {}
+    output = []
+    for group_key, positions in groups.items():
+        num_bins, _, delta_f, base_k, n_time, kmin, kmax, cumulative_id = group_key
+        rows = np.asarray(positions, dtype=np.int32)
+        rows.setflags(write=False)
+        if cumulative_id is None:
+            kmins = np.full(len(rows), kmin, dtype=np.int32)
+            args = (source, psd_values, rows, kmins)
+            static = dict(kmax=kmax, num_bins=num_bins, delta_f=delta_f,
+                          use_gpu_scan=_use_gpu_ordered_scan(source))
+            execute = _live_chisq_executable(
+                _power_chisq_bins_from_source, args, static,
+                executable_cache, source.device)
+            edges = execute(*args)
+        else:
+            cumulative = to_jax(cumulative_sources[cumulative_id],
+                                device=source.device)
+            args = (cumulative,)
+            static = dict(num_bins=num_bins, kmin=kmin, kmax=kmax)
+            execute = _live_chisq_executable(
+                _resident_bins_from_sigmasq, args, static,
+                executable_cache, source.device)
+            edges = jnp.broadcast_to(execute(*args), (len(rows), num_bins + 1))
+        output.append((rows, edges, base_k, n_time))
+    result = tuple(output)
+    if cacheable:
+        cache[key] = (psd, psd_values, tuple(cumulative_sources.values()), result)
+        while len(cache) > 4:
+            cache.popitem(last=False)
+    return result
 
 
 def cache_batch_power_chisq_bins_jax(power_chisq, templates, psd, *,
