@@ -453,6 +453,73 @@ class Detector(object):
                 fl = (z * dz).sum()
             return fb, fl
 
+    def antenna_pattern_and_time_delay(
+        self, right_ascension, declination, polarization, t_gps
+    ):
+        """Return antenna pattern and geocentric delay together.
+
+        Parameters
+        ----------
+        right_ascension : float, numpy.ndarray, or jax.Array
+            The right ascension of the source.
+        declination : float, numpy.ndarray, or jax.Array
+            The declination of the source.
+        polarization : float, numpy.ndarray, or jax.Array
+            The polarization angle of the source.
+        t_gps : float, lal.LIGOTimeGPS, numpy.ndarray, or jax.Array
+            The GPS time.
+
+        Returns
+        -------
+        fplus : float, numpy.ndarray, or jax.Array
+            Plus polarization antenna response.
+        fcross : float, numpy.ndarray, or jax.Array
+            Cross polarization antenna response.
+        delay : float, numpy.ndarray, or jax.Array
+            Geocentric time delay.
+        """
+        # The fused expressions are equivalent only to the built-in methods.
+        # Preserve detector subclasses and instance-level response overrides,
+        # including overrides reached through the geocentric-delay method.
+        methods = (
+            "antenna_pattern",
+            "time_delay_from_earth_center",
+            "time_delay_from_location",
+            "gmst_estimate",
+        )
+        if any(
+            getattr(getattr(self, name), "__func__", None)
+            is not getattr(Detector, name)
+            for name in methods
+        ):
+            fplus, fcross = self.antenna_pattern(
+                right_ascension, declination, polarization, t_gps
+            )
+            delay = self.time_delay_from_earth_center(
+                right_ascension, declination, t_gps
+            )
+            return fplus, fcross, delay
+
+        if isinstance(t_gps, lal.LIGOTimeGPS):
+            t_gps = float(t_gps)
+
+        backend = _detector_backend((right_ascension, declination, polarization, t_gps))
+        if backend is not None:
+            return backend.antenna_pattern_and_time_delay(
+                self,
+                right_ascension,
+                declination,
+                polarization,
+                t_gps,
+            )
+
+        fplus, fcross = self.antenna_pattern(
+            right_ascension, declination, polarization, t_gps
+        )
+        delay = self.time_delay_from_earth_center(
+            right_ascension, declination, t_gps
+        )
+        return fplus, fcross, delay
 
 
     def time_delay_from_earth_center(self, right_ascension, declination, t_gps):
@@ -765,6 +832,7 @@ def ppdets(ifos, separator=', '):
     return 'no detectors'
 
 __all__ = [
+    'NetworkGeometry',
     'Detector',
     'get_available_detectors',
     'get_available_lal_detectors',
@@ -777,3 +845,104 @@ __all__ = [
 ]
 
 
+class NetworkGeometry(object):
+    """Multi-detector network geometry helper.
+
+    JAX-backed inputs use the vectorized detector backend. Native inputs
+    delegate to each detector while preserving the public detector methods.
+
+    Parameters
+    ----------
+    detectors : iterable of str or Detector
+        Detector names or instances in the network.
+    reference_time : float, optional
+        Reference GPS time for GMST estimation.
+    """
+
+    def __init__(self, detectors, reference_time=1126259462.0):
+        self.detectors = [
+            detector
+            if isinstance(detector, Detector)
+            else Detector(detector, reference_time=reference_time)
+            for detector in detectors
+        ]
+        if not self.detectors:
+            raise ValueError("A detector network must contain at least one detector")
+        self.detector_names = [detector.name for detector in self.detectors]
+        self.reference_time = reference_time
+
+    @property
+    def responses(self):
+        return np.stack([detector.response for detector in self.detectors])
+
+    @property
+    def locations(self):
+        return np.stack([detector.location for detector in self.detectors])
+
+    def __len__(self):
+        return len(self.detectors)
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            for detector in self.detectors:
+                if detector.name == key:
+                    return detector
+            raise KeyError(f"Detector {key} not found in network {self.detector_names}")
+        return self.detectors[key]
+
+
+
+    def antenna_pattern_and_time_delay(
+        self, right_ascension, declination, polarization, t_gps
+    ):
+        """Return antenna responses and delays for every detector.
+
+        Results have shape ``(detectors, ...)``, where the trailing dimensions
+        are the broadcast shape of the sky coordinates and GPS times.
+        """
+        if isinstance(t_gps, lal.LIGOTimeGPS):
+            t_gps = float(t_gps)
+
+        backend = _detector_backend((right_ascension, declination, polarization, t_gps))
+        if backend is not None:
+            return backend.network_antenna_pattern_and_time_delay(
+                self,
+                right_ascension,
+                declination,
+                polarization,
+                t_gps,
+            )
+
+        fplus = []
+        fcross = []
+        delay = []
+        for detector in self.detectors:
+            fp, fc = detector.antenna_pattern(
+                right_ascension, declination, polarization, t_gps
+            )
+            fplus.append(fp)
+            fcross.append(fc)
+            delay.append(
+                detector.time_delay_from_earth_center(
+                    right_ascension, declination, t_gps
+                )
+            )
+        return np.asarray(fplus), np.asarray(fcross), np.asarray(delay)
+
+    def antenna_pattern(self, right_ascension, declination, polarization, t_gps):
+        """Return plus and cross antenna responses for every detector."""
+        fplus, fcross, _ = self.antenna_pattern_and_time_delay(
+            right_ascension, declination, polarization, t_gps
+        )
+        return fplus, fcross
+
+    def time_delay_from_earth_center(self, right_ascension, declination, t_gps):
+        """Return geocentric time delays for every detector."""
+        _, _, delay = self.antenna_pattern_and_time_delay(
+            right_ascension, declination, 0.0, t_gps
+        )
+        return delay
+
+    def to_dict(self, values):
+        """Map an array's detector axis to detector names."""
+        return {name: values[index] for index, name in enumerate(self.detector_names)}
