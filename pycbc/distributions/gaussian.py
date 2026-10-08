@@ -138,12 +138,47 @@ class Gaussian(bounded.BoundedDist):
 
     def _normalcdf(self, param, value):
         """The CDF of the normal distribution, without bounds."""
+        result = bounded._prior_native(self, "Gaussian._normalcdf", self._normalcdf, param, value)
+        if result is not bounded.REFERENCE_UNSELECTED:
+            return result
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            mu = self._mean[param]
+            var = self._var[param]
+            import jax.scipy.special as jsp
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating):
+                value = bounded._jax_as_array(value, reference)
+            return 0.5 * (1.0 + jsp.erf((value - mu) / (2 * var) ** 0.5))
         mu = self._mean[param]
         var = self._var[param]
         return 0.5*(1. + erf((value - mu)/(2*var)**0.5))
 
     def cdf(self, param, value):
         """Returns the CDF of the given parameter value."""
+        result = bounded._prior_native(self, "Gaussian.cdf", self.cdf, param, value)
+        if result is not bounded.REFERENCE_UNSELECTED:
+            return result
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            value = bounded._jax_params({"value": value})["value"]
+            a, b = self._bounds[param]
+            finite_a = a != -numpy.inf
+            finite_b = b != numpy.inf
+            if finite_a:
+                a = bounded._jax_as_array(a, reference)
+            if finite_b:
+                b = bounded._jax_as_array(b, reference)
+            if finite_a:
+                phi_a = self._normalcdf(param, a)
+            else:
+                phi_a = 0.0
+            if finite_b:
+                phi_b = self._normalcdf(param, b)
+            else:
+                phi_b = 1.0
+            phi_x = self._normalcdf(param, value)
+            return (phi_x - phi_a) / (phi_b - phi_a)
         a, b = self._bounds[param]
         if a != -numpy.inf:
             phi_a = self._normalcdf(param, a)
@@ -158,6 +193,18 @@ class Gaussian(bounded.BoundedDist):
 
     def _normalcdfinv(self, param, p):
         """The inverse CDF of the normal distribution, without bounds."""
+        result = bounded._prior_native(self, "Gaussian._normalcdfinv", self._normalcdfinv, param, p)
+        if result is not bounded.REFERENCE_UNSELECTED:
+            return result
+        jax, reference = bounded._jax_module_and_reference((p,))
+        if jax is not None:
+            mu = self._mean[param]
+            var = self._var[param]
+            import jax.scipy.special as jsp
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating):
+                p = bounded._jax_as_array(p, reference)
+            return mu + (2 * var) ** 0.5 * jsp.erfinv(2 * p - 1.0)
         mu = self._mean[param]
         var = self._var[param]
         return mu + (2*var)**0.5 * erfinv(2*p - 1.)
@@ -165,6 +212,25 @@ class Gaussian(bounded.BoundedDist):
     def _cdfinv_param(self, param, p):
         """Return inverse of the CDF.
         """
+        jax, reference = bounded._jax_module_and_reference((p,))
+        if jax is not None:
+            a, b = self._bounds[param]
+            finite_a = a != -numpy.inf
+            finite_b = b != numpy.inf
+            if finite_a:
+                a = bounded._jax_as_array(a, reference)
+            if finite_b:
+                b = bounded._jax_as_array(b, reference)
+            if finite_a:
+                phi_a = self._normalcdf(param, a)
+            else:
+                phi_a = 0.0
+            if finite_b:
+                phi_b = self._normalcdf(param, b)
+            else:
+                phi_b = 1.0
+            adjusted_p = phi_a + p * (phi_b - phi_a)
+            return self._normalcdfinv(param, adjusted_p)
         a, b = self._bounds[param]
         if a != -numpy.inf:
             phi_a = self._normalcdf(param, a)
@@ -182,14 +248,25 @@ class Gaussian(bounded.BoundedDist):
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
+        jax, _ = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            return jax.numpy.exp(self._logpdf(**kwargs))
         return numpy.exp(self._logpdf(**kwargs))
-
 
     def _logpdf(self, **kwargs):
         """Returns the log of the pdf at the given values. The keyword
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
+        jax, _ = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            contained = self.__contains__(kwargs)
+            import jax.numpy as jnp
+            logpdf = sum(
+                self._lognorm[p] + self._expnorm[p] *
+                (jnp.where(contained, kwargs[p], self._mean[p]) - self._mean[p]) ** 2.0
+                for p in self._params)
+            return bounded._jax_where(kwargs, contained, logpdf, -numpy.inf)
         if kwargs in self:
             return sum([self._lognorm[p] +
                         self._expnorm[p]*(kwargs[p]-self._mean[p])**2.

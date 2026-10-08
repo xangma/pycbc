@@ -69,9 +69,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - Waveforms
      - :doc:`jax_waveform`: diffGW convention mapping, phase arithmetic,
        bank decompression and tapers.
-   * - Domains
-     - :doc:`jax_domain_numerical_differences`: conversion grouping,
-       interpolation, roots and transform expressions.
+   * - Domains and priors
+     - :doc:`jax_domain_numerical_differences` and :doc:`jax_domain`: conversion
+       grouping, interpolation, roots, transform expressions and densities.
 
 Select names through ``JAXScheme(reference_operations=(...))`` or the
 application option ``--jax-reference-operations``. Multiple names compose;

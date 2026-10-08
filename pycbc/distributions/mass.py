@@ -19,7 +19,7 @@ q (i.e., mass ratio) from uniform component mass.
 import logging
 import numpy
 
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, CubicSpline
 from scipy.special import hyp2f1
 
 from pycbc.distributions import power_law
@@ -162,6 +162,9 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
+        jax, reference = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            return jax.numpy.exp(self._logpdf(**kwargs))
         for p in self._params:
             if p not in kwargs.keys():
                 raise ValueError(
@@ -179,6 +182,22 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
+        jax, reference = bounded._jax_module_and_reference(kwargs[p] for p in self._params if p in kwargs)
+        if jax is not None:
+            contained = self.__contains__(kwargs)
+            import jax.numpy as jnp
+            one = bounded._jax_as_array(1.0, reference)
+            log_pdf = bounded._jax_as_array(self._lognorm, reference)
+            for param in self._params:
+                value = kwargs[param]
+                if not isinstance(value, jax.Array):
+                    value = bounded._jax_as_array(value, reference)
+                safe_value = jnp.where(contained, value, one)
+                log_pdf = log_pdf + (
+                    (2.0 / 5.0) * jnp.log1p(safe_value)
+                    - (6.0 / 5.0) * jnp.log(safe_value)
+                )
+            return bounded._jax_where(kwargs, contained, log_pdf, -numpy.inf)
         for p in self._params:
             if p not in kwargs.keys():
                 raise ValueError(
@@ -206,6 +225,39 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
     def _cdfinv_param(self, param, value):
         """Return the inverse cdf to map the unit interval to parameter bounds.
         Note that value should be uniform in [0,1]."""
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            message = "q_from_uniform_m1_m2 cdfinv requires input in [0,1]."
+            if param not in self._params:
+                raise ValueError('{} is not contructed yet.'.format(param))
+            if not hasattr(self, "_cdfinv_tables"):
+                self._cdfinv_tables = {}
+            if param not in self._cdfinv_tables:
+                q_array = numpy.linspace(*self._bounds[param], num=1000, endpoint=True)
+                cdf_array = self._cdf_param(param, q_array)
+                coefficients = CubicSpline(cdf_array, q_array, extrapolate=False).c
+                self._cdfinv_tables[param] = (cdf_array, q_array, coefficients)
+            cdf_array, _, coefficients = self._cdfinv_tables[param]
+            import jax.numpy as jnp
+            if jnp.issubdtype(reference.dtype, jnp.complexfloating):
+                raise TypeError(message)
+            if not jnp.issubdtype(reference.dtype, jnp.floating):
+                reference = reference.astype(float)
+            invalid = (reference < 0) | (reference > 1)
+            if not isinstance(reference, jax.core.Tracer) and bool(jnp.any(invalid)):
+                raise ValueError(message)
+            knots = jnp.asarray(cdf_array, dtype=reference.dtype)
+            coeffs = jnp.asarray(coefficients, dtype=reference.dtype)
+            target = (knots[-1] - knots[0]) * reference + knots[0]
+            target = jnp.clip(target, knots[0], knots[-1])
+            indices = jnp.searchsorted(knots, target, side="right") - 1
+            indices = jnp.clip(indices, 0, len(knots) - 2)
+            delta = target - knots[indices]
+            result = (
+                (coeffs[0, indices] * delta + coeffs[1, indices]) * delta
+                + coeffs[2, indices]
+            ) * delta + coeffs[3, indices]
+            return jnp.where(invalid, jnp.nan, result)
         if (numpy.array(value) < 0).any() or (numpy.array(value) > 1).any():
             raise ValueError(
                 'q_from_uniform_m1_m2 cdfinv requires input in [0,1].')
