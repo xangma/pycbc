@@ -1,5 +1,6 @@
 """Native dispatch and isolated numerical controls for JAX events."""
 
+import os
 import subprocess
 import sys
 from types import SimpleNamespace
@@ -157,6 +158,55 @@ def test_original_event_selection_controls(method, selector, options):
         for name in expected.dtype.names:
             exact(device.events[name], expected[name])
             assert device.events[name].device == scheme.mgr.state.jax_device
+
+
+def test_event_boundaries_align_cross_device_inputs():
+    code = """
+import jax
+import jax.numpy as jnp
+import numpy as np
+from types import SimpleNamespace
+from pycbc import scheme
+from pycbc.events import ranking, cuts, veto, coinc
+from pycbc.events.eventmgr import findchirp_cluster_over_window
+from pycbc.events.eventmgr_jax import JAXEventManager
+from pycbc.events.coinc_jax import JAXMultiRingBuffer, JAXCoincExpireBuffer
+source = jax.devices('cpu')[0]
+snr = jax.device_put(np.array([5., 8.]), source)
+chisq = jax.device_put(np.array([1., 2.]), source)
+for controls in [(), ('newsnr', 'segment_veto', 'findchirp_cluster',
+                      'time_coincidence', 'cluster_over_time')]:
+    with scheme.JAXScheme('1', reference_operations=controls):
+        target = scheme.mgr.state.jax_device
+        outputs = [ranking.newsnr(snr, chisq),
+                   ranking.get_snr({'snr': snr}),
+                   ranking.get_newsnr({'snr': snr, 'chisq': chisq, 'chisq_dof': np.array([2, 3])}),
+                   cuts.apply_trigger_cuts({'snr': snr}, {('snr', np.greater): 6}),
+                   veto.indices_within_times(snr, np.array([0.]), np.array([10.])),
+                   findchirp_cluster_over_window(np.array([1, 2]), snr, 1),
+                   coinc.cluster_over_time(snr, np.array([1., 2.]), .1),
+                   *coinc.time_coincidence(snr, np.array([5.]), .1)]
+        assert all(value.device == target for value in outputs)
+        manager = JAXEventManager(SimpleNamespace(), ['time_index', 'snr'], [int, float])
+        manager.new_template()
+        manager.add_template_events(['time_index', 'snr'], [np.array([1, 2]), snr])
+        assert all(value.device == target for value in manager.template_events.values())
+        manager.finalize_template_events()
+        assert all(value.device == target for value in manager.events.values())
+        rings = JAXMultiRingBuffer(1, 2)
+        rings.add(np.array([0, 0]), {'snr': snr})
+        assert rings.data(0)['snr'].device == target
+        buffer = JAXCoincExpireBuffer(2, ['H1', 'L1'], initial_size=2)
+        buffer.add(snr, {'H1': np.array([0, 0]), 'L1': np.array([0, 0])}, ['H1', 'L1'])
+        assert buffer.data.device == target
+        if not controls:
+            result = jax.jit(ranking.newsnr)(jnp.array([5., 8.]), jnp.array([1., 2.]))
+            assert result.device == target
+"""
+    env = dict(os.environ, JAX_PLATFORMS='cpu',
+               XLA_FLAGS='--xla_force_host_platform_device_count=2')
+    subprocess.run([sys.executable, '-c', code], check=True, env=env,
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 @pytest.mark.parametrize('operation', ['time_coincidence', 'cluster_over_time',

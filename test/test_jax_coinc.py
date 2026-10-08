@@ -21,6 +21,11 @@ import pytest
 
 jax = pytest.importorskip("jax")
 import jax.numpy as jnp
+try:
+    from jax import enable_x64
+except ImportError:
+    from jax.experimental import enable_x64
+
 import pycbc
 from pycbc import scheme
 from pycbc.events import coinc
@@ -433,6 +438,566 @@ def test_numpy_coincidence_inputs_use_jax_under_jax_scheme():
     ):
         assert is_jax_array(actual)
         np.testing.assert_array_equal(np.asarray(actual), expected)
+
+
+def test_jax_expiring_background_buffer_is_device_resident():
+    """The live background statistic buffer performs updates with JAX arrays."""
+    from pycbc.events.coinc_jax import JAXCoincExpireBuffer
+
+    with scheme.JAXScheme():
+        buffer = JAXCoincExpireBuffer(4, ["H1", "L1"], initial_size=2)
+        buffer.add(
+            np.array([2.0, 5.0]),
+            {"H1": np.array([0, 0]), "L1": np.array([0, 0])},
+            ["H1", "L1"],
+        )
+        assert is_jax_array(buffer.data)
+    np.testing.assert_array_equal(np.asarray(buffer.data), [2.0, 5.0])
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("ifos", [("H1", "L1"), ("H1", "L1", "V1")])
+def test_jax_background_fused_updates_preserve_complete_eager_state(
+        monkeypatch, device, dtype, ifos):
+    """The unchanged eager path is the oracle for growth, pruning and tails."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    tiny = np.nextafter(dtype(0), dtype(1))
+    # Selection/copy operations must retain signed zero and NaN payload bits.
+    bits = np.array([0x7fc12345], dtype=np.uint32).view(np.float32)[0]
+    seed = np.array([0., -0., tiny, bits], dtype=dtype)
+    with scheme.JAXScheme(device):
+        actual = coinc_jax.JAXCoincExpireBuffer(2, ifos, initial_size=4,
+                                               dtype=dtype)
+        expected = coinc_jax.JAXCoincExpireBuffer(2, ifos, initial_size=4,
+                                                 dtype=dtype)
+        compiled = coinc_jax._append_expire_coinc_buffer
+        calls = []
+
+        def recorded(*args, **kwargs):
+            calls.append(kwargs["work_size"])
+            return compiled(*args, **kwargs)
+
+        monkeypatch.setattr(coinc_jax, "_append_expire_coinc_buffer", recorded)
+
+        def assert_state():
+            assert actual.index == expected.index
+            assert actual.time == expected.time
+            assert actual.nbytes == expected.nbytes
+            for got, want in ((actual.buffer, expected.buffer),
+                              *((actual.timer[ifo], expected.timer[ifo])
+                                for ifo in ifos)):
+                got, want = np.asarray(got), np.asarray(want)
+                assert got.shape == want.shape and got.dtype == want.dtype
+                assert got.tobytes() == want.tobytes()
+
+        def add(values, clocks, active):
+            values = jnp.asarray(values, dtype=dtype)
+            times = {ifo: jnp.asarray(clocks, dtype=jnp.int64) for ifo in ifos}
+            snapshot = (actual.buffer, actual.data, *actual.timer.values())
+            before = tuple(np.asarray(value).tobytes() for value in snapshot)
+            with monkeypatch.context() as reference:
+                reference.setattr(coinc_jax, "_can_append_expire_coinc_buffer",
+                                  lambda *_args: False)
+                expected.add(values, times, active)
+            actual.add(values, times, active)
+            assert_state()
+            assert tuple(np.asarray(value).tobytes() for value in snapshot) == before
+
+        add(seed, [0, 0, 0, 0], [])
+        assert actual.buffer.size == 4  # Exact capacity does not grow on JAX.
+        actual.remove(2)
+        expected.remove(2)
+        assert_state()
+        add([tiny], [1], ["H1"])
+        add([], [], ["H1"])
+        assert actual.index == 3  # Expiration equality is inclusive.
+        add([], [], ["H1"])
+        assert actual.index == 1
+        add([7., 8., -0., tiny], [-1, 1, 2, 3], list(ifos))
+        assert actual.buffer.size == 8
+        add([10., 11.], [4, 5], ["H1", "H1"])
+        add([], [], ["L1"])
+        add([12.], 10, [])  # Scalar timer broadcasting, without expiration.
+        actual.expiration = expected.expiration = -1
+        add([], [], list(ifos))
+        actual.remove(0)
+        expected.remove(0)
+        with monkeypatch.context() as reference:
+            reference.setattr(coinc_jax, "_can_append_expire_coinc_buffer",
+                              lambda *_args: False)
+            expected.increment(list(ifos))
+        actual.increment(list(ifos))
+        assert_state()
+        assert calls and max(calls) <= 8
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_jax_background_fused_updates_match_cpu_expiration(device):
+    """Compare active outputs and clocks with the independent CPU reference."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    native = coinc.CoincExpireBuffer(2, ["H1", "L1"], initial_size=64)
+    with scheme.JAXScheme(device):
+        buffer = coinc_jax.JAXCoincExpireBuffer(2, ["H1", "L1"], initial_size=64)
+        for block in range(8):
+            values = np.array([block, block + .5], dtype=np.float32)
+            clocks = {"H1": np.array([block - 2, block], np.int32),
+                      "L1": np.array([block, block - 1], np.int32)}
+            active = ["H1"] if block % 2 else ["H1", "L1"]
+            native.add(values, clocks, active)
+            buffer.add(jnp.asarray(values),
+                       {ifo: jnp.asarray(value) for ifo, value in clocks.items()},
+                       active)
+            assert buffer.index == native.index and buffer.time == native.time
+            assert np.asarray(buffer.data).tobytes() == native.data.tobytes()
+            for ifo in native.ifos:
+                np.testing.assert_array_equal(
+                    np.asarray(buffer.timer[ifo][:buffer.index]),
+                    native.timer[ifo][:native.index])
+            assert buffer.num_greater(3.) == native.num_greater(3.)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_jax_background_fused_updates_keep_statistics_resident(monkeypatch,
+                                                              device):
+    """A production-capacity update reads only the scalar survivor count."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    with scheme.JAXScheme(device):
+        buffer = coinc_jax.JAXCoincExpireBuffer(2, ["H1", "L1"])
+        values = jnp.arange(6, dtype=jnp.float32)
+        times = {ifo: jnp.arange(6, dtype=jnp.int32) for ifo in buffer.ifos}
+        array_type = type(values)
+        original = array_type.__array__
+
+        def reject_vector_copy(value, *args, **kwargs):
+            if value.ndim:
+                raise AssertionError("scientific column copied to host")
+            return original(value, *args, **kwargs)
+
+        with monkeypatch.context() as device_only:
+            device_only.setattr(array_type, "__array__", reject_vector_copy)
+            assert coinc_jax._can_append_expire_coinc_buffer(
+                buffer, values, times, ["H1", "L1"])
+            buffer.add(values, times, ["H1", "L1"])
+            buffer.increment(["H1"])
+            buffer.increment(["H1", "L1"])
+        assert buffer.index == 5
+        assert buffer.buffer.size == 2**20
+        assert buffer.timer["H1"].dtype == jnp.int32
+        assert buffer.buffer.devices() == values.devices()
+        np.testing.assert_array_equal(np.asarray(buffer.data), [1, 2, 3, 4, 5])
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_jax_background_prefix_core_reuses_dynamic_clock_and_index(monkeypatch,
+                                                                  device):
+    """Changing append positions and survivor counts reuses one executable."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    traces = []
+    nonzero = coinc_jax.jnp.nonzero
+
+    def counted_nonzero(mask, **kwargs):
+        traces.append(mask.shape)
+        return nonzero(mask, **kwargs)
+
+    coinc_jax._append_expire_coinc_buffer.clear_cache()
+    monkeypatch.setattr(coinc_jax.jnp, "nonzero", counted_nonzero)
+    try:
+        with scheme.JAXScheme(device):
+            buffer = coinc_jax.JAXCoincExpireBuffer(2, ["H1", "L1"],
+                                                   initial_size=64)
+            values = jnp.array([3., 5.], jnp.float32)
+            counts = []
+            for index, clock in ((3, 0), (4, 1), (5, 4), (3, 8)):
+                buffer.index = index
+                buffer.time = {ifo: clock for ifo in buffer.ifos}
+                times = {ifo: jnp.array([clock, clock + 1], jnp.int32)
+                         for ifo in buffer.ifos}
+                buffer.add(values, times, ["H1", "L1"])
+                counts.append(buffer.index)
+        assert traces == [(8,)]
+        assert len(set(counts)) > 1
+    finally:
+        coinc_jax._append_expire_coinc_buffer.clear_cache()
+
+
+@pytest.mark.parametrize("case", ["large", "negative_index", "float_expiration",
+                                 "large_threshold", "host_times", "missing_times",
+                                 "fractional_clock", "unconfigured_ifo",
+                                 "generator", "array_ifos", "matrix_values"])
+def test_jax_background_unusual_inputs_retain_eager_behavior(monkeypatch, case):
+    """Fast-path admission preserves existing fallback output/error state."""
+    from pycbc.events import coinc_jax
+
+    with scheme.JAXScheme():
+        buffers = [coinc_jax.JAXCoincExpireBuffer(2, ["H1", "L1"],
+                                                 initial_size=8192)
+                   for _ in range(2)]
+        values = jnp.array([1., 2.], jnp.float32)
+        times = {ifo: jnp.array([0, 1], jnp.int32) for ifo in buffers[0].ifos}
+        if case == "large":
+            for buffer in buffers:
+                buffer.index = 4096
+        elif case == "negative_index":
+            for buffer in buffers:
+                buffer.remove(1)
+        elif case == "float_expiration":
+            for buffer in buffers:
+                buffer.expiration = .5
+        elif case == "large_threshold":
+            for buffer in buffers:
+                buffer.expiration = 2**40
+        elif case == "host_times":
+            times = {ifo: np.asarray(value) for ifo, value in times.items()}
+        elif case == "missing_times":
+            del times["L1"]
+        elif case == "fractional_clock":
+            for buffer in buffers:
+                buffer.time["H1"] = 2.5
+        elif case == "unconfigured_ifo":
+            for buffer in buffers:
+                buffer.time["V1"] = 0
+        elif case == "matrix_values":
+            values = values.reshape(1, 2)
+
+        def active():
+            if case == "unconfigured_ifo":
+                return ["V1"]
+            if case == "generator":
+                return iter(["H1", "L1"])
+            if case == "array_ifos":
+                return np.array(["H1", "L1"])
+            return ["H1", "L1"]
+
+        assert not coinc_jax._can_append_expire_coinc_buffer(
+            buffers[0], values, times, active())
+        errors = []
+        for index, buffer in enumerate(buffers):
+            with monkeypatch.context() as reference:
+                if not index:
+                    reference.setattr(coinc_jax, "_can_append_expire_coinc_buffer",
+                                      lambda *_args: False)
+                try:
+                    buffer.add(values, times, active())
+                except Exception as error:  # Compare legacy failure state too.
+                    errors.append((type(error), str(error)))
+                else:
+                    errors.append(None)
+        assert errors[0] == errors[1]
+        assert buffers[0].time == buffers[1].time
+        assert buffers[0].index == buffers[1].index
+        for got, want in ((buffers[0].buffer, buffers[1].buffer),
+                          *((buffers[0].timer[ifo], buffers[1].timer[ifo])
+                            for ifo in buffers[0].ifos)):
+            assert np.asarray(got).tobytes() == np.asarray(want).tobytes()
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_jax_singles_buffer_keeps_approximant_metadata_host_side(device):
+    """Live trigger metadata may be strings beside device numeric columns."""
+    from pycbc.events.coinc_jax import JAXMultiRingBuffer
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    values = {"snr": np.array([3.0, 4.0]),
+              "template_id": np.array([0, 1], dtype=np.int32),
+              "approximant": np.array(["TaylorF2", "TaylorF2"])}
+    with scheme.JAXScheme(device):
+        buffer = JAXMultiRingBuffer(2, 2)
+        buffer.add(values["template_id"], values)
+        buffer.add(np.array([0]), {"snr": np.array([5.0]),
+                                   "template_id": np.array([0], dtype=np.int32),
+                                   "approximant": np.array(["TaylorF2"])})
+        stored = buffer.data(0)
+        # An empty block advances expiration without converting metadata.
+        buffer.add(np.array([], dtype=np.int32),
+                   {key: value[:0] for key, value in values.items()})
+        expired = buffer.data(0)
+        np.testing.assert_array_equal(np.asarray(expired["snr"]), [5.0])
+        np.testing.assert_array_equal(expired["approximant"], ["TaylorF2"])
+        # Expiration compacts the backing columns as well as the public view.
+        assert buffer.buffer[0]["snr"].size == 1
+        assert buffer.buffer_expire[0].size == 1
+        assert buffer.valid_ends[0] == 1
+        assert all(d.platform == ("gpu" if device == "cuda" else "cpu")
+                   for d in stored["snr"].devices())
+    assert is_jax_array(stored["snr"])
+    assert is_jax_array(stored["template_id"])
+    assert np.asarray(stored["snr"]).tolist() == [3.0, 5.0]
+    assert np.asarray(stored["approximant"]).tolist() == ["TaylorF2", "TaylorF2"]
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("max_time", [0, 1, 2])
+def test_jax_singles_grouped_updates_match_native_rings(device, max_time):
+    """Duplicates, backout and post-add expiration preserve ordered columns."""
+    from pycbc.events.coinc_jax import JAXMultiRingBuffer
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    dtype = np.dtype([("snr", "f4"), ("end_time", "f8"),
+                      ("event_id", "u8"), ("metadata", object)])
+    native = coinc.MultiRingBuffer(3, max_time, dtype)
+    with scheme.JAXScheme(device):
+        actual = JAXMultiRingBuffer(3, max_time)
+        for block, ids in enumerate(([1, 0, 1, 2, 1, 0], [2, 1, 2, 0],
+                                     [], [1, 2, 1])):
+            ids = np.asarray(ids, dtype=np.int32)
+            rows = np.empty(len(ids), dtype=dtype)
+            rows["snr"] = np.resize(np.array([-0., 0., np.nan], "f4"), len(ids))
+            rows["end_time"] = 1e9 + (block * 10 + np.arange(len(ids))) / 1024
+            rows["event_id"] = 2**53 + 1 + np.arange(len(ids), dtype=np.uint64)
+            rows["metadata"] = [np.nan if i % 3 == 2 else f"block{block}/row{i}"
+                                for i in range(len(ids))]
+            values = {key: rows[key] for key in dtype.names}
+            # Both native host columns and already resident columns are accepted.
+            if block % 2:
+                values["snr"] = jnp.asarray(values["snr"])
+            native.add(ids, rows)
+            actual.add(ids, values)
+            if block == 3:
+                # Repeated indices remove repeated rows, without rewinding time.
+                native.discard_last(ids)
+                actual.discard_last(ids)
+            assert actual.time == native.time
+            assert actual.filled_time == native.filled_time
+            for ring in range(3):
+                expected = native.data(ring)
+                got = actual.data(ring)
+                assert actual.valid_ends[ring] == len(expected)
+                assert got.keys() == set(dtype.names)
+                for key in dtype.names:
+                    value = np.asarray(got[key])
+                    assert value.dtype == expected[key].dtype
+                    assert value.shape == expected[key].shape
+                    if key == "metadata":
+                        np.testing.assert_equal(value.tolist(),
+                                                expected[key].tolist())
+                        assert isinstance(got[key], np.ndarray)
+                    else:
+                        # Byte comparison also checks signed zero and large IDs.
+                        assert value.tobytes() == expected[key].tobytes()
+                        assert is_jax_array(got[key])
+                np.testing.assert_array_equal(
+                    np.asarray(actual.expire_vector(ring)),
+                    native.expire_vector(ring))
+
+
+def test_jax_singles_grouped_dispatch_and_host_expiration(monkeypatch):
+    """Appending resident rings shares dispatch; expiry reads no device mask."""
+    from pycbc.events import coinc_jax
+
+    with scheme.JAXScheme("cpu"):
+        buffer = coinc_jax.JAXMultiRingBuffer(1024, 2)
+        assert all(value is buffer.buffer_expire[0]
+                   for value in buffer.buffer_expire)
+        columns = {"snr": np.arange(9, dtype=np.float32),
+                   "end_time": np.arange(9, dtype=np.float64),
+                   "metadata": np.array(["TaylorF2"] * 9)}
+        ids = np.tile(np.arange(3), 3)
+        buffer.add(ids, columns)
+        calls = []
+        append = coinc_jax._append_selected_singles_groups
+
+        def counted(selected, previous, expiries, clock):
+            calls.append((len(selected), tuple(len(row) for row in previous),
+                          tuple(row[0].shape for row in selected)))
+            return append(selected, previous, expiries, clock)
+
+        def reject_serial(*_args):
+            raise AssertionError("eligible ring group dispatched per-ring append")
+
+        def reject_device_mask(*args, **kwargs):
+            raise AssertionError("expiration read a device mask")
+
+        monkeypatch.setattr(coinc_jax, "_append_selected_singles_groups", counted)
+        monkeypatch.setattr(coinc_jax, "_append_singles_columns", reject_serial)
+        monkeypatch.setattr(coinc_jax.jnp, "all", reject_device_mask)
+        buffer.add(ids, columns)
+        # Both numeric columns and expiry share one call across all three rings.
+        assert calls == [(3, (2, 2, 2), ((3,), (3,), (3,)))]
+        buffer.add([], {})
+        for ring in range(3):
+            np.testing.assert_array_equal(np.asarray(buffer.data(ring)["snr"]),
+                                          columns["snr"][ids == ring])
+        buffer.add([], {})
+        assert all(len(buffer.data(ring)["snr"]) == 0 for ring in range(3))
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("x64", [False, True])
+def test_jax_singles_appends_numeric_columns_together(monkeypatch, device, x64):
+    """One resident group append retains typed rows and metadata order."""
+    from pycbc.events import coinc_jax
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    tiny = np.nextafter(np.float32(0), np.float32(1))
+    host = {"snr": np.array([-0., tiny, -tiny, np.nan], dtype=np.float32),
+            "metadata": np.array(["a", np.nan, "b", "c"], dtype=object),
+            "end_time": np.array([1e9 + i / 1024 for i in range(4)]),
+            "event_id": np.array([2**53 + i for i in range(4)], dtype=np.uint64),
+            "vector": np.arange(8, dtype=np.int32).reshape(4, 2)}
+    ids = np.array([2, 0, 2, 1])
+    calls = []
+    append = coinc_jax._append_selected_singles_groups
+
+    def counted(selected, previous, expiries, clock):
+        calls.append((len(selected), tuple(len(row) for row in selected),
+                      tuple(row[0].shape for row in selected)))
+        return append(selected, previous, expiries, clock)
+
+    def reject_serial(*_args):
+        raise AssertionError("eligible ring group dispatched per-ring append")
+
+    with scheme.JAXScheme(device), enable_x64(x64):
+        columns = {key: (value if key == "metadata" else jnp.asarray(value))
+                   for key, value in host.items()}
+        expected = {
+            ring: {key: (value[np.flatnonzero(ids == ring)]
+                         if key == "metadata" else
+                         value[jnp.asarray(np.flatnonzero(ids == ring))])
+                   for key, value in columns.items()}
+            for ring in (2, 0, 1)
+        }
+        monkeypatch.setattr(coinc_jax, "_append_selected_singles_groups", counted)
+        monkeypatch.setattr(coinc_jax, "_append_singles_columns", reject_serial)
+        actual = coinc_jax.JAXMultiRingBuffer(3, 2)
+        actual.add(ids, columns)
+        assert calls == [(3, (4, 4, 4), ((2,), (1,), (1,)))]
+        for ring, want in expected.items():
+            row = actual.data(ring)
+            assert list(row) == list(columns)
+            for key, value in row.items():
+                if key == "metadata":
+                    assert isinstance(value, np.ndarray)
+                    np.testing.assert_equal(value.tolist(), want[key].tolist())
+                else:
+                    got, reference = np.asarray(value), np.asarray(want[key])
+                    assert got.shape == reference.shape
+                    assert got.dtype == reference.dtype
+                    assert got.tobytes() == reference.tobytes()
+                    assert value.devices() == columns[key].devices()
+
+
+def test_jax_singles_malformed_columns_keep_gather_errors(monkeypatch):
+    """Ineligible geometry retains the original per-column error ordering."""
+    from pycbc.events import coinc_jax
+
+    def reject_gather(*args, **kwargs):
+        raise AssertionError("malformed columns reached fused selection")
+
+    monkeypatch.setattr(coinc_jax, "_gather_singles_columns", reject_gather)
+    with scheme.JAXScheme("cpu"):
+        for columns in ({"metadata": np.array("TaylorF2"), "snr": jnp.ones(2)},
+                        {"snr": jnp.array(1.), "metadata": np.array(["a", "b"])},
+                        {"metadata": np.array(["a"]), "snr": jnp.ones(2)}):
+            indices = jnp.asarray(np.array([0, 1]))
+            with pytest.raises(IndexError) as reference:
+                {key: value[indices] if is_jax_array(value) else value[[0, 1]]
+                 for key, value in columns.items()}
+            with pytest.raises(type(reference.value)):
+                coinc_jax.JAXMultiRingBuffer(2, 2).add([0, 0], columns)
+
+
+def test_jax_singles_mixed_devices_align_to_selected_device(monkeypatch):
+    """Mixed-device columns are admitted together without changing inputs."""
+    from pycbc.events import coinc_jax
+
+    if not any(device.platform == "gpu" for device in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    cpu, gpu = jax.devices("cpu")[0], jax.devices("gpu")[0]
+
+    gather = coinc_jax._gather_singles_columns
+    gather_calls = []
+
+    def record_gather(*args, **kwargs):
+        gather_calls.append(True)
+        return gather(*args, **kwargs)
+
+    with scheme.JAXScheme("cuda"):
+        expected = {"snr": np.array([-0., np.nan], "f4"),
+                    "end_time": np.array([1e9, 1e9 + .5])}
+        values = {"snr": jax.device_put(expected["snr"], gpu),
+                  "end_time": jax.device_put(expected["end_time"], cpu)}
+        original_devices = {key: value.devices() for key, value in values.items()}
+        monkeypatch.setattr(coinc_jax, "_gather_singles_columns", record_gather)
+        actual = coinc_jax.JAXMultiRingBuffer(1, 2)
+        actual.add([0, 0], values)
+        assert gather_calls
+        for key, value in actual.data(0).items():
+            assert value.devices() == {scheme.mgr.state.jax_device}
+            got, want = np.asarray(value), expected[key]
+            assert got.dtype == want.dtype and got.shape == want.shape
+            assert got.tobytes() == want.tobytes()
+            assert values[key].devices() == original_devices[key]
+            assert np.asarray(values[key]).tobytes() == want.tobytes()
+
+
+def test_jax_singles_traced_columns_keep_original_selection(monkeypatch):
+    """Traced inputs bypass the concrete-device selection guard."""
+    from pycbc.events import coinc_jax
+
+    def reject_gather(*args, **kwargs):
+        raise AssertionError("traced columns reached concrete-device selection")
+
+    monkeypatch.setattr(coinc_jax, "_gather_singles_columns", reject_gather)
+
+    @jax.jit
+    def select(values):
+        buffer = coinc_jax.JAXMultiRingBuffer(2, 2)
+        buffer.add([1, 0, 1], {"snr": values})
+        return buffer.data(1)["snr"], buffer.data(0)["snr"]
+
+    with scheme.JAXScheme("cpu"):
+        values = jnp.asarray(np.array([-0., np.nan, 3.], "f4"))
+        got = select(values)
+        expected = (values[jnp.array([0, 2])], values[jnp.array([1])])
+        for value, want in zip(got, expected):
+            assert np.asarray(value).tobytes() == np.asarray(want).tobytes()
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("x64", [False, True])
+def test_jax_singles_grouped_dtype_promotion_matches_scalar_append(device, x64):
+    """Grouping retains prior JAX casts, including mixed widening/subnormals."""
+    from pycbc.events.coinc_jax import JAXMultiRingBuffer
+
+    if device == "cuda" and not any(d.platform == "gpu" for d in jax.devices()):
+        pytest.skip("CUDA device unavailable")
+    tiny = np.nextafter(np.float32(0), np.float32(1))
+    blocks = [{"value": np.array([-0., np.nan], dtype=np.float64),
+               "id": np.array([2**53 + 1, 2**53 + 3], dtype=np.int64)},
+              {"value": np.array([tiny, -tiny], dtype=np.float32),
+               "id": np.array([2**53 + 5, 2**53 + 7], dtype=np.uint64)}]
+    with scheme.JAXScheme(device), enable_x64(x64):
+        buffer = JAXMultiRingBuffer(1, 10)
+        expected = {}
+        for values in blocks:
+            # Prior ring insertion cast and concatenated each row separately.
+            for pos in range(2):
+                for key, value in values.items():
+                    new = jnp.asarray(value[pos:pos + 1])
+                    expected[key] = (jnp.concatenate((expected[key], new))
+                                     if key in expected else new)
+            buffer.add(np.array([0, 0]), values)
+        for key, value in buffer.data(0).items():
+            got, want = np.asarray(value), np.asarray(expected[key])
+            assert got.shape == want.shape
+            assert got.dtype == want.dtype
+            assert got.tobytes() == want.tobytes()
 
 
 def test_cluster_coincs_jax_parity():
