@@ -160,7 +160,8 @@ the same linear amplitude/phase interpolation but round in different
 sequences. JAX tapers evaluate their Kaiser expression and Bessel function on
 device in the input precision; the original SciPy window is float64.
 
-The executed :download:`waveform comparison notebook <../examples/jax/jax_waveform.ipynb>` holds inputs and grids fixed, records package
+The executed :download:`waveform comparison notebook
+<../examples/jax/jax_waveform.ipynb>` holds inputs and grids fixed, records package
 versions and source hashes, isolates arithmetic boundaries, and asserts exact
 original waveform, decompression and taper controls.
 

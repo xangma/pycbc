@@ -8,14 +8,16 @@ using different implementations. Finite-precision results can differ even
 with identical input dtype, length and normalization. Such differences do not
 by themselves establish that a downstream search makes the same decisions.
 
-The :download:`FFT comparison notebook <../examples/jax/jax_fft_numerical_differences.ipynb>` compares the selected
+The :download:`FFT comparison notebook
+<../examples/jax/jax_fft_numerical_differences.ipynb>` compares the selected
 original CPU backend with default JAX and native validation routes. It uses
 identical deterministic real and complex inputs in single and double precision,
 including cancellation patterns and seeded random data. Forward and inverse
 native results must match the CPU output dtype and bytes exactly. Versions,
 the selected CPU backend and the JAX device are recorded without local paths.
 
-The :download:`standalone fft rounding notebook <../examples/jax/jax_fft_rounding.ipynb>` requires only NumPy and JAX.
+The :download:`standalone fft rounding notebook
+<../examples/jax/jax_fft_rounding.ipynb>` requires only NumPy and JAX.
 It uses small generated inputs to isolate arithmetic and rounding, without
 importing PyCBC or LAL. Use the comparison notebook above to validate the
 actual PyCBC implementations and original routes. Each notebook records

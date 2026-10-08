@@ -36,7 +36,8 @@ work; use it at a deliberate output boundary.
 Signal processing
 -----------------
 
-These guides describe the supported device calculations and their original-implementation validation controls.
+Supported JAX conditioning and numerical kernels run on the selected device
+by default. These guides describe FFTs, PSD estimation, filtering and frame I/O:
 
 .. toctree::
    :maxdepth: 1
@@ -48,7 +49,8 @@ These guides describe the supported device calculations and their original-imple
 Waveforms and banks
 -------------------
 
-The waveform guide describes supported generation and numerical validation.
+The waveform guide covers optional diffGW generation, stored template banks
+and original-waveform validation:
 
 .. toctree::
    :maxdepth: 1
@@ -58,7 +60,8 @@ The waveform guide describes supported generation and numerical validation.
 Searches
 --------
 
-Use ``pycbc_inspiral_jax`` and ``pycbc_live_jax`` for JAX searches. The original search commands retain their CPU pipelines.
+Use ``pycbc_inspiral_jax`` and ``pycbc_live_jax`` for JAX searches. The original
+``pycbc_inspiral`` and ``pycbc_live`` retain their CPU pipelines.
 
 .. toctree::
    :maxdepth: 1
@@ -96,9 +99,10 @@ using JAX:
 The command-line equivalent is ``--jax-reference-operations fft,ifft``.
 Original-path validation transfers data to the host and can be much slower.
 It requires identical inputs and matching precision and FFT settings.
+See :doc:`jax_testing` in the developer documentation for regression checks.
 
 .. toctree::
    :maxdepth: 1
 
    jax_numerical_differences
-
+   jax_benchmark_protocol

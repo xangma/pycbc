@@ -171,7 +171,8 @@ In Python, pass ``reference_operations=("newsnr", "live_output_selection")``
 to ``JAXScheme``. These controls use the host boundary described above; ranking
 can invoke an isolated CPU process.
 
-The :download:`Live output comparison notebook <../examples/jax/jax_live_output.ipynb>` separates background membership from
+The :download:`Live output comparison notebook
+<../examples/jax/jax_live_output.ipynb>` separates background membership from
 order, demonstrates equal-score selection, checks ranking independently,
 and asserts exact dtype, shape and bytes for all supplied trigger columns,
 selected indices and HDF output. It records library versions and

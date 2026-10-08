@@ -24,6 +24,8 @@ graphviz = "*"
 pycbc = { path = ".", editable = true, extras = ["test"] }
 
 [tool.pixi.environments]
+jax-cpu = { features = ["jax-tests", "jax-cpu"] }
+jax-gpu = { features = ["jax-tests", "jax-cuda"] }
 default = { features = ["bbhx"], solve-group = "default" }
 unittest = { features = ["bbhx"], solve-group = "default" }
 help = { features = ["help", "bbhx"], solve-group = "default" }
@@ -59,3 +61,13 @@ cupy-cuda12x = "*"
 
 [tool.pixi.target.linux-64.dependencies]
 mkl = "*"
+
+[tool.pixi.feature.jax-tests.dependencies]
+python = "3.12.*"
+mpi4py = "*"
+
+[tool.pixi.feature.jax-cpu.pypi-dependencies]
+jax = "==0.11.2"
+
+[tool.pixi.feature.jax-cuda.target.linux-64.pypi-dependencies]
+jax = { version = "==0.11.2", extras = ["cuda12"] }

@@ -8,7 +8,8 @@ across the original CPU and JAX implementations. Precision before a product,
 the order of a reduction and fused arithmetic all matter. Enabling JAX's
 64-bit support does not reproduce the CPU implementation's arithmetic order.
 
-The :download:`array comparison notebook <../examples/jax/jax_array_numerical_differences.ipynb>` runs the original CPU
+The :download:`array comparison notebook
+<../examples/jax/jax_array_numerical_differences.ipynb>` runs the original CPU
 operations, the default JAX operations and each selected native validation
 route on identical deterministic inputs. It asserts exact CPU/native equality,
 including output dtype and bytes, and reports the default JAX differences.

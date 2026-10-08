@@ -103,4 +103,4 @@ An original control is validated against the actual original implementation
 at held inputs. Combining controls provides a separate check of the remaining
 device implementation, batching and orchestration. Complete search output
 comparison, including metadata and explicit exclusions, is described in
-Benchmark protocol.
+:doc:`Benchmark protocol <jax_benchmark_protocol>`.

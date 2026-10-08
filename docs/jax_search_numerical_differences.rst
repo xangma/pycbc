@@ -8,7 +8,8 @@ PSD grids. Floating-point operations, scalar promotion, storage casts and
 sort ordering can still differ. A small value difference can cross a threshold;
 equal values can select different tied event indices.
 
-The :download:`search comparison notebook <../examples/jax/jax_search_numerical_differences.ipynb>` uses deterministic
+The :download:`search comparison notebook
+<../examples/jax/jax_search_numerical_differences.ipynb>` uses deterministic
 synthetic inputs and the original CPU implementations as oracles. It records
 library versions and device hardware, compares default results, and asserts
 equal shape, dtype and bytes with selected original operations. Its component
