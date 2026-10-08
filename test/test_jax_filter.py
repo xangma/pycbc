@@ -30,6 +30,7 @@ except ImportError:
 
 from pycbc import scheme
 from pycbc.events import threshold, threshold_only
+from pycbc.events.eventmgr import ThresholdCluster
 from pycbc.events.threshold_cpu import CPUThresholdCluster
 from pycbc.events.threshold_jax import (
     JAXThresholdCluster,
@@ -357,6 +358,15 @@ def test_threshold_and_cluster_parity():
 
         np.testing.assert_array_equal(clocs_cpu, clocs_jax)
         np.testing.assert_allclose(cvals_cpu, cvals_jax)
+
+        # Via ThresholdCluster factory under JAXScheme
+        with _jax_context():
+            factory_cluster = ThresholdCluster(ts)
+            cvals_f, clocs_f = factory_cluster.threshold_and_cluster(
+                thresh, window
+            )
+            np.testing.assert_array_equal(clocs_cpu, clocs_f)
+            np.testing.assert_allclose(cvals_cpu, cvals_f)
 
         # Via functional API
         cvals_fn, clocs_fn = jax_threshold_cluster(ts, thresh, window)
