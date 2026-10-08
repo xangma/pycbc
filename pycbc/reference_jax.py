@@ -315,6 +315,38 @@ def _execute(request):
             fp, fc = kwargs.pop("fp"), kwargs.pop("fc")
             output = fp * hp + fc * hc
             return output.numpy()
+        elif operation == "inference_whitening":
+            from types import SimpleNamespace
+            from pycbc.inference.models.gaussian_noise import BaseGaussianNoise
+
+            d = FrequencySeries(values, delta_f=spacing, epoch=epoch)
+            p = kwargs.pop("psd")
+            state = SimpleNamespace(
+                _data={"D": d},
+                _N={"D": kwargs.pop("size")},
+                _f_lower={},
+                _f_upper={},
+                _kmin={"D": kwargs.pop("kmin")},
+                _kmax={"D": kwargs.pop("kmax")},
+                _psds={},
+                _invpsds={},
+                _weight={},
+                _lognorm={},
+                _det_lognls={},
+                _whitened_data={},
+                lognl=0.0,
+            )
+            psds = None if p is None else {"D": FrequencySeries(p, delta_f=spacing)}
+            BaseGaussianNoise.psds.fset(state, psds)
+            return tuple(
+                np.asarray(mapping["D"])
+                for mapping in (
+                    state._psds,
+                    state._invpsds,
+                    state._weight,
+                    state._whitened_data,
+                )
+            )
         elif operation == "inference_weight":
             from pycbc.types import Array
 

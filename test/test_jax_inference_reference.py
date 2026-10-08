@@ -1,6 +1,12 @@
 """Original numerical boundaries for device-resident inference."""
 
 
+import pickle
+
+
+import types
+
+
 import numpy as np
 
 
@@ -16,7 +22,13 @@ import jax.numpy as jnp
 from pycbc.scheme import CPUScheme, JAXScheme
 
 
-from pycbc.types import Array
+from pycbc.types import Array, FrequencySeries
+
+
+from pycbc.inference.models.gaussian_noise import GaussianNoise
+
+
+from pycbc.inference.models.gaussian_noise_jax import JAXGaussianNoise
 
 
 from pycbc.inference.models import tools_jax
@@ -108,6 +120,52 @@ def test_default_inner_and_marginalization_remain_differentiable():
         np.testing.assert_allclose(actual, finite, rtol=1e-8)
 
 
+def test_cpu_statistics_keep_original_uncached_method_contract():
+    with CPUScheme():
+        waveform = FrequencySeries(np.ones(2, dtype=np.complex128), delta_f=1.0)
+        data = FrequencySeries(np.ones(2, dtype=np.complex128), delta_f=1.0)
+        model = object.__new__(GaussianNoise)
+        model.get_waveforms = lambda: {"H1": waveform}
+        model._whitened_data = {"H1": data}
+        model._weight = {"H1": np.full(2, 2.0)}
+        model._kmin = {"H1": 0}
+        model._kmax = {"H1": 2}
+        model._current_stats = types.SimpleNamespace(lognl=0.0)
+        model.waveform_transforms = None
+        assert model.det_cplx_loglr("H1") == 0j
+        # The original accessor calls _loglr without filling cached loglr.
+        assert not hasattr(model._current_stats, "loglr")
+        assert model.loglr == -8.0
+
+
+def test_jax_public_statistics_preserve_complex_scalar_kind():
+    from pycbc.inference.models.base_jax import JAXModelStats
+
+    stats = JAXModelStats()
+    stats.example = jnp.asarray(1.0 + 2.0j)
+    assert stats.getstats(("example",)) == (1.0 + 2.0j,)
+    assert stats.getstatsdict(("example",)) == {"example": 1.0 + 2.0j}
+
+
+def test_factory_preserves_explicit_custom_model_and_generator_overrides():
+    class Custom(GaussianNoise):
+        def _loglr(self):
+            return 123.0
+
+    with JAXScheme():
+        native = object.__new__(Custom)
+        # __new__ must not replace an inherited user model with a registered class.
+        selected = Custom.__new__(Custom)
+        assert type(selected) is Custom
+        assert type(native) is Custom
+        assert type(GaussianNoise.__new__(GaussianNoise)) is JAXGaussianNoise
+    # Class identity survives standard sampler serialization.
+    assert (
+        pickle.loads(pickle.dumps(object.__new__(JAXGaussianNoise))).__class__
+        is JAXGaussianNoise
+    )
+
+
 def test_original_sampling_preserves_rng_stream_and_indices():
     from pycbc.inference.models.tools import draw_sample
 
@@ -155,6 +213,36 @@ def test_original_distance_scalar_and_interpolation_marginalization():
             jnp.asarray(sh), jnp.asarray(hh), interpolator=evaluator
         )
     assert _bytes(actual) == _bytes(expected)
+
+
+def test_actual_jax_model_pickles_and_keeps_class_identity():
+    with JAXScheme("cpu", reference_operations=("inner",)):
+        data = FrequencySeries(np.zeros(17, dtype=np.complex128), delta_f=1.0)
+        model = GaussianNoise(
+            (),
+            {"H1": data},
+            {"H1": 2.0},
+            static_params=dict(
+                approximant="TaylorF2",
+                mass1=10.0,
+                mass2=10.0,
+                f_lower=2.0,
+                distance=100.0,
+                tc=0.0,
+                ra=0.0,
+                dec=0.0,
+                polarization=0.0,
+            ),
+        )
+        restored = pickle.loads(pickle.dumps(model))
+        assert type(restored) is type(model)
+        assert restored.lognl == model.lognl
+        np.testing.assert_array_equal(
+            restored.data["H1"].numpy(), model.data["H1"].numpy()
+        )
+        assert restored.data["H1"]._scheme.jax_reference_operations == frozenset(
+            {"inner"}
+        )
 
 
 def test_spline_gradient_before_compilation_preserves_evaluator():
