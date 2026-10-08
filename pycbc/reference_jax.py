@@ -347,6 +347,9 @@ def _execute(request):
                     state._whitened_data,
                 )
             )
+        elif operation == "inference_time_interpolation":
+            series = TimeSeries(values, delta_t=spacing, epoch=epoch)
+            return series.at_time(kwargs.pop("time"), **kwargs)
         elif operation == "inference_weight":
             from pycbc.types import Array
 

@@ -215,6 +215,111 @@ def test_original_distance_scalar_and_interpolation_marginalization():
     assert _bytes(actual) == _bytes(expected)
 
 
+@pytest.mark.parametrize(
+    "model_name", ["GaussianNoise", "MarginalizedTime", "MarginalizedPolarization"]
+)
+def test_actual_physical_models_restore_original_calculation(
+    model_name, monkeypatch, inference_device
+):
+    from pycbc.fft import backend_cpu
+    from pycbc.inference.models import gaussian_noise, marginalized_gaussian_noise
+
+    model_type = getattr(
+        (
+            gaussian_noise
+            if model_name == "GaussianNoise"
+            else marginalized_gaussian_noise
+        ),
+        model_name,
+    )
+    monkeypatch.setattr(backend_cpu, "cpu_backend", "numpy")
+    params = dict(
+        approximant="TaylorF2",
+        mass1=30.0,
+        mass2=20.0,
+        distance=500.0,
+        inclination=0.4,
+        f_lower=20.0,
+        coa_phase=0.2,
+        tc=1126259460.2,
+        ra=1.1,
+        dec=-0.3,
+    )
+    controls = (
+        "waveform",
+        "time_shift",
+        "inference_whitening",
+        "inference_inner",
+        "inference_projection",
+        "inference_time_interpolation",
+        "inference_marginalization",
+        "correlate",
+        "divide",
+        "ifft",
+        "fft",
+        "squared_norm",
+        "inner",
+        "detector",
+    )
+    outputs = []
+    state = np.random.get_state()
+    try:
+        for context in (
+            CPUScheme(),
+            JAXScheme(inference_device, reference_operations=controls),
+        ):
+            with context:
+                data = FrequencySeries(
+                    np.full(129, 1e-23 + 1e-23j, np.complex128),
+                    delta_f=2.0,
+                    epoch=1126259460.0,
+                )
+                psd = FrequencySeries(np.full(129, 1e-46), delta_f=2.0)
+                model = model_type(
+                    ("polarization",),
+                    {"H1": data},
+                    {"H1": 20.0},
+                    psds={"H1": psd},
+                    static_params=params,
+                )
+                model.update(
+                    polarization=(
+                        0.2
+                        if model_name == "GaussianNoise"
+                        else np.linspace(0.0, 2 * np.pi, 8)
+                    )
+                )
+                outputs.append(_bytes(model.loglr))
+        assert outputs[0] == outputs[1]
+    finally:
+        np.random.set_state(state)
+
+
+def test_original_time_interpolation_and_error_boundary():
+    from pycbc.types import TimeSeries
+    from pycbc.inference.models.marginalized_gaussian_noise_jax import _time_value
+
+    samples = np.random.default_rng(18).normal(size=16).astype(np.float64)
+    with CPUScheme():
+        series = TimeSeries(samples, delta_t=0.125, epoch=100.0)
+        expected = series.at_time(100.83, interpolate="quadratic")
+    with JAXScheme(reference_operations=("inference_time_interpolation",)):
+        actual = _time_value(TimeSeries(samples, delta_t=0.125, epoch=100.0), 100.83)
+        assert _bytes(actual) == _bytes(expected)
+        with pytest.raises(IndexError):
+            _time_value(TimeSeries(samples, delta_t=0.125, epoch=100.0), 103.0)
+
+
+def test_jax_subset_uses_same_model_rng_as_original():
+    from pycbc.inference.models.proposals_jax import _random_permutation
+
+    logs = jnp.arange(100, dtype=jnp.float64)
+    expected = np.random.default_rng(27).choice(100, size=7, replace=False)
+    device, host = _random_permutation(logs, 7, np.random.default_rng(27))
+    assert _bytes(host) == _bytes(expected)
+    assert _bytes(device) == _bytes(expected)
+
+
 def test_actual_jax_model_pickles_and_keeps_class_identity():
     with JAXScheme("cpu", reference_operations=("inner",)):
         data = FrequencySeries(np.zeros(17, dtype=np.complex128), delta_f=1.0)
@@ -292,3 +397,14 @@ for controls in ((),('inner','inference_sampling','inference_interpolant')):
         [sys.executable, "-c", code], env=env, capture_output=True, text=True
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_original_time_interpolation_keeps_extrapolation_option():
+    from pycbc.types import TimeSeries
+    from pycbc.inference.models.marginalized_gaussian_noise_jax import _time_value
+
+    with JAXScheme(reference_operations=("inference_time_interpolation",)):
+        samples = TimeSeries(
+            np.asarray([1.0 + 2j, 3.0 + 4j]), delta_t=0.125, epoch=100.0
+        )
+        assert complex(_time_value(samples, 103.0, extrapolate=0.0j)) == 0.0j
