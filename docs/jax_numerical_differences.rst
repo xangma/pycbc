@@ -33,6 +33,7 @@ establish every supported parameter, workload or complete-search decision.
    jax_search_numerical_differences
    jax_domain_numerical_differences
    jax_detector_numerical_differences
+   jax_inference_numerical_differences
 
 Independent calculations
 ------------------------
@@ -76,6 +77,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - Detectors
      - :doc:`jax_detector_numerical_differences`: sidereal-angle arithmetic,
        response contractions, finite-arm cancellation and input-time precision.
+   * - Inference
+     - :doc:`jax_inference_numerical_differences`: whitening, inner products,
+       marginalization, interpolation, relative binning and proposal sampling.
 
 Select names through ``JAXScheme(reference_operations=(...))`` or the
 application option ``--jax-reference-operations``. Multiple names compose;
