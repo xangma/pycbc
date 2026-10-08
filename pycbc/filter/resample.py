@@ -29,6 +29,12 @@ from pycbc.types import TimeSeries, Array, zeros, FrequencySeries, real_same_pre
 from pycbc.types import complex_same_precision_as
 from pycbc.fft import ifft, fft
 
+
+def _jax_active():
+    from pycbc import scheme
+    return (hasattr(scheme, 'JAXScheme') and
+            isinstance(scheme.mgr.state, scheme.JAXScheme))
+
 _resample_func = {numpy.dtype('float32'): lal.ResampleREAL4TimeSeries,
                  numpy.dtype('float64'): lal.ResampleREAL8TimeSeries}
 
@@ -38,6 +44,13 @@ def cached_firwin(*args, **kwargs):
     This is mostly done for PyCBC Live, which rapidly and repeatedly resamples data.
     """
     return scipy.signal.firwin(*args, **kwargs)
+
+
+def _firwin(*args, **kwargs):
+    if _jax_active():
+        from .resample_jax import firwin
+        return firwin(*args, **kwargs)
+    return cached_firwin(*args, **kwargs)
 
 
 # Change to True in front-end if you want this function to use caching
@@ -66,6 +79,10 @@ def lfilter(coefficients, timeseries):
     tseries: numpy.ndarray
         filtered array
     """
+    if _jax_active():
+        from .resample_jax import lfilter as _jax_lfilter
+        return _jax_lfilter(coefficients, timeseries)
+
     from pycbc.filter import correlate
     fillen = len(coefficients)
 
@@ -152,6 +169,10 @@ def fir_zero_filter(coeff, timeseries):
         Return the filtered timeseries, which has been properly shifted to account
     for the FIR filter delay and the corrupted regions zeroed out.
     """
+    if _jax_active():
+        from .resample_jax import fir_zero_filter as _jax_fir_zero_filter
+        return _jax_fir_zero_filter(coeff, timeseries)
+
     # apply the filter
     series = lfilter(coeff, timeseries)
 
@@ -204,6 +225,10 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
     if timeseries.sample_rate_close(1.0 / delta_t):
         return timeseries * 1
 
+    if _jax_active():
+        from .resample_jax import resample_to_delta_t as _jax_resample
+        return _jax_resample(timeseries, delta_t, method)
+
     if method == 'butterworth':
         lal_data = timeseries.lal()
         _resample_func[timeseries.dtype](lal_data, delta_t)
@@ -215,7 +240,7 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
 
         # The kaiser window has been testing using the LDAS implementation
         # and is in the same configuration as used in the original lalinspiral
-        filter_coefficients = cached_firwin(numtaps, 1.0 / factor,
+        filter_coefficients = _firwin(numtaps, 1.0 / factor,
                                             window=('kaiser', 5))
 
         # apply the filter and decimate
@@ -267,7 +292,7 @@ def notch_fir(timeseries, f1, f2, order, beta=5.0):
     """
     k1 = f1 / float((int(1.0 / timeseries.delta_t) / 2))
     k2 = f2 / float((int(1.0 / timeseries.delta_t) / 2))
-    coeff = cached_firwin(order * 2 + 1, [k1, k2], window=('kaiser', beta))
+    coeff = _firwin(order * 2 + 1, [k1, k2], window=('kaiser', beta))
     return fir_zero_filter(coeff, timeseries)
 
 def lowpass_fir(timeseries, frequency, order, beta=5.0):
@@ -286,7 +311,7 @@ def lowpass_fir(timeseries, frequency, order, beta=5.0):
         Beta parameter of the kaiser window that sets the side lobe attenuation.
     """
     k = frequency / float((int(1.0 / timeseries.delta_t) / 2))
-    coeff = cached_firwin(order * 2 + 1, k, window=('kaiser', beta))
+    coeff = _firwin(order * 2 + 1, k, window=('kaiser', beta))
     return fir_zero_filter(coeff, timeseries)
 
 def highpass_fir(timeseries, frequency, order, beta=5.0):
@@ -305,7 +330,7 @@ def highpass_fir(timeseries, frequency, order, beta=5.0):
         Beta parameter of the kaiser window that sets the side lobe attenuation.
     """
     k = frequency / float((int(1.0 / timeseries.delta_t) / 2))
-    coeff = cached_firwin(order * 2 + 1, k, window=('kaiser', beta), pass_zero=False)
+    coeff = _firwin(order * 2 + 1, k, window=('kaiser', beta), pass_zero=False)
     return fir_zero_filter(coeff, timeseries)
 
 def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
@@ -343,6 +368,11 @@ def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
 
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
+
+    if _jax_active():
+        from .resample_jax import butterworth
+        return butterworth(timeseries, frequency, filter_order, attenuation,
+                           btype="highpass")
 
     lal_data = timeseries.lal()
     _highpass_func[timeseries.dtype](lal_data, frequency,
@@ -385,6 +415,11 @@ def lowpass(timeseries, frequency, filter_order=8, attenuation=0.1):
 
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
+
+    if _jax_active():
+        from .resample_jax import butterworth
+        return butterworth(timeseries, frequency, filter_order, attenuation,
+                           btype="lowpass")
 
     lal_data = timeseries.lal()
     _lowpass_func[timeseries.dtype](lal_data, frequency,

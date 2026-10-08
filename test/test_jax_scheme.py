@@ -46,7 +46,7 @@ def test_jax_scheme_init_default():
     assert ctx.jax_device is not None
     assert ctx.jax_device.platform == "cpu"
     assert ctx.jax_chisq_mode == "cpu-compatible"
-    assert ctx.jax_highpass_mode == "lal-serial"
+    assert ctx.jax_highpass_mode == "lal-coefficients"
     assert ctx.jax_reference_operations == frozenset()
 
 
@@ -86,7 +86,7 @@ def test_jax_scheme_chisq_modes():
 
 
 def test_jax_scheme_highpass_modes():
-    assert scheme.JAXScheme(highpass_mode="parallel").jax_highpass_mode == "parallel"
+    assert scheme.JAXScheme(highpass_mode="closed-form").jax_highpass_mode == "closed-form"
     with pytest.raises(ValueError, match="highpass_mode"):
         scheme.JAXScheme(highpass_mode="unknown")
 
@@ -175,7 +175,7 @@ def test_jax_scheme_from_cli():
     ctx = scheme.from_cli(opts)
     assert isinstance(ctx, scheme.JAXScheme)
     assert ctx.jax_device.platform == "cpu"
-    assert ctx.jax_highpass_mode == "lal-serial"
+    assert ctx.jax_highpass_mode == "lal-coefficients"
 
     # Test explicit jax:cpu
     opts = parser.parse_args(["--processing-scheme", "jax:cpu"])
@@ -189,9 +189,9 @@ def test_jax_scheme_from_cli():
     assert scheme.from_cli(opts).jax_chisq_mode == "direct-phase"
 
     opts = parser.parse_args([
-        "--processing-scheme", "jax:cpu", "--jax-highpass-mode", "parallel"
+        "--processing-scheme", "jax:cpu", "--jax-highpass-mode", "closed-form"
     ])
-    assert scheme.from_cli(opts).jax_highpass_mode == "parallel"
+    assert scheme.from_cli(opts).jax_highpass_mode == "closed-form"
 
 
 def test_jax_reference_operations_cli():
@@ -255,7 +255,7 @@ def test_jax_scheme_cli_gpu_device_selection(
     ctx = scheme.from_cli(opts)
     assert ctx.device_spec == f"{backend}:{expected}"
     assert ctx.jax_device is devices[expected]
-    assert ctx.jax_highpass_mode == "parallel"
+    assert ctx.jax_highpass_mode == "closed-form"
 
 
 @pytest.mark.parametrize("index", [-1, 2])
@@ -287,7 +287,7 @@ def test_jax_chisq_mode_rejected_for_cpu():
         scheme.from_cli(opts)
 
     opts = parser.parse_args([
-        "--processing-scheme", "cpu", "--jax-highpass-mode", "lal-serial"
+        "--processing-scheme", "cpu", "--jax-highpass-mode", "lal-coefficients"
     ])
     with pytest.raises(ValueError, match="only valid with a JAX"):
         scheme.from_cli(opts)
@@ -307,7 +307,7 @@ def test_current_backend_key():
         key2 = scheme.current_backend_key()
         assert key2[0] == "jax"
         assert key1 != key2
-    with scheme.JAXScheme(highpass_mode="parallel"):
+    with scheme.JAXScheme(highpass_mode="closed-form"):
         assert scheme.current_backend_key() != key2
 
 
