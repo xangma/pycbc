@@ -6,9 +6,14 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+jax = pytest.importorskip("jax")
+
 from pycbc import scheme
 from pycbc.strain import strain_jax
-from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, execute_cached_fft, gate_data
+from pycbc.strain.strain import (
+    StrainBuffer, StrainSegments, detect_loud_glitches, execute_cached_fft,
+    gate_data,
+)
 from pycbc.types import FrequencySeries, TimeSeries
 from pycbc.types.array_jax import to_jax
 
@@ -20,6 +25,41 @@ def _same(actual, expected):
     assert actual.dtype == expected.dtype
     assert actual.numpy().tobytes() == expected.numpy().tobytes()
     assert actual.start_time == expected.start_time
+
+
+def _prepared_buffer(pad):
+    buffer = object.__new__(StrainBuffer)
+    buffer.sample_rate = 64
+    buffer.reduced_pad = pad
+    buffer.trim_padding = 16
+    buffer.psds, buffer.segments = {}, {}
+    buffer.strain = TimeSeries(
+        np.random.default_rng(91).normal(size=512).astype(np.float32),
+        delta_t=1 / 64, epoch=1187007104)
+    for df in (0.5, 1.0):
+        size = int(64 / df)
+        psd = FrequencySeries(
+            np.linspace(0.5, 2, size // 2 + 1, dtype=np.float32), delta_f=df)
+        padded = size + 2 * pad
+        psd.psdt = FrequencySeries(
+            np.linspace(0.7, 2.2, padded // 2 + 1, dtype=np.float32),
+            delta_f=64 / padded)
+        buffer.psds[df] = psd
+    return buffer
+
+
+@pytest.fixture
+def deterministic_original_fft(monkeypatch):
+    # FFTW aligned/unaligned plans can round differently after independent
+    # CPU allocations. Fix the original provider for this byte comparison.
+    from pycbc.fft import backend_cpu
+    from pycbc.strain.strain import create_memory_and_engine_for_class_based_fft
+
+    # Native cached plans retain their provider across backend changes.
+    create_memory_and_engine_for_class_based_fft.cache_clear()
+    monkeypatch.setattr(backend_cpu, "cpu_backend", "numpy")
+    yield
+    create_memory_and_engine_for_class_based_fft.cache_clear()
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -48,6 +88,24 @@ def test_cached_fft_reference_matches_original_plan(dtype, inverse, normalize):
         assert actual.delta_t == expected.delta_t
 
 
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_segment_reference_matches_original(dtype):
+    values = np.random.default_rng(42).normal(size=64).astype(dtype)
+    with scheme.CPUScheme():
+        source = TimeSeries(values, delta_t=0.25, epoch=100.5)
+        expected = StrainSegments(source, segment_length=4).fourier_segments()
+    with scheme.JAXScheme(DEVICE, reference_operations=("fft",)) as context:
+        source = TimeSeries(values, delta_t=0.25, epoch=100.5)
+        actual = StrainSegments(source, segment_length=4).fourier_segments()
+        for got, want in zip(actual, expected):
+            _same(got, want)
+            assert got.delta_f == want.delta_f
+            assert got.analyze == want.analyze
+            assert got.cumulative_index == want.cumulative_index
+            assert got.seg_slice == want.seg_slice
+            assert to_jax(got).devices() == {context.jax_device}
+
+
 @pytest.mark.parametrize("reference", [False, True])
 def test_gating_updates_parent_view(reference):
     gates = [(103.0, 0.5, 0.5), (103.25, 0.25, 0.25)]
@@ -69,6 +127,26 @@ def test_gating_updates_parent_view(reference):
             _same(parent, expected)
         else:
             np.testing.assert_allclose(parent.numpy(), expected.numpy(), atol=1e-7)
+
+
+@pytest.mark.parametrize("pad", [0, 8])
+def test_composed_overwhitening_reference_is_exact(pad, monkeypatch):
+    with scheme.CPUScheme():
+        expected = _prepared_buffer(pad).overwhitened_data(0.5).copy()
+    with scheme.JAXScheme(DEVICE, reference_operations=(
+            "fft", "ifft", "divide", "gate_data")) as context:
+        buffer = _prepared_buffer(pad)
+        monkeypatch.setattr(strain_jax, "_overwhiten_fused_core",
+                            lambda *a, **k: pytest.fail("reference was fused"))
+        actual = buffer.overwhitened_data(0.5)
+        _same(actual, expected)
+        assert actual.delta_f == expected.delta_f
+        assert actual.psd is buffer.psds[0.5]
+        assert actual is buffer.overwhitened_data(0.5)
+        assert to_jax(actual).devices() == {context.jax_device}
+        results = buffer.preload_overwhitened_data((0.5, 1.0))
+        assert results[0.5] is actual
+        assert results[1.0] is buffer.segments[1.0]
 
 
 @pytest.mark.parametrize("operation", [
@@ -179,6 +257,69 @@ def test_live_advance_composes_original_conditioning(monkeypatch):
 
 
 
+def test_full_native_live_psd_and_whitening_are_exact(deterministic_original_fft):
+    def buffer():
+        obj = _prepared_buffer(8)
+        obj.psd, obj.psds = None, {}
+        obj.psd_samples, obj.psd_segment_length = 3, 1
+        obj.psd_inverse_length, obj.low_frequency_cutoff = 0.5, 5
+        obj.psd_recalculate_difference = obj.psd_abort_difference = None
+        obj.detector = "H1"
+        obj.recalculate_psd()
+        return obj
+
+    with scheme.CPUScheme():
+        original = buffer()
+        expected_psd = original.psd.copy()
+        result = original.overwhitened_data(0.5)
+        expected_truncated = result.psd.copy()
+        expected_padded = result.psd.psdt.copy()
+        expected = result.copy()
+    with scheme.JAXScheme(DEVICE, reference_operations=(
+            "welch", "interpolate", "inverse_spectrum_truncation",
+            "fft", "ifft", "divide", "gate_data")):
+        actual = buffer()
+        result = actual.overwhitened_data(0.5)
+        _same(actual.psd, expected_psd)
+        _same(result.psd, expected_truncated)
+        _same(result.psd.psdt, expected_padded)
+        _same(result, expected)
+
+
+def test_reference_change_invalidates_fused_psd_and_spectrum_caches():
+    with scheme.JAXScheme(DEVICE):
+        buffer = _prepared_buffer(0)
+        buffer.psd = FrequencySeries(np.ones(33, np.float32), delta_f=1)
+        buffer.psd_inverse_length, buffer.low_frequency_cutoff = 0.5, 5
+        old_psd = buffer.psds[0.5]
+        cached = buffer.overwhitened_data(0.5)
+    with scheme.JAXScheme(DEVICE, reference_operations=("fft",)):
+        result = buffer.overwhitened_data(0.5)
+        assert result is not cached
+        assert result.psd is not old_psd
+        assert result is buffer.overwhitened_data(0.5)
+
+
+
+def test_segment_reference_change_recomputes_cached_spectra():
+    values = np.random.default_rng(3).normal(size=64).astype(np.float32)
+    with scheme.CPUScheme():
+        expected = StrainSegments(
+            TimeSeries(values, delta_t=0.25), segment_length=4).fourier_segments()
+    with scheme.JAXScheme(DEVICE):
+        segments = StrainSegments(
+            TimeSeries(values, delta_t=0.25), segment_length=4)
+        old = segments.fourier_segments()
+        assert old is segments.fourier_segments()
+    with scheme.JAXScheme(DEVICE, reference_operations=("fft",)):
+        actual = segments.fourier_segments()
+        assert actual is not old
+        for got, want in zip(actual, expected):
+            _same(got, want)
+        assert actual is segments.fourier_segments()
+
+
+
 @pytest.mark.parametrize("options", [
     dict(psd_duration=1, psd_stride=0),
     dict(psd_duration=0, psd_stride=0.5),
@@ -201,3 +342,15 @@ def test_resident_autogate_honors_original_peak_clustering():
 
 
 
+def test_prepared_psd_grids_retain_original_zero_epoch():
+    with scheme.JAXScheme(DEVICE):
+        buffer = _prepared_buffer(8)
+        buffer.psds = {}
+        buffer.psd = FrequencySeries(np.ones(33, np.float32), delta_f=1,
+                                     epoch=1187007104)
+        buffer.psd_inverse_length, buffer.low_frequency_cutoff = 0.5, 5
+        buffer.required_delta_fs = (0.5, 1.0)
+        buffer.preload_overwhitened_data()
+        for psd in buffer.psds.values():
+            assert psd.start_time == 0
+            assert psd.psdt.start_time == 0

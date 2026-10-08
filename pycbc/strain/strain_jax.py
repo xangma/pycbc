@@ -45,8 +45,21 @@ from pycbc.types.array_jax import (
 _PSD_REFERENCES = frozenset((
     "welch", "interpolate", "inverse_spectrum_truncation", "fft", "ifft",
 ))
+_OVERWHITEN_REFERENCES = _PSD_REFERENCES | {"divide", "gate_data"}
+
+
 def _selected_references():
     return getattr(scheme.mgr.state, "jax_reference_operations", frozenset())
+
+
+def _check_reference_cache(buffer):
+    """Do not reuse PSDs or spectra made with different validation routes."""
+    key = _selected_references() & _OVERWHITEN_REFERENCES
+    previous = getattr(buffer, "_jax_reference_key", key)
+    if previous != key:
+        buffer.psds = {}
+        buffer.segments = {}
+    buffer._jax_reference_key = key
 
 
 @functools.partial(
@@ -703,3 +716,425 @@ def gate_data_jax(data, gate_params):
     return data
 
 
+def fourier_segments_jax(segments):
+    """Transform complete strain segments as one batch on the active device."""
+    values = to_jax(segments.strain)
+    stacked = jnp.stack([values[s] for s in segments.segment_slices])
+    if _reference_enabled("fft"):
+        spectra = jnp.stack([
+            _unscaled_reference_fft(row, "fft", row.size)
+            for row in stacked]) * segments.strain.delta_t
+    else:
+        spectra = jnp.fft.rfft(stacked, axis=-1) * segments.strain.delta_t
+    result = []
+    for i, (seg, analyze) in enumerate(zip(segments.segment_slices,
+                                         segments.analyze_slices)):
+        series = pycbc.types.FrequencySeries(
+            JAXArrayData(spectra[i]), delta_f=segments.delta_f,
+            epoch=segments.strain[seg]._epoch, copy=False)
+        series.analyze = analyze
+        series.cumulative_index = seg.start + analyze.start
+        series.seg_slice = seg
+        result.append(series)
+    return result
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=("reduced_pad", "taper_samples", "output_length"),
+)
+def _overwhiten_fused_core(
+    strain_slice,
+    psdt_array,
+    delta_t,
+    reduced_pad,
+    taper_samples,
+    output_length,
+):
+    """Fused real FFT -> PSD division -> inverse FFT -> taper -> real FFT.
+
+    Executes on the active JAX device in a single fused XLA computation without
+    allocating intermediate TimeSeries or FrequencySeries objects.
+    """
+    if reduced_pad == 0:
+        return (jnp.fft.rfft(strain_slice) * delta_t) / psdt_array
+
+    # 1. Forward FFT & PSD division & Inverse FFT
+    w1 = jnp.fft.irfft(
+        jnp.fft.rfft(strain_slice) / psdt_array,
+        n=strain_slice.shape[0],
+    )
+    # 2. Trim padding
+    w2 = w1[reduced_pad:reduced_pad + output_length]
+    # 3. Taper ends
+    if taper_samples > 0:
+        pad_samples = taper_samples // 2
+        pad = 0.5 * (1.0 + jnp.cos(
+            jnp.pi * jnp.arange(pad_samples, dtype=jnp.float64) / pad_samples
+        ))
+        # Match gate_data's full window and int() offsets, including
+        # truncation toward zero when an oversized right gate starts before
+        # the segment. Applying each clipped gate separately preserves the
+        # in-place dtype casts where the gates overlap.
+        middle = jnp.zeros(taper_samples - 2 * pad_samples, dtype=pad.dtype)
+        window = jnp.concatenate((pad, middle, pad[::-1]))
+        offsets = (-pad_samples, int(output_length - taper_samples / 2))
+        for offset in offsets:
+            idx1 = max(0, -offset)
+            idx2 = min(taper_samples, output_length - offset)
+            start, end = idx1 + offset, idx2 + offset
+            w2 = w2.at[start:end].set(
+                (w2[start:end] * window[idx1:idx2]).astype(w2.dtype))
+    # 4. Final Forward FFT
+    return jnp.fft.rfft(w2) * delta_t
+
+
+def _ensure_psd_for_delta_f(buffer, delta_f):
+    """Ensure truncated device PSDs are prepared for a given delta_f."""
+    if delta_f in buffer.psds:
+        psd = buffer.psds[delta_f]
+        if getattr(psd, "_jax_psdt", None) is None:
+            psd._jax_psdt = to_jax(psd.psdt)
+        if getattr(psd, "_jax_psd", None) is None:
+            psd._jax_psd = to_jax(psd)
+        return psd
+
+    import pycbc.psd
+
+    buffer_length = int(1.0 / delta_f)
+    e = len(buffer.strain)
+    reduced_pad = int(buffer.reduced_pad)
+    s = int(e - buffer_length * buffer.sample_rate - reduced_pad * 2)
+    fseries_len = e - s
+    fseries_delta_f = 1.0 / (fseries_len * buffer.strain.delta_t)
+
+    psdt = pycbc.psd.interpolate(buffer.psd, fseries_delta_f)
+    psdt = pycbc.psd.inverse_spectrum_truncation(
+        psdt,
+        int(buffer.sample_rate * buffer.psd_inverse_length),
+        low_frequency_cutoff=buffer.low_frequency_cutoff,
+    )
+    psdt._delta_f = fseries_delta_f
+
+    psd = pycbc.psd.interpolate(buffer.psd, delta_f)
+    psd = pycbc.psd.inverse_spectrum_truncation(
+        psd,
+        int(buffer.sample_rate * buffer.psd_inverse_length),
+        low_frequency_cutoff=buffer.low_frequency_cutoff,
+    )
+    psd.psdt = psdt
+    psd._jax_psdt = to_jax(psdt)
+    psd._jax_psd = to_jax(psd)
+    buffer.psds[delta_f] = psd
+    return psd
+
+
+@functools.partial(jax.jit, static_argnames=("static_configs",))
+def _multi_psd_prepare_core(psd, old_df, grid_dfs, static_configs):
+    """Prepare the existing padded/unpadded PSD grids in one dispatch."""
+    results = []
+    for df, (n_freq, kmin, trunc_start, trunc_end) in zip(
+        grid_dfs, static_configs
+    ):
+        # Retain the public interpolation's rounding before hard truncation.
+        interpolated = _interp_core(psd, old_df, df, n_freq).astype(psd.dtype)
+        results.append(_inv_trunc_core(
+            interpolated, None, 0.0, n_freq, (n_freq - 1) * 2,
+            kmin, trunc_start, trunc_end, "invasd", False,
+        ))
+    return tuple(results)
+
+
+def _prepare_missing_psds_cuda(buffer, delta_fs):
+    """Batch valid CUDA cache misses; leave other inputs to the usual path.
+
+    Only compiled kernels are reused. Numerical results remain in ``psds``,
+    which StrainBuffer invalidates when its current PSD changes.
+    """
+    if _selected_references() & _PSD_REFERENCES:
+        return False
+    # NumPy scalars have different promotion rules in cutoff division and
+    # interpolation. Generic collections retain their sequential API behavior.
+    if type(delta_fs) is not tuple or any(
+        type(df) not in (int, float) for df in delta_fs
+    ):
+        return False
+    missing = tuple(df for df in delta_fs if df not in buffer.psds)
+    if not missing or len(set(delta_fs)) != len(delta_fs):
+        return False
+    data = getattr(buffer.psd, "_data", None)
+    if not isinstance(data, JAXArrayData) or data.parent is not None:
+        return False
+    values = data.array
+    if not isinstance(values, jax.Array) or values.dtype not in (
+        jnp.float32, jnp.float64
+    ):
+        return False
+    devices = values.devices()
+    if len(devices) != 1:
+        return False
+    device = next(iter(devices))
+    if (device.platform != "gpu"
+            or device != getattr(scheme.mgr.state, "jax_device", None)):
+        return False
+
+    # Validate before dispatch/publishing. Unsupported geometry uses the
+    # sequential API, retaining its errors and partial-cache behavior.
+    grid_dfs = []
+    configs = []
+    try:
+        old_df = float(buffer.psd.delta_f)
+        max_filter_len = int(buffer.sample_rate * buffer.psd_inverse_length)
+        cutoff = buffer.low_frequency_cutoff
+        if not len(values) or not math.isfinite(old_df) or old_df <= 0:
+            return False
+        if max_filter_len <= 0:
+            return False
+        for df in missing:
+            if not math.isfinite(df) or df <= 0:
+                return False
+            duration = int(1.0 / df)
+            e = len(buffer.strain)
+            s = int(e - duration * buffer.sample_rate
+                    - int(buffer.reduced_pad) * 2)
+            if s < 0 or s >= e:
+                return False
+            padded_df = 1.0 / ((e - s) * buffer.strain.delta_t)
+            for grid_df in (padded_df, df):
+                n_freq = int(round((len(values) - 1) * old_df / grid_df + 1))
+                trunc_df = float(grid_df)
+                n_time = (n_freq - 1) * 2
+                start = max_filter_len // 2
+                end = n_time - start
+                if n_freq <= 1 or end < start:
+                    return False
+                if cutoff is not None and (
+                    not math.isfinite(cutoff)
+                    or cutoff < 0 or cutoff > (n_freq - 1) * trunc_df
+                ):
+                    return False
+                kmin = int(cutoff / trunc_df) if cutoff else 1
+                grid_dfs.append(grid_df)
+                configs.append((n_freq, kmin, start, end))
+    except (TypeError, ValueError, ZeroDivisionError, OverflowError):
+        return False
+
+    prepared = _multi_psd_prepare_core(
+        values, old_df, tuple(grid_dfs), tuple(configs),
+    )
+    # The original inverse truncation creates a new zero-epoch spectrum.
+    epoch = 0
+    for i, df in enumerate(missing):
+        psdt = pycbc.types.FrequencySeries(
+            JAXArrayData(prepared[2 * i]), delta_f=grid_dfs[2 * i],
+            epoch=epoch, copy=False,
+        )
+        psd = pycbc.types.FrequencySeries(
+            JAXArrayData(prepared[2 * i + 1]), delta_f=float(df),
+            epoch=epoch, copy=False,
+        )
+        psd.psdt = psdt
+        psd._jax_psdt = prepared[2 * i]
+        psd._jax_psd = prepared[2 * i + 1]
+        buffer.psds[df] = psd
+    return True
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=("static_configs", "delta_t"),
+)
+def _multi_overwhiten_fused_core(
+    strain_array,
+    psdts_tuple,
+    static_configs,
+    delta_t,
+):
+    """Batch-process multiple duration overwhitening passes on device."""
+    results = []
+    for (s, e, reduced_pad, taper_samples, output_length), psdt_arr in zip(
+        static_configs, psdts_tuple
+    ):
+        sl = strain_array[s:e]
+        val = _overwhiten_fused_core(
+            sl,
+            psdt_arr,
+            delta_t,
+            reduced_pad,
+            taper_samples,
+            output_length,
+        )
+        results.append(val)
+    return tuple(results)
+
+
+def _overwhiten_single_delta_f(buffer, delta_f):
+    """Compute and cache a single duration overwhitened segment."""
+    _ensure_psd_for_delta_f(buffer, delta_f)
+    psd = buffer.psds[delta_f]
+    if _selected_references() & _OVERWHITEN_REFERENCES:
+        return _overwhiten_staged(buffer, delta_f, psd)
+    psdt_array = getattr(psd, "_jax_psdt", None)
+    if psdt_array is None:
+        psdt_array = to_jax(psd.psdt)
+        psd._jax_psdt = psdt_array
+
+    buffer_length = int(1.0 / delta_f)
+    e = len(buffer.strain)
+    reduced_pad = int(buffer.reduced_pad)
+    s = int(e - buffer_length * buffer.sample_rate - reduced_pad * 2)
+    output_length = int(buffer_length * buffer.sample_rate)
+    strain_slice = to_jax(buffer.strain)[s:e]
+    delta_t = float(buffer.strain.delta_t)
+
+    if reduced_pad != 0:
+        taper_window = buffer.trim_padding / 2.0 / buffer.sample_rate
+        taper_samples = int(2 * buffer.sample_rate * taper_window)
+    else:
+        taper_samples = 0
+
+    values = _overwhiten_fused_core(
+        strain_slice,
+        psdt_array,
+        delta_t,
+        reduced_pad,
+        taper_samples,
+        output_length,
+    )
+
+    epoch = buffer.strain._epoch + (s + reduced_pad) * buffer.strain.delta_t
+    result = pycbc.types.FrequencySeries(
+        JAXArrayData(values),
+        delta_f=delta_f,
+        epoch=epoch,
+        copy=False,
+    )
+    result.psd = psd
+    buffer.segments[delta_f] = result
+    return result
+
+
+def _overwhiten_staged(buffer, delta_f, psd):
+    """Retain the original stage order while validating individual kernels."""
+    e = len(buffer.strain)
+    s = int(e - int(1.0 / delta_f) * buffer.sample_rate
+            - buffer.reduced_pad * 2)
+    spectrum = execute_fft_jax(buffer.strain[s:e])
+    spectrum /= psd.psdt
+    if buffer.reduced_pad:
+        overwhite = execute_fft_jax(spectrum, ifft=True)
+        trimmed = overwhite[
+            buffer.reduced_pad:len(overwhite) - buffer.reduced_pad]
+        taper = buffer.trim_padding / 2.0 / overwhite.sample_rate
+        gate_data_jax(trimmed, [(trimmed.start_time, 0.0, taper),
+                               (trimmed.end_time, 0.0, taper)])
+        result = execute_fft_jax(trimmed)
+        result.start_time = (spectrum.start_time
+                             + buffer.reduced_pad * buffer.strain.delta_t)
+    else:
+        result = spectrum
+    result.psd = psd
+    buffer.segments[delta_f] = result
+    return result
+
+
+def preload_overwhitened_data_jax(buffer, delta_fs=None):
+    """Precompute and cache device-resident overwhitened segments."""
+    _ensure_x64()
+    _check_reference_cache(buffer)
+    if delta_fs is None:
+        delta_fs = getattr(buffer, "required_delta_fs", None)
+    if delta_fs is None:
+        delta_fs = tuple(buffer.psds.keys())
+    if not delta_fs:
+        return {}
+
+    missing_dfs = tuple(df for df in delta_fs if df not in buffer.segments)
+    if not missing_dfs:
+        return {
+            df: buffer.segments[df] for df in delta_fs if df in buffer.segments
+        }
+
+    _prepare_missing_psds_cuda(buffer, missing_dfs)
+    for df in missing_dfs:
+        _ensure_psd_for_delta_f(buffer, df)
+
+    if (len(missing_dfs) == 1
+            or _selected_references() & _OVERWHITEN_REFERENCES):
+        for df in missing_dfs:
+            _overwhiten_single_delta_f(buffer, df)
+        return {
+            df: buffer.segments[df] for df in delta_fs if df in buffer.segments
+        }
+
+    e = len(buffer.strain)
+    reduced_pad = int(buffer.reduced_pad)
+    delta_t = float(buffer.strain.delta_t)
+    if reduced_pad != 0:
+        taper_window = buffer.trim_padding / 2.0 / buffer.sample_rate
+        taper_samples = int(2 * buffer.sample_rate * taper_window)
+    else:
+        taper_samples = 0
+
+    configs = []
+    psdts = []
+    epochs = []
+    for df in missing_dfs:
+        buf_len = int(1.0 / df)
+        s = int(e - buf_len * buffer.sample_rate - reduced_pad * 2)
+        out_len = int(buf_len * buffer.sample_rate)
+        configs.append((s, e, reduced_pad, taper_samples, out_len))
+        psdts.append(buffer.psds[df]._jax_psdt)
+        epochs.append(buffer.strain._epoch + (s + reduced_pad) * delta_t)
+
+    strain_array = to_jax(buffer.strain)
+    values_tuple = _multi_overwhiten_fused_core(
+        strain_array,
+        tuple(psdts),
+        tuple(configs),
+        delta_t,
+    )
+
+    for df, values, ep in zip(missing_dfs, values_tuple, epochs):
+        res = pycbc.types.FrequencySeries(
+            JAXArrayData(values),
+            delta_f=df,
+            epoch=ep,
+            copy=False,
+        )
+        res.psd = buffer.psds[df]
+        buffer.segments[df] = res
+
+    return {
+        df: buffer.segments[df] for df in delta_fs if df in buffer.segments
+    }
+
+
+def overwhitened_data_jax(buffer, delta_f):
+    """Compute and cache overwhitened strain data on the JAX device."""
+    _check_reference_cache(buffer)
+    if delta_f in buffer.segments:
+        return buffer.segments[delta_f]
+
+    _ensure_x64()
+    required_dfs = getattr(buffer, "required_delta_fs", None)
+    if (type(required_dfs) is tuple and required_dfs
+            and type(delta_f) in (int, float)
+            and all(type(df) in (int, float) for df in required_dfs)):
+        if delta_f not in required_dfs:
+            required_dfs = required_dfs + (delta_f,)
+        _prepare_missing_psds_cuda(buffer, required_dfs)
+    _ensure_psd_for_delta_f(buffer, delta_f)
+
+    target_dfs = getattr(buffer, "required_delta_fs", None)
+    if target_dfs is None:
+        target_dfs = tuple(buffer.psds.keys())
+    if delta_f not in target_dfs:
+        target_dfs = target_dfs + (delta_f,)
+
+    if len(target_dfs) > 1:
+        preload_overwhitened_data_jax(buffer, delta_fs=target_dfs)
+        if delta_f in buffer.segments:
+            return buffer.segments[delta_f]
+
+    return _overwhiten_single_delta_f(buffer, delta_f)
