@@ -214,6 +214,7 @@ JAX_REFERENCE_OPERATIONS = DOMAIN_REFERENCE_OPERATIONS | frozenset({
     'inference_interpolant',
     'inference_sampling',
     'inference_projection',
+    'inference_time_interpolation',
 
     'gate_data', 'detect_loud_glitches', 'newsnr', 'effsnr',
     'findchirp_cluster',
