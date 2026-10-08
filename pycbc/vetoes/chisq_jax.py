@@ -19,8 +19,8 @@
 import functools
 from types import SimpleNamespace
 
-
-
+from collections import OrderedDict
+import threading
 
 import numpy as np
 import jax
@@ -108,27 +108,77 @@ def _chisq_candidate_bucket(count):
     return max(4, 1 << (max(1, int(count)) - 1).bit_length())
 
 
+_LIVE_EXECUTABLE_CACHE_LIMIT = 128
+_LIVE_EXECUTABLE_CACHE = OrderedDict()
+_LIVE_EXECUTABLE_CACHE_LOCK = threading.RLock()
 
 
+def _retain_live_executable(cache, key, executable):
+    """Retain recently used handles without accumulating compaction shapes."""
+    cache.pop(key, None)
+    cache[key] = executable
+    while len(cache) > _LIVE_EXECUTABLE_CACHE_LIMIT:
+        cache.pop(next(iter(cache)))
 
 
 def _live_chisq_executable(function, args, static_args, cache, device):
     """Retain and reuse a shape-only compiled Live executable on its device.
 
     Calling ``lower().compile()`` alone need not populate JIT's dispatch cache.
-    Keep the compiled callable itself so later calls reuse its loaded handle.
+    Keep the compiled callable itself so later calls reuse its loaded handle,
+    including after the search object is rebuilt. Both caches are bounded.
     Compilation uses abstract shapes without moving scientific data to the host.
     """
     shapes = tuple((tuple(arg.shape), np.dtype(arg.dtype).str) for arg in args)
-    key = (function, device, shapes, tuple(sorted(static_args.items())))
-    if key not in cache:
-        sharding = jax.sharding.SingleDeviceSharding(device)
+    default_sharding = jax.sharding.SingleDeviceSharding(device)
+    shardings = tuple(getattr(arg, "sharding", None) or default_sharding
+                      for arg in args)
+    weak_types = tuple(bool(getattr(arg, "weak_type", False)) for arg in args)
+    config = tuple(getattr(jax.config, name, None) for name in (
+        "jax_enable_x64", "jax_default_dtype_bits", "jax_dynamic_shapes",
+        "jax_default_matmul_precision", "jax_default_dot_algorithm_preset",
+        "jax_numpy_dtype_promotion", "jax_numpy_rank_promotion",
+        "jax_default_prng_impl", "jax_disable_jit"))
+    static = tuple(sorted(static_args.items()))
+    key = (function, device, shapes, static, shardings, weak_types, config,
+           tuple(type(value) for _, value in static))
+    with _LIVE_EXECUTABLE_CACHE_LOCK:
+        if key in cache:
+            executable = cache[key]
+            _retain_live_executable(cache, key, executable)
+            _retain_live_executable(_LIVE_EXECUTABLE_CACHE, key, executable)
+            return executable
+        if key in _LIVE_EXECUTABLE_CACHE:
+            executable = _LIVE_EXECUTABLE_CACHE[key]
+            _retain_live_executable(_LIVE_EXECUTABLE_CACHE, key, executable)
+            _retain_live_executable(cache, key, executable)
+            return executable
+        from pycbc.benchmark import stage_event
+
+        metadata = dict(kernel=function.__name__, shapes=shapes)
         abstract = tuple(jax.ShapeDtypeStruct(shape, np.dtype(dtype),
-                                             sharding=sharding)
-                         for shape, dtype in shapes)
+                                             sharding=sharding,
+                                             weak_type=weak_type)
+                         for (shape, dtype), sharding, weak_type
+                         in zip(shapes, shardings, weak_types))
         with jax.default_device(device):
-            cache[key] = function.lower(*abstract, **static_args).compile()
-    return cache[key]
+            stage_event('filter_veto_executable_lower', 'start',
+                        synchronize=False, **metadata)
+            try:
+                lowered = function.lower(*abstract, **static_args)
+            finally:
+                stage_event('filter_veto_executable_lower', 'end',
+                            synchronize=False, **metadata)
+            stage_event('filter_veto_executable_load', 'start',
+                        synchronize=False, **metadata)
+            try:
+                executable = lowered.compile()
+            finally:
+                stage_event('filter_veto_executable_load', 'end',
+                            synchronize=False, **metadata)
+        _retain_live_executable(_LIVE_EXECUTABLE_CACHE, key, executable)
+        _retain_live_executable(cache, key, executable)
+        return executable
 
 
 def _compatible_phase_state(correlations, rows, points, bins, n_time):
