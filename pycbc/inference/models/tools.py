@@ -879,6 +879,10 @@ def setup_distance_marg_interpolant(dist_marg,
         if k is not None:
             v[k] = -numpy.inf
         return v
+    from pycbc import scheme
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .proposals_jax import _distance_interpolant
+        return _distance_interpolant(interp_wrapper, interp)
     return interp_wrapper
 
 
@@ -931,6 +935,13 @@ def marginalize_likelihood(sh, hh,
     loglr: float
         The marginalized loglikehood ratio
     """
+    from pycbc.types.backend import backend_array
+    if any(backend_array(value, "jax") is not None for value in (sh, hh, logw)):
+        from .proposals_jax import _marginalize_likelihood_jax
+        return _marginalize_likelihood_jax(
+            sh, hh, logw=logw, phase=phase, distance=distance,
+            skip_vector=skip_vector, interpolator=interpolator,
+            return_peak=return_peak, return_complex=return_complex)
     if distance and not interpolator and not numpy.isscalar(sh):
         raise ValueError("Cannot do vector marginalization "
                          "and distance at the same time")

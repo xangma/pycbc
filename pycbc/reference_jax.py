@@ -309,6 +309,23 @@ def _execute(request):
             result = getattr(utils, operation)(series, **kwargs)
             return (result.numpy(), spacing,
                     None if result._epoch is None else str(result._epoch))
+        elif operation == "inference_weight":
+            from pycbc.types import Array
+
+            h = Array(values)
+            h *= Array(kwargs.pop("weight"))
+            return h.numpy()
+        elif operation == "inference_marginalization":
+            from pycbc.inference.models.tools import marginalize_likelihood
+
+            interpolated = kwargs.pop("interpolated", None)
+            if interpolated is not None:
+                kwargs["interpolator"] = lambda sh, hh: interpolated
+            if values.ndim == 0:
+                values = values[()]
+            if np.ndim(kwargs["hh"]) == 0:
+                kwargs["hh"] = kwargs["hh"][()]
+            return marginalize_likelihood(values, **kwargs)
         elif operation == "psd_horizon":
             import pycbc
             from pycbc.waveform.spa_tmplt import spa_distance

@@ -19,6 +19,8 @@
 import logging
 from argparse import ArgumentParser
 from time import sleep
+from pycbc.types.backend import backend_array
+
 import numpy
 try:
     from mpi4py import MPI
@@ -293,7 +295,14 @@ def check_for_nans(strain_dict):
         :py:class:`pycbc.types.timeseries.TimeSeries`.
     """
     for det, ts in strain_dict.items():
-        if numpy.isnan(ts.numpy()).any():
+        arr = backend_array(ts, "jax")
+        if arr is not None:
+            import jax.numpy as jnp
+
+            has_nans = bool(jnp.isnan(arr).any())
+        else:
+            has_nans = numpy.isnan(ts.numpy()).any()
+        if has_nans:
             raise ValueError("NaN found in strain from {}".format(det))
 
 
