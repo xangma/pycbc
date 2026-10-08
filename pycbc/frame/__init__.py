@@ -1,6 +1,7 @@
 from . frame import (locations_to_cache, read_frame,
                      query_and_read_frame, frame_paths, write_frame,
-                     DataBuffer, StatusBuffer, iDQBuffer)
+                     DataBuffer, StatusBuffer, iDQBuffer,
+                     replay_clock_enabled)
 
 from . store import (read_store)
 

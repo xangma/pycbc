@@ -32,9 +32,22 @@ import lal
 from gwdatafind import find_urls as find_frame_urls
 
 import pycbc
+from pycbc import scheme
 from pycbc.types import TimeSeries, zeros
 
 logger = logging.getLogger('pycbc.frame.frame')
+
+
+def replay_clock_enabled():
+    """Return whether frame reads are driven by a historical replay clock.
+
+    A live search normally uses wall-clock GPS time to decide when a missing
+    frame is late.  That rule is wrong for cached historical data: the frame
+    can be years behind the current GPS time even when the replay is healthy.
+    The executable enables this mode explicitly with ``PYCBC_REPLAY_CLOCK``.
+    """
+    value = os.environ.get("PYCBC_REPLAY_CLOCK", "")
+    return value.lower() in {"1", "true", "yes", "on"}
 
 # map LAL series types to corresponding functions and Numpy types
 _fr_type_map = {
@@ -519,7 +532,16 @@ class DataBuffer(object):
         self.detector = channel_name.split(':')[0]
 
         self.update_cache()
-        self.channel_type, self.raw_sample_rate = self._retrieve_metadata(self.stream, self.channel_name)
+        metadata = None
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.frame.frame_jax import retrieve_frame_metadata_jax
+            metadata = retrieve_frame_metadata_jax(
+                self.stream, self.channel_name, self.frame_src
+            )
+        self.channel_type, self.raw_sample_rate = (
+            metadata if metadata is not None else
+            self._retrieve_metadata(self.stream, self.channel_name)
+        )
 
         raw_size = self.raw_sample_rate * max_buffer
         self.raw_buffer = TimeSeries(zeros(raw_size, dtype=dtype),
@@ -683,7 +705,23 @@ class DataBuffer(object):
         data: TimeSeries
             TimeSeries containg 'blocksize' seconds of frame data
         """
-        if self.force_update_cache:
+        replay_reader = (getattr(self, '_jax_replay_reader', None)
+                         if isinstance(scheme.mgr.state, scheme.JAXScheme)
+                         else None)
+        refresh_cache = self.force_update_cache
+        if replay_reader is not None:
+            from pycbc.frame.frame_jax import JAXReplayReadError
+            try:
+                return replay_reader.advance(self, blocksize)
+            except JAXReplayReadError as exc:
+                logger.warning(
+                    "JAX replay read-ahead unavailable for %s; falling back "
+                    "to incremental frame reads: %s", self.channel_name, exc
+                )
+                self._jax_replay_reader = None
+                self.update_cache()
+                refresh_cache = False
+        if refresh_cache:
             self.update_cache()
         while True:
             try:
@@ -691,6 +729,14 @@ class DataBuffer(object):
                     self.update_cache_by_increment(blocksize)
                 return DataBuffer.advance(self, blocksize)
             except RuntimeError:
+                # Historical replay must never compare a cached frame's GPS
+                # epoch with the host's current GPS clock.  Missing cached
+                # input is reported immediately, while a live search retains
+                # its normal retry-until-timeout behavior.
+                if (isinstance(scheme.mgr.state, scheme.JAXScheme)
+                        and replay_clock_enabled()):
+                    self.null_advance(blocksize)
+                    return None
                 if pycbc.gps_now() > timeout + self.raw_buffer.end_time:
                     # The frame is not there and it should be by now,
                     # so we give up and treat it as zeros
@@ -977,6 +1023,7 @@ class iDQBuffer(object):
 
 
 __all__ = [
+    'replay_clock_enabled',
     'locations_to_cache',
     'read_frame',
     'query_and_read_frame',
