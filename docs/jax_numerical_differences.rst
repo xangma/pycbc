@@ -62,9 +62,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - Filtering and vetoes
      - :doc:`jax_filtering_numerical_differences`: accumulation, template
        normalization, interpolation and chi-square construction.
-   * - Search
-     - :doc:`jax_search_numerical_differences`: ranking, tied selection,
-       event cuts and coincidence ordering.
+   * - Search and output
+     - :doc:`jax_search_numerical_differences` and :doc:`jax_commands`: ranking,
+       tied selections and partition order.
    * - Waveforms
      - :doc:`jax_waveform`: diffGW convention mapping, phase arithmetic,
        bank decompression and tapers.

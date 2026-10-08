@@ -58,7 +58,7 @@ The waveform guide describes supported generation and numerical validation.
 Searches
 --------
 
-Use ``pycbc_inspiral_jax`` for JAX Inspiral searches; the library guide describes batched filtering and events.
+Use ``pycbc_inspiral_jax`` and ``pycbc_live_jax`` for JAX searches. The original search commands retain their CPU pipelines.
 
 .. toctree::
    :maxdepth: 1

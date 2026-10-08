@@ -142,4 +142,6 @@ See :doc:`jax_search_numerical_differences` and its executable notebook for
 controlled comparisons and composed exact results. Conditioning, PSD and veto
 controls are described with their owning interfaces. Template generation is
 held fixed in these examples.
-
+The dedicated search commands are described in :ref:`JAX Inspiral <jax-inspiral>` and
+:ref:`JAX Live <jax-live>`. Waveform generation and its original-code validation option
+are described in :doc:`jax_waveform`.
