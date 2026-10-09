@@ -1999,8 +1999,10 @@ def enqueue_live_data_jax(control, data_reader):
     if not prepared:
         return control.process_all()
     metadata = None
+    # The waveform reference is resolved before these filter inputs exist.
     if (os.environ.get("PYCBC_JAX_LIVE_RESIDENT", "1") != "0"
-            and not getattr(scheme.mgr.state, "jax_reference_operations", ())
+            and not (set(getattr(
+                scheme.mgr.state, "jax_reference_operations", ())) - {"waveform"})
             and jax.config.jax_enable_x64
             and jax.config.jax_numpy_dtype_promotion == "standard"
             and getattr(scheme.mgr.state, "jax_chisq_mode",
@@ -2057,7 +2059,8 @@ def finish_live_data_jax(control, token):
         raise ValueError("Live prepared inputs belong to another control")
     from pycbc import scheme
     if (token.metadata is None
-            or getattr(scheme.mgr.state, "jax_reference_operations", ())):
+            or (set(getattr(
+                scheme.mgr.state, "jax_reference_operations", ())) - {"waveform"})):
         return _finish_live_data_compat(control, token)
     plans = []
     for batch, psd in zip(token.prepared, token.psds):

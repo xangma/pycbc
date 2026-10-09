@@ -161,15 +161,71 @@ def _assert_exact(actual, expected, cpu_surrogate=False):
     ((), (), ()),
 ])
 @pytest.mark.parametrize("limit", [None, 3, -1])
-def test_resident_candidates_vetoes_match_sparse_path(device, selected, limit):
+@pytest.mark.parametrize("reference_operations", [(), ("waveform",)])
+def test_resident_candidates_vetoes_match_sparse_path(
+        device, selected, limit, reference_operations):
     """Retain every field, dtype, order, bin grid and arithmetic boundary."""
-    with scheme.JAXScheme(device), enable_x64(True):
+    with scheme.JAXScheme(
+            device, reference_operations=reference_operations), enable_x64(True):
         control, prepared, reader = _fixture(selected, limit=limit)
         resident = _resident(control, prepared, reader)
         assert isinstance(resident, module._LiveResidentResults)
         actual = resident.materialize()
         expected = _oracle(control, prepared)
         _assert_exact(actual, expected, cpu_surrogate=device == "cpu")
+
+
+def test_waveform_reference_keeps_resident_admission(monkeypatch):
+    """Upstream waveform validation keeps prepared filtering inputs resident."""
+    with scheme.JAXScheme("cpu", reference_operations=("waveform",)), enable_x64(True):
+        control, prepared, reader = _fixture()
+        control.block_id = 0
+        control.set_data = lambda data: None
+
+        def prepare(owner):
+            batch = prepared[owner.block_id]
+            owner.block_id += 1
+            return batch
+
+        # Exercise the CUDA admission guard with real prepared arrays; the
+        # numerical comparison above runs the actual retained device kernels.
+        monkeypatch.setattr(scheme.mgr.state, "jax_device",
+                            SimpleNamespace(platform="gpu"))
+        monkeypatch.setattr(module, "_live_prepare_batch_jax", prepare)
+        token = module.enqueue_live_data_jax(control, reader)
+        assert token.metadata is not None
+
+
+def test_other_reference_controls_keep_resident_compatibility(monkeypatch):
+    """Every other validation selector retains both conservative guards."""
+    with scheme.JAXScheme("cpu"), enable_x64(True):
+        control, prepared, reader = _fixture()
+        metadata = module._live_resident_metadata(control, prepared)
+        control.set_data = lambda data: None
+        sentinel = object()
+
+        def prepare(owner):
+            batch = prepared[owner.block_id]
+            owner.block_id += 1
+            return batch
+
+        monkeypatch.setattr(scheme.mgr.state, "jax_device",
+                            SimpleNamespace(platform="gpu"))
+        monkeypatch.setattr(module, "_live_prepare_batch_jax", prepare)
+        monkeypatch.setattr(module, "_finish_live_data_compat",
+                            lambda owner, token: sentinel)
+        for operation in scheme.JAX_REFERENCE_OPERATIONS - {"waveform"}:
+            for references in ((operation,), ("waveform", operation)):
+                monkeypatch.setattr(scheme.mgr.state, "jax_reference_operations",
+                                    frozenset(references))
+                control.block_id = 0
+                token = module.enqueue_live_data_jax(control, reader)
+                assert token.metadata is None, references
+                # The finish guard must also apply if metadata was admitted
+                # before the caller selected a filtering validation route.
+                admitted = module._LiveEnqueuedData(control, prepared, reader, metadata)
+                assert (module.finish_live_data_jax(control, admitted)
+                        is sentinel), references
 
 
 @pytest.mark.parametrize("device", _devices())
